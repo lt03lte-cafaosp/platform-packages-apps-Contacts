@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -121,6 +122,7 @@ public class ViewContactActivity extends ListActivity
 
     private static final int DIALOG_CONFIRM_DELETE = 1;
 
+    public static final int MENU_ITEM_SHOW_INTENT = 0;
     public static final int MENU_ITEM_DELETE = 1;
     public static final int MENU_ITEM_MAKE_DEFAULT = 2;
     public static final int MENU_ITEM_SHOW_BARCODE = 3;
@@ -175,10 +177,12 @@ public class ViewContactActivity extends ListActivity
         }
         switch (view.getId()) {
             case R.id.star: {
-                int oldStarredState = mCursor.getInt(CONTACT_STARRED_COLUMN);
-                ContentValues values = new ContentValues(1);
-                values.put(People.STARRED, oldStarredState == 1 ? 0 : 1);
-                getContentResolver().update(mUri, values, null, null);
+                if ( mCursor.getCount() > 0 ) {
+                    int oldStarredState = mCursor.getInt(CONTACT_STARRED_COLUMN);
+                    ContentValues values = new ContentValues(1);
+                    values.put(People.STARRED, oldStarredState == 1 ? 0 : 1);
+                    getContentResolver().update(mUri, values, null, null);
+                }
                 break;
             }
         }
@@ -241,6 +245,13 @@ public class ViewContactActivity extends ListActivity
     protected void onResume() {
         super.onResume();
         mObserverRegistered = true;
+        // Recreating the mCursor Object if it is null otherwise requery the
+        // same mCursor Object. 
+        if (mCursor == null) {
+           mCursor = mResolver.query(mUri, CONTACT_PROJECTION, null, null, null);
+        } else {
+           mCursor.requery();
+        }
         mCursor.registerContentObserver(mObserver);
         dataChanged();
     }
@@ -469,6 +480,30 @@ public class ViewContactActivity extends ListActivity
                 values.put(People.PRIMARY_PHONE_ID, entry.id);
                 getContentResolver().update(mUri, values, null, null);
                 dataChanged();
+                return true;
+            }
+            case MENU_ITEM_SHOW_INTENT: {
+               AdapterView.AdapterContextMenuInfo info;
+                try {
+                     info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+                } catch (ClassCastException e) {
+                    Log.e(TAG, "bad menuInfo", e);
+                    break;
+                }
+
+                ViewEntry entry = ContactEntryAdapter.getEntry(mSections, info.position,
+                        SHOW_SEPARATORS);
+                if (entry != null) {
+                   Intent intent = entry.intent;
+                   if (intent != null) {
+                      try {
+                           startActivity(intent);
+                      } catch (ActivityNotFoundException e) {
+                          Log.e(TAG, "No activity found for intent: " + intent);
+                          signalError();
+                      }
+                   }
+                }
                 return true;
             }
         }
