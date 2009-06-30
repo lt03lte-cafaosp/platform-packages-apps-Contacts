@@ -519,9 +519,9 @@ public class ViewContactActivity extends ListActivity
                 return true;
             }
             case MENU_ITEM_SHOW_INTENT: {
-               AdapterView.AdapterContextMenuInfo info;
+                AdapterView.AdapterContextMenuInfo info;
                 try {
-                     info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+                    info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
                 } catch (ClassCastException e) {
                     Log.e(TAG, "bad menuInfo", e);
                     break;
@@ -530,17 +530,17 @@ public class ViewContactActivity extends ListActivity
                 ViewEntry entry = ContactEntryAdapter.getEntry(mSections, info.position,
                         SHOW_SEPARATORS);
                 if (entry != null) {
-                   Intent intent = entry.intent;
-                   if (intent != null) {
-                      try {
-                           startActivity(intent);
-                      } catch (ActivityNotFoundException e) {
-                          Log.e(TAG, "No activity found for intent: " + intent);
-                          signalError();
-                      }
-                   }
-                }
-                return true;
+                        Intent intent = entry.intent;
+                        if (intent != null) {
+                        try {
+                            startActivity(intent);
+                        } catch (ActivityNotFoundException e) {
+                            Log.e(TAG, "No activity found for intent: " + intent);
+                            signalError();
+                            }
+                        }
+                 }
+                 return true;
             }
         }
         return super.onContextItemSelected(item);
