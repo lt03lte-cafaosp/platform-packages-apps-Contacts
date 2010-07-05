@@ -92,8 +92,9 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
 	/* If intent is to view the Contacts List, prevent Dialer tab
 	 * from being set as current tab.
 	 */
-        if (!getClass().getName().equals(componentName) &&
-	    !FAVORITES_ENTRY_COMPONENT.equals(componentName)) {
+        if ((!getClass().getName().equals(componentName) &&
+	    !CONTACTS_LAUNCH_ACTIVITY.equals(componentName)) &&
+            !FAVORITES_ENTRY_COMPONENT.equals(componentName)) {
             mTabHost.setAvoidFirstTabLoad(true);
 	}
 
@@ -103,7 +104,8 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
 	/* If intent is to view the Contacts List, restore the state of mTabhost so
 	 * that the rest of the application semantics remains unchanged.
 	 */
-        if (!getClass().getName().equals(componentName) &&
+        if ((!getClass().getName().equals(componentName) &&
+	    !CONTACTS_LAUNCH_ACTIVITY.equals(componentName)) &&
 	    !FAVORITES_ENTRY_COMPONENT.equals(componentName)) {
 	    mTabHost.setCurrentTabToZero();
 	    mTabHost.setAvoidFirstTabLoad(false);
@@ -117,7 +119,6 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
         final SharedPreferences prefs = getSharedPreferences(PREFS_DIALTACTS, MODE_PRIVATE);
         mLastManuallySelectedTab = prefs.getInt(PREF_LAST_MANUALLY_SELECTED_TAB,
                 PREF_LAST_MANUALLY_SELECTED_TAB_DEFAULT);
-
         setCurrentTab(intent);
 
         if (intent.getAction().equals(UI.FILTER_CONTACTS_ACTION)
