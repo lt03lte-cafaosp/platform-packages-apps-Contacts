@@ -876,7 +876,7 @@ public class RecentCallsListActivity extends ListActivity
         }
 
         if (numberUri != null) {
-            Intent intent = new Intent(Intent.ACTION_CALL_PRIVILEGED, numberUri);
+            Intent intent = ContactsUtils.newCallOrDialIntent(numberUri, 0);
             menu.add(0, 0, 0, getResources().getString(R.string.recentCalls_callNumber, number))
                     .setIntent(intent);
         }
@@ -1006,17 +1006,6 @@ public class RecentCallsListActivity extends ListActivity
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_CALL:
-                try {
-                    ITelephony phone = ITelephony.Stub.asInterface(
-                            ServiceManager.checkService("phone"));
-                    if (phone != null && !phone.isIdle()) {
-                        // Let the super class handle it
-                        break;
-                    }
-                } catch (RemoteException re) {
-                    // Fall through and try to call the contact
-                }
-
                 callEntry(getListView().getSelectedItemPosition());
                 return true;
         }
@@ -1088,10 +1077,9 @@ public class RecentCallsListActivity extends ListActivity
                 // If the caller-id matches a contact with a better qualified number, use it
                 number = getBetterNumberFromContacts(number);
             }
-            Intent intent = new Intent(Intent.ACTION_CALL_PRIVILEGED,
-                    Uri.fromParts("tel", number, null));
-            intent.setFlags(
+            Intent intent = ContactsUtils.newCallOrDialIntent(Uri.fromParts("tel", number, null),
                     Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+
             startActivity(intent);
         }
     }
