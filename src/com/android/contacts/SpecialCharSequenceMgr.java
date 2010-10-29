@@ -31,6 +31,8 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.provider.Telephony.Intents;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -169,10 +171,35 @@ public class SpecialCharSequenceMgr {
     }
 
     static boolean handlePinEntry(Context context, String input) {
+        int subscription = 0;
         if ((input.startsWith("**04") || input.startsWith("**05")) && input.endsWith("#")) {
             try {
+                if (input.startsWith("**05")) {
+                    boolean isSimPukLocked = false;
+                    // Called when user tries to unblock PIN using dialer app.
+                    // Check which subscription is currently in PUK_REQUIRED state.
+                    // If none of the subscriptions are PIN-Blocked, this may be a
+                    // change pin request.
+                    for (int i = 0; i < TelephonyManager.getPhoneCount(); i++) {
+                        isSimPukLocked = ITelephony.Stub.asInterface(ServiceManager.getService("phone"))
+                                .isSimPukLockedOnSubscription(i);
+                        if (isSimPukLocked) {
+                            subscription = i;
+                            break;
+                        }
+                    }
+                } else {
+                    // It's a change PIN request. Use Voice Subscription.
+                    try {
+                        subscription = Settings.System.getInt
+                                (context.getContentResolver(),Settings.System.DUAL_SIM_VOICE_CALL);
+                    } catch (SettingNotFoundException se) {
+                        Log.e(TAG, "Settings.System.DUAL_SIM_VOICE_CALL not found!!!");
+                    }
+                }
+                Log.d(TAG, "Sending MMI on subscription :" + subscription);
                 return ITelephony.Stub.asInterface(ServiceManager.getService("phone"))
-                        .handlePinMmi(input);
+                        .handlePinMmiOnSubscription(input, subscription);
             } catch (RemoteException e) {
                 Log.e(TAG, "Failed to handlePinMmi due to remote exception");
                 return false;
