@@ -31,6 +31,8 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.provider.Telephony.Intents;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -169,10 +171,14 @@ public class SpecialCharSequenceMgr {
     }
 
     static boolean handlePinEntry(Context context, String input) {
+        int subscription = 0;
         if ((input.startsWith("**04") || input.startsWith("**05")) && input.endsWith("#")) {
             try {
+                // Use Voice Subscription for both change PIN & unblock PIN using PUK.
+                subscription = TelephonyManager.getPreferredVoiceSubscription();
+                Log.d(TAG, "Sending MMI on subscription :" + subscription);
                 return ITelephony.Stub.asInterface(ServiceManager.getService("phone"))
-                        .handlePinMmi(input);
+                        .handlePinMmiOnSubscription(input, subscription);
             } catch (RemoteException e) {
                 Log.e(TAG, "Failed to handlePinMmi due to remote exception");
                 return false;
