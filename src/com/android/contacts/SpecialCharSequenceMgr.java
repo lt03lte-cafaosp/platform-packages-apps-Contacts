@@ -174,29 +174,8 @@ public class SpecialCharSequenceMgr {
         int subscription = 0;
         if ((input.startsWith("**04") || input.startsWith("**05")) && input.endsWith("#")) {
             try {
-                if (input.startsWith("**05")) {
-                    boolean isSimPukLocked = false;
-                    // Called when user tries to unblock PIN using dialer app.
-                    // Check which subscription is currently in PUK_REQUIRED state.
-                    // If none of the subscriptions are PIN-Blocked, this may be a
-                    // change pin request.
-                    for (int i = 0; i < TelephonyManager.getPhoneCount(); i++) {
-                        isSimPukLocked = ITelephony.Stub.asInterface(ServiceManager.getService("phone"))
-                                .isSimPukLockedOnSubscription(i);
-                        if (isSimPukLocked) {
-                            subscription = i;
-                            break;
-                        }
-                    }
-                } else {
-                    // It's a change PIN request. Use Voice Subscription.
-                    try {
-                        subscription = Settings.System.getInt
-                                (context.getContentResolver(),Settings.System.DUAL_SIM_VOICE_CALL);
-                    } catch (SettingNotFoundException se) {
-                        Log.e(TAG, "Settings.System.DUAL_SIM_VOICE_CALL not found!!!");
-                    }
-                }
+                // Use Voice Subscription for both change PIN & unblock PIN using PUK.
+                subscription = TelephonyManager.getPreferredVoiceSubscription();
                 Log.d(TAG, "Sending MMI on subscription :" + subscription);
                 return ITelephony.Stub.asInterface(ServiceManager.getService("phone"))
                         .handlePinMmiOnSubscription(input, subscription);
