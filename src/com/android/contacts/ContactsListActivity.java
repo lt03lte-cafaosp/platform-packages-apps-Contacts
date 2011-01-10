@@ -1021,6 +1021,9 @@ public class ContactsListActivity extends ListActivity implements View.OnCreateC
     protected void onDestroy() {
         super.onDestroy();
         mPhotoLoader.stop();
+        if (mContactsPrefs != null) {
+            mContactsPrefs.unRegisterObserver();
+        }
     }
 
     @Override
