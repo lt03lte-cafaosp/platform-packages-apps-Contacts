@@ -1389,7 +1389,15 @@ public final class EditContactActivity extends Activity
 
         int value;
         if (!skipAccountTypeCheck) {
-            value = oneSource.accountType.compareTo(twoSource.accountType);
+            String oneAccountType = oneSource.accountType;
+            if (oneAccountType == null) {
+                oneAccountType = "";
+            }
+            String twoAccountType = twoSource.accountType;
+            if (twoAccountType == null) {
+                twoAccountType = "";
+            }
+            value = oneAccountType.compareTo(twoAccountType);
             if (value != 0) {
                 return value;
             }
