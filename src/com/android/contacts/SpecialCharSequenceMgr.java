@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (C) 2006, 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.android.contacts;
 
 import com.android.internal.telephony.ITelephony;
-
 import android.app.AlertDialog;
 import android.app.KeyguardManager;
 import android.app.ProgressDialog;
@@ -205,8 +204,9 @@ public class SpecialCharSequenceMgr {
     }
 
     static void showIMEIPanel(Context context, boolean useSystemWindow) {
+        int subscription = TelephonyManager.getPreferredVoiceSubscription();
         String imeiStr = ((TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE))
-                .getDeviceId();
+                .getDeviceId(subscription);
 
         AlertDialog alert = new AlertDialog.Builder(context)
                 .setTitle(R.string.imei)
@@ -218,8 +218,9 @@ public class SpecialCharSequenceMgr {
     }
 
     static void showMEIDPanel(Context context, boolean useSystemWindow) {
+        int subscription = TelephonyManager.getPreferredVoiceSubscription();
         String meidStr = ((TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE))
-                .getDeviceId();
+                .getDeviceId(subscription);
 
         AlertDialog alert = new AlertDialog.Builder(context)
                 .setTitle(R.string.meid)
