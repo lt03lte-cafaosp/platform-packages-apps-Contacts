@@ -188,8 +188,9 @@ public class SpecialCharSequenceMgr {
 
     static boolean handleIMEIDisplay(Context context, String input, boolean useSystemWindow) {
         if (input.equals(MMI_IMEI_DISPLAY)) {
+            int subscription = TelephonyManager.getPreferredVoiceSubscription();
             int phoneType = ((TelephonyManager)context.getSystemService(
-                    Context.TELEPHONY_SERVICE)).getPhoneType();
+                    Context.TELEPHONY_SERVICE)).getPhoneType(subscription);
 
             if (phoneType == TelephonyManager.PHONE_TYPE_GSM) {
                 showIMEIPanel(context, useSystemWindow);
