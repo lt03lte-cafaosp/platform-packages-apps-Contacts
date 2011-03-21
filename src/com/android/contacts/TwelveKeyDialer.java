@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2007, 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,6 +105,7 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
     private static final int MENU_ADD_CONTACTS = 1;
     private static final int MENU_2S_PAUSE = 2;
     private static final int MENU_WAIT = 3;
+    private int mSubscription = 0;
 
     // Last number dialed, retrieved asynchronously from the call DB
     // in onCreate. This number is displayed when the user hits the
@@ -769,6 +770,7 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         StickyTabs.saveTab(this, getIntent());
         Intent intent = new Intent(Intent.ACTION_CALL_PRIVILEGED,
                 Uri.fromParts("voicemail", EMPTY_NUMBER, null));
+        intent.putExtra("Subscription", mSubscription);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
         mDigits.getText().clear();
@@ -1183,7 +1185,8 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
     private void initVoicemailButton() {
         boolean hasVoicemail = false;
         try {
-            hasVoicemail = TelephonyManager.getDefault().getVoiceMailNumber() != null;
+            mSubscription = TelephonyManager.getDefault().getPreferredVoiceSubscription();
+            hasVoicemail = TelephonyManager.getDefault().getVoiceMailNumber(mSubscription) != null;
         } catch (SecurityException se) {
             // Possibly no READ_PHONE_STATE privilege.
         }

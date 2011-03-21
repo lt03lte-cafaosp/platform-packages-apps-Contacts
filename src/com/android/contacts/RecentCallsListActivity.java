@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2007, 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,6 +134,7 @@ public class RecentCallsListActivity extends ListActivity
     RecentCallsAdapter mAdapter;
     private QueryHandler mQueryHandler;
     String mVoiceMailNumber;
+    private int mSubscription = 0;
 
     private boolean mScrollToTop;
 
@@ -838,7 +839,9 @@ public class RecentCallsListActivity extends ListActivity
         super.onCreate(state);
 
         setContentView(R.layout.recent_calls);
-
+        final Intent intent = getIntent();
+        mSubscription = intent.getIntExtra("Subscription",
+                TelephonyManager.getDefaultSubscription());
         // Typing here goes to the dialer
         setDefaultKeyMode(DEFAULT_KEYS_DIALER);
 
@@ -847,7 +850,7 @@ public class RecentCallsListActivity extends ListActivity
         setListAdapter(mAdapter);
 
         mVoiceMailNumber = ((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE))
-                .getVoiceMailNumber();
+                .getVoiceMailNumber(mSubscription);
         mQueryHandler = new QueryHandler(this);
 
         // Reset locale-based formatting cache

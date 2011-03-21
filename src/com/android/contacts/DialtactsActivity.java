@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2008, 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract.Intents.UI;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Window;
 import android.widget.TabHost;
@@ -58,6 +59,7 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
     private TabHost mTabHost;
     private String mFilterText;
     private Uri mDialUri;
+    private int mSubscription = 0;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -92,6 +94,8 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
 	    mTabHost.setAvoidFirstTabLoad(false);
 	}
 
+        mSubscription = intent.getIntExtra("Subscription",
+                TelephonyManager.getDefaultSubscription());
         setupCallLogTab();
         setupContactsTab();
         setupFavoritesTab();
@@ -121,6 +125,7 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
     private void setupCallLogTab() {
         // Force the class since overriding tab entries doesn't work
         Intent intent = new Intent("com.android.phone.action.RECENT_CALLS");
+        intent.putExtra("Subscription", mSubscription);
         intent.setClass(this, RecentCallsListActivity.class);
         StickyTabs.setTab(intent, TAB_INDEX_CALL_LOG);
 
