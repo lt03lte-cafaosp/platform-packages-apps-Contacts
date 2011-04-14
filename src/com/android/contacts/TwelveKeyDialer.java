@@ -1184,12 +1184,20 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
      */
     private void initVoicemailButton() {
         boolean hasVoicemail = false;
-        try {
-            mSubscription = TelephonyManager.getDefault().getPreferredVoiceSubscription();
-            hasVoicemail = TelephonyManager.getDefault().getVoiceMailNumber(mSubscription) != null;
-        } catch (SecurityException se) {
-            // Possibly no READ_PHONE_STATE privilege.
-        }
+        boolean promptEnabled = Settings.System.getInt(getContentResolver(),
+                Settings.System.MULTI_SIM_VOICE_PROMPT, 0) == 1;
+        Log.d(TAG, "prompt enabled :  "+ promptEnabled);
+        if (promptEnabled) {
+            hasVoicemail = hasVMNumber();
+        } else {
+            try {
+                mSubscription = TelephonyManager.getDefault().getPreferredVoiceSubscription();
+                hasVoicemail = TelephonyManager.getDefault().getVoiceMailNumber(mSubscription) != null;
+            } catch (SecurityException se) {
+                // Possibly no READ_PHONE_STATE privilege.
+            }
+       }
+       Log.d(TAG, "hasVoicemail :  "+ hasVoicemail);
 
         mVoicemailButton = mVoicemailDialAndDeleteRow.findViewById(R.id.voicemailButton);
         if (hasVoicemail) {
@@ -1197,6 +1205,22 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         } else {
             mVoicemailButton.setEnabled(false);
         }
+    }
+
+    private boolean hasVMNumber() {
+        boolean hasVMNum = false;
+        int phoneCount = TelephonyManager.getPhoneCount();
+        for (int i = 0; i < phoneCount; i++) {
+            try {
+                hasVMNum = TelephonyManager.getDefault().getVoiceMailNumber(i) != null;
+            } catch (SecurityException se) {
+                // Possibly no READ_PHONE_STATE privilege.
+            }
+            if (hasVMNum) {
+                break;
+            }
+        }
+        return hasVMNum;
     }
 
     /**
