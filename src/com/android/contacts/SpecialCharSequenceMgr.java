@@ -50,6 +50,8 @@ import android.widget.Toast;
 public class SpecialCharSequenceMgr {
     private static final String TAG = "SpecialCharSequenceMgr";
     private static final String MMI_IMEI_DISPLAY = "*#06#";
+    private static final int SUB1 = 0;
+    private static final int SUB2 = 1;
 
     /** This class is never instantiated. */
     private SpecialCharSequenceMgr() {
@@ -122,6 +124,8 @@ public class SpecialCharSequenceMgr {
         }
 
         int len = input.length();
+        int subscription = 0;
+        Uri uri = null;
         if ((len > 1) && (len < 5) && (input.endsWith("#"))) {
             try {
                 // get the ordinal number of the sim contact
@@ -157,9 +161,17 @@ public class SpecialCharSequenceMgr {
 
                 // display the progress dialog
                 sc.progressDialog.show();
+                subscription = TelephonyManager.getPreferredVoiceSubscription();
 
+                if(subscription == SUB1) {
+                    uri = Uri.parse("content://icc/adn_sub1");
+                } else if (subscription == SUB2) {
+                    uri = Uri.parse("content://icc/adn_sub2");
+                } else {
+                    Log.d(TAG, "handleAdnEntry:Invalid Subscription");
+                }
                 // run the query.
-                handler.startQuery(ADN_QUERY_TOKEN, sc, Uri.parse("content://icc/adn"),
+                handler.startQuery(ADN_QUERY_TOKEN, sc, uri,
                         new String[]{ADN_PHONE_NUMBER_COLUMN_NAME}, null, null, null);
                 return true;
             } catch (NumberFormatException ex) {
