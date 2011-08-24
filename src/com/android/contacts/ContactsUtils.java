@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +20,8 @@ package com.android.contacts;
 
 import com.android.contacts.model.ContactsSource;
 import com.android.contacts.util.Constants;
+import com.android.internal.telephony.ITelephony;
+import com.android.internal.telephony.ITelephony.Stub;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -30,6 +33,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
@@ -406,8 +411,8 @@ public class ContactsUtils {
      * @throws NullPointerException when the given argument is null.
      */
     public static void initiateCall(Context context, CharSequence phoneNumber) {
-        Intent intent = new Intent(Intent.ACTION_CALL_PRIVILEGED,
-                Uri.fromParts("tel", phoneNumber.toString(), null));
+        Intent intent = newCallOrDialIntent(
+                Uri.fromParts("tel", phoneNumber.toString(), null), 0);
         context.startActivity(intent);
     }
 
@@ -490,4 +495,28 @@ public class ContactsUtils {
         }
         return TextUtils.equals(a.getAction(), b.getAction());
     }
+
+    public static Intent newCallOrDialIntent(Uri numberUri, int flags) {
+        Intent intent;
+
+        try {
+            ITelephony phone = ITelephony.Stub.asInterface(
+                    ServiceManager.checkService("phone"));
+            if (phone != null && !phone.isIdle()) {
+                intent = new Intent(Intent.ACTION_DIAL);
+                intent.putExtra(ContactsUtils.ADD_CALL_MODE_KEY, true);
+                intent.setData(numberUri);
+                return intent;
+            }
+        } catch (RemoteException re) {
+            // Fall through and try to call the contact
+        }
+        intent = new Intent(Intent.ACTION_CALL_PRIVILEGED, numberUri);
+        if (flags != 0)
+            intent.setFlags(flags);
+
+        return intent;
+    }
+
+    static final String ADD_CALL_MODE_KEY = "add_call_mode";
 }
