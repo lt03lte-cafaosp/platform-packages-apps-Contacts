@@ -138,7 +138,10 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
     /** Indicates if we are opening this dialer to add a call from the InCallScreen. */
     private boolean mIsAddCallMode;
 
-    PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
+    private PhoneStateListener[] mPhoneStateListener;
+
+    private PhoneStateListener getPhoneStateListener(int subscription) {
+        PhoneStateListener phoneStateListener = new PhoneStateListener(subscription) {
             /**
              * Listen for phone state changes so that we can take down the
              * "dialpad chooser" if the phone becomes idle while the
@@ -148,7 +151,8 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
             public void onCallStateChanged(int state, String incomingNumber) {
                 // Log.i(TAG, "PhoneStateListener.onCallStateChanged: "
                 //       + state + ", '" + incomingNumber + "'");
-                if ((state == TelephonyManager.CALL_STATE_IDLE) && dialpadChooserVisible()) {
+                if ((state == TelephonyManager.CALL_STATE_IDLE) && dialpadChooserVisible()
+                    && !phoneIsInUse()) {
                     // Log.i(TAG, "Call ended with dialpad chooser visible!  Taking it down...");
                     // Note there's a race condition in the UI here: the
                     // dialpad chooser could conceivably disappear (on its
@@ -160,6 +164,8 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
                 }
             }
         };
+        return phoneStateListener;
+    }
 
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
         // Do nothing
@@ -253,6 +259,11 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
              Log.e(TAG, "Vibrate control bool missing.", nfe);
         }
 
+        int numPhones = TelephonyManager.getPhoneCount();
+        mPhoneStateListener = new PhoneStateListener[numPhones];
+        for (int i = 0; i < numPhones; i++) {
+            mPhoneStateListener[i] = getPhoneStateListener(i);
+        }
     }
 
     @Override
@@ -451,7 +462,9 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         // purely so that we can take down the "dialpad chooser" if the
         // phone becomes idle while the chooser UI is visible.
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        for (int i = 0; i < TelephonyManager.getPhoneCount(); i++) {
+            telephonyManager.listen(mPhoneStateListener[i], PhoneStateListener.LISTEN_CALL_STATE);
+        }
 
         // Potentially show hint text in the mDigits field when the user
         // hasn't typed any digits yet.  (If there's already an active call,
@@ -495,7 +508,9 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
 
         // Stop listening for phone state changes.
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+        for (int i = 0; i < TelephonyManager.getPhoneCount(); i++) {
+            telephonyManager.listen(mPhoneStateListener[i], PhoneStateListener.LISTEN_NONE);
+        }
 
         synchronized(mToneGeneratorLock) {
             if (mToneGenerator != null) {
@@ -1064,14 +1079,17 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
      *              is active (ie. off hook or ringing or dialing).
      */
     private boolean phoneIsInUse() {
-        boolean phoneInUse = false;
         try {
             ITelephony phone = ITelephony.Stub.asInterface(ServiceManager.checkService("phone"));
-            if (phone != null) phoneInUse = !phone.isIdle();
+            if (phone != null) {
+                for (int i = 0; i < TelephonyManager.getPhoneCount(); i++) {
+                   if(!phone.isIdleOnSubscription(i)) return true;
+               }
+            }
         } catch (RemoteException e) {
             Log.w(TAG, "phone.isIdle() failed", e);
         }
-        return phoneInUse;
+        return false;
     }
 
     /**
