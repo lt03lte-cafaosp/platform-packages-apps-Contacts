@@ -292,12 +292,7 @@ public class DialpadFragment extends Fragment
 
         mDialpad = fragmentView.findViewById(R.id.dialpad);  // This is null in landscape mode.
 
-        // In landscape we put the keyboard in phone mode.
-        if (null == mDialpad) {
-            mDigits.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
-        } else {
-            mDigits.setCursorVisible(false);
-        }
+        mDigits.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
 
         // Set up the "dialpad chooser" UI; see showDialpadChooser().
         mDialpadChooser = (ListView) fragmentView.findViewById(R.id.dialpadChooser);

@@ -41,6 +41,9 @@
         android:hint="@string/dialerKeyboardHintText"
      />
 
+    <!-- Keypad section -->
+    <include layout="@layout/dialpad" />
+
     <!-- Horizontal row of buttons (Voicemail + DialButton + Delete.) -->
     <include layout="@layout/dialpad_additional_buttons" />
 
