@@ -164,7 +164,7 @@ public class SpecialCharSequenceMgr {
                 subscription = TelephonyManager.getPreferredVoiceSubscription();
 
                 if(subscription == SUB1) {
-                    uri = Uri.parse("content://icc/adn_sub1");
+                    uri = Uri.parse("content://icc/adn");
                 } else if (subscription == SUB2) {
                     uri = Uri.parse("content://icc/adn_sub2");
                 } else {
