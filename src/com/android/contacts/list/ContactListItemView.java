@@ -349,7 +349,7 @@ public class ContactListItemView extends ViewGroup
                 // See also issue 5438757 and 5439903.
                 final int labelViewWidth = width - mExtraPaddingLeft - mExtraPaddingRight
                         - (mPhotoViewWidth + mGapBetweenImageAndText)
-                        - mDataView.getMeasuredWidth()
+                        - (isVisible(mDataView) ? mDataView.getMeasuredWidth() : 0)
                         - mGapBetweenLabelAndData;
                 final int labelViewWidthMeasureSpec = MeasureSpec.makeMeasureSpec(
                         labelViewWidth, MeasureSpec.AT_MOST);
