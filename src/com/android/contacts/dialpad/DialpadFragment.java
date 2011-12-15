@@ -46,6 +46,7 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
+import android.os.SystemClock;
 import android.provider.Contacts.Intents.Insert;
 import android.provider.Contacts.People;
 import android.provider.Contacts.Phones;
@@ -662,10 +663,19 @@ public class DialpadFragment extends Fragment
     public boolean onKey(View view, int keyCode, KeyEvent event) {
         switch (view.getId()) {
             case R.id.digits:
-                if (keyCode == KeyEvent.KEYCODE_ENTER) {
-                    dialButtonPressed();
-                    return true;
-                }
+               if (keyCode == KeyEvent.KEYCODE_ENTER | keyCode == KeyEvent.KEYCODE_CALL) {
+                   dialButtonPressed();
+                   return true;
+               }
+               if (keyCode == KeyEvent.KEYCODE_1) {
+                   long timeDiff = SystemClock.uptimeMillis() - event.getDownTime();
+                   if (timeDiff >= ViewConfiguration.getLongPressTimeout()) {
+                       // Long press detected, call voice mail
+                       Log.d(TAG,"call to Voicemail number");
+                       callVoicemail();
+                       return true;
+                   }
+               }
                 break;
         }
         return false;
