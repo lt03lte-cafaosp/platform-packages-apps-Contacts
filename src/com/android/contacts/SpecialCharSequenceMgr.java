@@ -217,12 +217,16 @@ public class SpecialCharSequenceMgr {
                 sc.progressDialog.show();
                 subscription = MSimTelephonyManager.getDefault().getPreferredVoiceSubscription();
 
-                if(subscription == SUB1) {
-                    uri = Uri.parse("content://icc/adn");
-                } else if (subscription == SUB2) {
-                    uri = Uri.parse("content://icc/adn_sub2");
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    if(subscription == SUB1) {
+                        uri = Uri.parse("content://iccmsim/adn");
+                    } else if (subscription == SUB2) {
+                        uri = Uri.parse("content://iccmsim/adn_sub2");
+                    } else {
+                        Log.d(TAG, "handleAdnEntry:Invalid Subscription");
+                    }
                 } else {
-                    Log.d(TAG, "handleAdnEntry:Invalid Subscription");
+                    uri = Uri.parse("content://icc/adn");
                 }
 
                 // run the query.
