@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +28,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
@@ -170,7 +172,11 @@ public class AccountSelectionUtil {
             importIntent.putExtra("account_type", account.type);
             importIntent.putExtra("data_set", account.dataSet);
         }
-        importIntent.setClassName("com.android.phone", "com.android.phone.SimContacts");
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            importIntent.setClassName("com.android.phone", "com.android.phone.MSimContacts");
+        } else {
+            importIntent.setClassName("com.android.phone", "com.android.phone.SimContacts");
+        }
         context.startActivity(importIntent);
     }
 

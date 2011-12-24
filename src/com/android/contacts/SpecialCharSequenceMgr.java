@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
- * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -172,12 +172,16 @@ public class SpecialCharSequenceMgr {
                 sc.progressDialog.show();
                 subscription = MSimTelephonyManager.getDefault().getPreferredVoiceSubscription();
 
-                if(subscription == SUB1) {
-                    uri = Uri.parse("content://icc/adn");
-                } else if (subscription == SUB2) {
-                    uri = Uri.parse("content://icc/adn_sub2");
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    if(subscription == SUB1) {
+                        uri = Uri.parse("content://iccmsim/adn");
+                    } else if (subscription == SUB2) {
+                        uri = Uri.parse("content://iccmsim/adn_sub2");
+                    } else {
+                        Log.d(TAG, "handleAdnEntry:Invalid Subscription");
+                    }
                 } else {
-                    Log.d(TAG, "handleAdnEntry:Invalid Subscription");
+                    uri = Uri.parse("content://icc/adn");
                 }
 
                 // run the query.
