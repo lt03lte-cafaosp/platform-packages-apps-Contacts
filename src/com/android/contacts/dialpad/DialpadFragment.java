@@ -670,7 +670,8 @@ public class DialpadFragment extends Fragment
         switch (view.getId()) {
             case R.id.digits:
                if (keyCode == KeyEvent.KEYCODE_ENTER | keyCode == KeyEvent.KEYCODE_CALL) {
-                   dialButtonPressed();
+                   if (event.getAction() == KeyEvent.ACTION_UP)
+                       dialButtonPressed();
                    return true;
                }
                if (keyCode == KeyEvent.KEYCODE_1) {
