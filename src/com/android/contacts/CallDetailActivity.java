@@ -331,6 +331,10 @@ public class CallDetailActivity extends Activity implements ProximitySensorAware
                 TelephonyManager tm = (TelephonyManager)
                         getSystemService(Context.TELEPHONY_SERVICE);
                 if (tm.getCallState() == TelephonyManager.CALL_STATE_IDLE) {
+                    if (mNumber == null) {
+                        Log.e(TAG, "Details view is in progress so ignore CALL KEY");
+                        return true;
+                    }
                     Intent callIntent = new Intent(Intent.ACTION_CALL_PRIVILEGED,
                             Uri.fromParts("tel", mNumber, null));
                     startActivity(callIntent);
