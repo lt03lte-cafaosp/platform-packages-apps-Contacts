@@ -167,6 +167,15 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         return phoneStateListener;
     }
 
+    /**
+     * This field is set to true while processing an incoming DIAL intent, in order to make sure
+     * that SpecialCharSequenceMgr actions can be triggered by user input but *not* by a
+     * tel: URI passed by some other app.  It will be set to false when all digits are cleared.
+     */
+    private boolean mDigitsFilledByIntent;
+
+    private static final String PREF_DIGITS_FILLED_BY_INTENT = "pref_digits_filled_by_intent";
+
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
         // Do nothing
     }
@@ -178,7 +187,8 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
     }
 
     public void afterTextChanged(Editable input) {
-        if (SpecialCharSequenceMgr.handleChars(this, input.toString(), mDigits)) {
+        if (!mDigitsFilledByIntent &&
+                SpecialCharSequenceMgr.handleChars(this, input.toString(), mDigits)) {
             // A special sequence was entered, clear the digits
             mDigits.getText().clear();
         }
@@ -186,6 +196,8 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         if (!isDigitsEmpty()) {
             mDigits.setBackgroundDrawable(mDigitsBackground);
         } else {
+            mDigitsFilledByIntent = false;
+
             mDigits.setCursorVisible(false);
             mDigits.setBackgroundDrawable(mDigitsEmptyBackground);
         }
@@ -249,6 +261,9 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         mDialpadChooser = (ListView) findViewById(R.id.dialpadChooser);
         mDialpadChooser.setOnItemClickListener(this);
 
+        if (icicle != null) {
+            mDigitsFilledByIntent = icicle.getBoolean(PREF_DIGITS_FILLED_BY_INTENT);
+        }
         if (!resolveIntent() && icicle != null) {
             super.onRestoreInstanceState(icicle);
         }
@@ -312,6 +327,8 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
                 if ("tel".equals(uri.getScheme())) {
                     // Put the requested number into the input area
                     String data = uri.getSchemeSpecificPart();
+                    // Remember it is filled via Intent.
+                    mDigitsFilledByIntent = true;
                     setFormattedDigits(data);
                 } else {
                     String type = intent.getType();
@@ -322,6 +339,8 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
                                 new String[] {PhonesColumns.NUMBER}, null, null, null);
                         if (c != null) {
                             if (c.moveToFirst()) {
+                                // Remember it is filled via Intent.
+                                mDigitsFilledByIntent = true;
                                 // Put the number into the input area
                                 setFormattedDigits(c.getString(0));
                             }
@@ -363,7 +382,10 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         return ignoreState;
     }
 
-    protected void setFormattedDigits(String data) {
+    /**
+     * Sets formatted digits to digits field.
+     */
+    private void setFormattedDigits(String data) {
         // strip the non-dialable numbers out of the data string.
         String dialString = PhoneNumberUtils.extractNetworkPortion(data);
         dialString = PhoneNumberUtils.formatNumber(dialString);
@@ -521,6 +543,12 @@ public class TwelveKeyDialer extends Activity implements View.OnClickListener,
         // TODO: I wonder if we should not check if the AsyncTask that
         // lookup the last dialed number has completed.
         mLastNumberDialed = EMPTY_NUMBER;  // Since we are going to query again, free stale number.
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(PREF_DIGITS_FILLED_BY_INTENT, mDigitsFilledByIntent);
     }
 
     @Override
