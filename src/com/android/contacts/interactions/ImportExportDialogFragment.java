@@ -37,6 +37,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract.Contacts;
 import android.telephony.MSimTelephonyManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -93,11 +94,16 @@ public class ImportExportDialogFragment extends DialogFragment
         };
 
         boolean hasIccCard = false;
-        for (int i = 0; i < MSimTelephonyManager.getDefault().getPhoneCount(); i++) {
-            hasIccCard = MSimTelephonyManager.getDefault().hasIccCard(i);
-            if (hasIccCard) {
-               break;
+
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            for (int i = 0; i < MSimTelephonyManager.getDefault().getPhoneCount(); i++) {
+                hasIccCard = MSimTelephonyManager.getDefault().hasIccCard(i);
+                if (hasIccCard) {
+                    break;
+                }
             }
+        } else {
+            hasIccCard = TelephonyManager.getDefault().hasIccCard();
         }
 
         if (hasIccCard
