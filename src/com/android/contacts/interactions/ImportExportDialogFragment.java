@@ -108,7 +108,8 @@ public class ImportExportDialogFragment extends DialogFragment
 
         if (hasIccCard
                 && res.getBoolean(R.bool.config_allow_sim_import)) {
-            adapter.add(R.string.import_from_sim);
+            adapter.add(R.string.manage_sim_contacts);
+            adapter.add(R.string.export_to_sim);
         }
         if (res.getBoolean(R.bool.config_allow_import_from_sdcard)) {
             adapter.add(R.string.import_from_sdcard);
@@ -131,7 +132,7 @@ public class ImportExportDialogFragment extends DialogFragment
                 boolean dismissDialog;
                 final int resId = adapter.getItem(which);
                 switch (resId) {
-                    case R.string.import_from_sim:
+                    case R.string.manage_sim_contacts:
                     case R.string.import_from_sdcard: {
                         dismissDialog = handleImportRequest(resId);
                         break;
@@ -145,6 +146,14 @@ public class ImportExportDialogFragment extends DialogFragment
                     case R.string.share_visible_contacts: {
                         dismissDialog = true;
                         doShareVisibleContacts();
+                        break;
+                    }
+                    case R.string.export_to_sim: {
+                        dismissDialog = true;
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setClassName("com.android.phone",
+                                "com.android.phone.ExportContactsToSim");
+                        startActivity(intent);
                         break;
                     }
                     default: {
