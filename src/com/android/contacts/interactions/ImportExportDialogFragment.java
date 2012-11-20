@@ -274,7 +274,14 @@ public class ImportExportDialogFragment extends DialogFragment
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(R.string.select_sim);
         mSelectedSim = SIM_ID_INVALID;
-        builder.setSingleChoiceItems(R.array.sub_list, -1,
+        int numPhones = MSimTelephonyManager.getDefault().getPhoneCount();
+        CharSequence[] sub_list = new CharSequence[numPhones + 1];
+        int i;
+        for (i = 1; i <= numPhones; i++) {
+            sub_list[i-1] = "SIM" + i;
+        }
+        sub_list[i-1] = getString(R.string.Import_All);
+        builder.setSingleChoiceItems(sub_list, -1,
                 new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface arg0, int arg1) {

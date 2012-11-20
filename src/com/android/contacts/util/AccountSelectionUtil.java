@@ -244,7 +244,14 @@ public class AccountSelectionUtil {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(R.string.select_sim);
-        builder.setSingleChoiceItems(R.array.sub_list, -1, new DialogInterface.OnClickListener() {
+        int numPhones = MSimTelephonyManager.getDefault().getPhoneCount();
+        CharSequence[] sub_list = new CharSequence[numPhones + 1];
+        int i;
+        for (i = 1; i <= numPhones; i++) {
+            sub_list[i-1] = "SIM" + i;
+        }
+        sub_list[i-1] = context.getString(R.string.Import_All);
+        builder.setSingleChoiceItems(sub_list, -1, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(LOG_TAG, "onClicked Dialog on which = " + which);

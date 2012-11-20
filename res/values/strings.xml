@@ -1827,11 +1827,7 @@
          [CHAR LIMIT=NONE] -->
     <string name="action_menu_overflow_description" msgid="2295659037509008453">More options</string>
 
-    <string-array name="sub_list">
-        <item>SIM1</item>
-        <item>SIM2</item>
-    </string-array>
-
+    <string name="Import_All">Import Contacts From All SIMs</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
 
