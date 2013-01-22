@@ -47,8 +47,6 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
-
 import java.util.List;
 
 /**
@@ -57,6 +55,7 @@ import java.util.List;
 public class ImportExportDialogFragment extends DialogFragment
         implements SelectAccountDialogFragment.Listener {
     public static final String TAG = "ImportExportDialogFragment";
+    private static final String SIM_INDEX = "sim_index";
 
     private static final String KEY_RES_ID = "resourceId";
     private static final String ARG_CONTACTS_ARE_AVAILABLE = "CONTACTS_ARE_AVAILABLE";
@@ -275,13 +274,12 @@ public class ImportExportDialogFragment extends DialogFragment
         builder.setTitle(R.string.select_sim);
         mSelectedSim = SIM_ID_INVALID;
         int numPhones = MSimTelephonyManager.getDefault().getPhoneCount();
-        CharSequence[] sub_list = new CharSequence[numPhones + 1];
+        CharSequence[] subList = new CharSequence[numPhones];
         int i;
         for (i = 1; i <= numPhones; i++) {
-            sub_list[i-1] = "SIM" + i;
+            subList[i-1] = "SIM" + i;
         }
-        sub_list[i-1] = getString(R.string.Import_All);
-        builder.setSingleChoiceItems(sub_list, -1,
+        builder.setSingleChoiceItems(subList, -1,
                 new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface arg0, int arg1) {
@@ -299,7 +297,7 @@ public class ImportExportDialogFragment extends DialogFragment
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setClassName("com.android.phone",
                     "com.android.phone.ExportContactsToSim");
-                intent.putExtra(SUBSCRIPTION_KEY, mSelectedSim);
+                intent.putExtra(SIM_INDEX, mSelectedSim);
                 if (mSelectedSim != SIM_ID_INVALID) {
                     ((AlertDialog)dialog).getContext().startActivity(intent);
                 }
