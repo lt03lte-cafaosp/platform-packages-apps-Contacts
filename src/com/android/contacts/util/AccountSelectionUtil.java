@@ -36,8 +36,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
-
 import java.util.List;
 
 /**
@@ -50,7 +48,9 @@ public class AccountSelectionUtil {
     public static boolean mVCardShare = false;
     private static int SIM_ID_INVALID = -1;
     private static int mSelectedSim = SIM_ID_INVALID;
-
+    private static final String SIM_INDEX = "sim_index";
+    // Constant value to know option is import from all SIM's
+    private static int IMPORT_FROM_ALL = 8;
 
     public static Uri mPath;
 
@@ -186,7 +186,7 @@ public class AccountSelectionUtil {
     }
 
     public static void doImportFromMultiSim(Context context, AccountWithDataSet account,
-            int subscription) {
+            int selectedSim) {
         Intent importIntent = new Intent(Intent.ACTION_VIEW);
         importIntent.setType("vnd.android.cursor.item/sim-contact");
         if (account != null) {
@@ -195,7 +195,7 @@ public class AccountSelectionUtil {
             importIntent.putExtra("data_set", account.dataSet);
         }
         importIntent.setClassName("com.android.phone", "com.android.phone.MSimContacts");
-        importIntent.putExtra(SUBSCRIPTION_KEY, subscription);
+        importIntent.putExtra(SIM_INDEX, selectedSim);
         context.startActivity(importIntent);
     }
 
@@ -244,7 +244,7 @@ public class AccountSelectionUtil {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(R.string.select_sim);
-        int numPhones = MSimTelephonyManager.getDefault().getPhoneCount();
+        final int numPhones = MSimTelephonyManager.getDefault().getPhoneCount();
         CharSequence[] sub_list = new CharSequence[numPhones + 1];
         int i;
         for (i = 1; i <= numPhones; i++) {
@@ -256,6 +256,9 @@ public class AccountSelectionUtil {
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(LOG_TAG, "onClicked Dialog on which = " + which);
                 mSelectedSim = which;
+                if (mSelectedSim == numPhones) {
+                    mSelectedSim = IMPORT_FROM_ALL;
+                }
             }
         });
 
