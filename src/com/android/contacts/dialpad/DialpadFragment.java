@@ -281,7 +281,8 @@ public class DialpadFragment extends Fragment
         mDigits.setOnLongClickListener(this);
         mDigits.addTextChangedListener(this);
 
-        PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(getActivity(), mDigits);
+        // Disable this for non-US formatting$
+        //PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(getActivity(), mDigits);
 
         // Check for the presence of the keypad
         View oneButton = fragmentView.findViewById(R.id.one);
