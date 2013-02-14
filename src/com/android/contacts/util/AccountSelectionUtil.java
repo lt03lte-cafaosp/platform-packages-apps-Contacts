@@ -1,5 +1,9 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ *
+ * Not a Contribution, Apache license notifications and license are retained
+ * for attribution purposes only
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +50,11 @@ public class AccountSelectionUtil {
     private static final String LOG_TAG = "AccountSelectionUtil";
 
     public static boolean mVCardShare = false;
+    private static int SIM_ID_INVALID = -1;
+    private static int mSelectedSim = SIM_ID_INVALID;
+    private static final String SIM_INDEX = "sim_index";
+    // Constant value to know option is import from all SIM's
+    private static int IMPORT_FROM_ALL = 8;
 
     public static Uri mPath;
 
@@ -152,8 +161,13 @@ public class AccountSelectionUtil {
 
     public static void doImport(Context context, int resId, AccountWithDataSet account) {
         switch (resId) {
-            case R.string.import_from_sim: {
-                doImportFromSim(context, account);
+            case R.string.manage_sim_contacts: {
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    SimSelectedListener simSelListner = new SimSelectedListener(context, account);
+                    displaySelectSimDialog(context, simSelListner);
+                } else {
+                    doImportFromSim(context, account);
+                }
                 break;
             }
             case R.string.import_from_sdcard: {
@@ -171,11 +185,21 @@ public class AccountSelectionUtil {
             importIntent.putExtra("account_type", account.type);
             importIntent.putExtra("data_set", account.dataSet);
         }
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            importIntent.setClassName("com.android.phone", "com.android.phone.MSimContacts");
-        } else {
-            importIntent.setClassName("com.android.phone", "com.android.phone.SimContacts");
+        importIntent.setClassName("com.android.phone", "com.android.phone.SimContacts");
+        context.startActivity(importIntent);
+    }
+
+    public static void doImportFromMultiSim(Context context, AccountWithDataSet account,
+            int selectedSim) {
+        Intent importIntent = new Intent(Intent.ACTION_VIEW);
+        importIntent.setType("vnd.android.cursor.item/sim-contact");
+        if (account != null) {
+            importIntent.putExtra("account_name", account.name);
+            importIntent.putExtra("account_type", account.type);
+            importIntent.putExtra("data_set", account.dataSet);
         }
+        importIntent.setClassName("com.android.phone", "com.android.phone.MSimContacts");
+        importIntent.putExtra(SIM_INDEX, selectedSim);
         context.startActivity(importIntent);
     }
 
@@ -195,5 +219,71 @@ public class AccountSelectionUtil {
         mVCardShare = false;
         mPath = null;
         context.startActivity(importIntent);
+    }
+
+    public static class SimSelectedListener
+            implements DialogInterface.OnClickListener {
+
+        final private Context mContext;
+        final private AccountWithDataSet mAccount;
+
+        public SimSelectedListener(Context context, AccountWithDataSet account) {
+            mContext = context;
+            mAccount = account;
+        }
+
+        public void onClick(DialogInterface dialog, int which) {
+            Log.d(LOG_TAG, "onClick OK: mSelectedSim = " + mSelectedSim);
+            if (mSelectedSim != SIM_ID_INVALID) {
+                doImportFromMultiSim(mContext, mAccount, mSelectedSim);
+            }
+        }
+    }
+
+    private static void displaySelectSimDialog(Context context,
+                SimSelectedListener simSelListner) {
+        Log.d(LOG_TAG, "displaySelectSimDialog");
+
+        mSelectedSim = SIM_ID_INVALID;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(R.string.select_sim);
+        final int numPhones = MSimTelephonyManager.getDefault().getPhoneCount();
+        CharSequence[] sub_list = new CharSequence[numPhones + 1];
+        int i;
+        for (i = 1; i <= numPhones; i++) {
+            sub_list[i-1] = "SIM" + i;
+        }
+        sub_list[i-1] = context.getString(R.string.Import_All);
+        builder.setSingleChoiceItems(sub_list, -1, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Log.d(LOG_TAG, "onClicked Dialog on which = " + which);
+                mSelectedSim = which;
+                if (mSelectedSim == numPhones) {
+                    mSelectedSim = IMPORT_FROM_ALL;
+                }
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.setButton(DialogInterface.BUTTON_POSITIVE, context.getString(R.string.ok),
+                simSelListner);
+        dialog.setButton(DialogInterface.BUTTON_NEGATIVE, context.getString(R.string.cancel),
+                new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Log.d(LOG_TAG, "onClicked Cancel");
+            }
+        });
+
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener () {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                Log.d(LOG_TAG, "onDismiss");
+                Log.d(LOG_TAG, "Selected SUB = " + mSelectedSim);
+            }
+        });
+        dialog.show();
     }
 }

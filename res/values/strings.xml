@@ -752,8 +752,11 @@
     <!-- Dialog message shown when SDcard does not exist. [CHAR LIMIT=30] -->
     <string name="no_sdcard_message" product="default">No SD card was found.</string>
 
-    <!-- Action string for selecting SIM for importing contacts -->
-    <string name="import_from_sim">Import from SIM card</string>
+    <!-- Action string for managing SIM contacts -->
+    <string name="manage_sim_contacts"> Manage SIM card contacts</string>
+
+    <!-- Action that exports all contacts to SIM -->
+    <string name="export_to_sim">Export to SIM card</string>
 
     <!-- Action string for selecting (USB) storage for importing contacts [CHAR LIMIT=25] -->
     <string name="import_from_sdcard" product="default">Import from storage</string>
@@ -1849,5 +1852,11 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
          overflow button available in ActionBar.
          [CHAR LIMIT=NONE] -->
     <string name="action_menu_overflow_description" msgid="2295659037509008453">More options</string>
+
+    <string name="Import_All">Import Contacts From All SIMs</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="select_sim">Select SIM</string>
 
 </resources>
