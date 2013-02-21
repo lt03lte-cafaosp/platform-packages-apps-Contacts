@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2012-2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,9 +55,19 @@ public class ContactPhotoUtils {
 
     public static String pathForCroppedPhoto(Context context, String fileName) {
         final File dir = new File(context.getExternalCacheDir() + "/tmp");
-        dir.mkdirs();
-        final File f = new File(dir, fileName);
-        return f.getAbsolutePath();
+        final File dirSdcard1 = new File("/storage/sdcard1");
+        // get the available space size of SD,if size <= 1024 * 1024,we use the
+        // phone storage.
+        long freeSpaceSizeSD0 = dir.getFreeSpace();
+        if (freeSpaceSizeSD0 > 1024 * 1024) {
+            dir.mkdirs();
+            final File f = new File(dir, fileName);
+            return f.getAbsolutePath();
+        } else {
+            dirSdcard1.mkdirs();
+            final File f = new File(dirSdcard1, fileName);
+            return f.getAbsolutePath();
+        }
     }
 
     public static String pathForNewCameraPhoto(String fileName) {
