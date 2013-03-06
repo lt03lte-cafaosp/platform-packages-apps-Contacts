@@ -59,7 +59,8 @@
         android:taskAffinity="android.task.contacts"
         android:hardwareAccelerated="true"
     >
-
+        <uses-library android:name="com.qrd.plugin.feature_query"
+                   android:required="false" />
         <!-- Intercept Dialer Intents for devices without a phone.
         This activity should have the same intent filters as the DialtactsActivity,
         so that its capturing the same events. Omit android.intent.category.LAUNCHER, because we

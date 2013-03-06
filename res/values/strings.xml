@@ -1846,6 +1846,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <!-- Dialog message which is shown when the user tries to check voicemail
          while the system is in airplane mode. The user cannot access to
          voicemail service in Airplane mode. [CHAR LIMI=NONE] -->
+    <string name="btn_ok">Ok</string>
     <string name="dialog_voicemail_airplane_mode_message">To call voicemail, first turn off Airplane mode.</string>
 
     <!-- Menu item shown only when the special debug mode is enabled, which is used to send all contacts database files via email.  [CHAR LIMI=NONE] -->
@@ -1863,6 +1864,20 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 
     <string name="select_sim">Select SIM</string>
 
+    <!-- add for UX_enhance_dial_button -->
+    <string name="description_target_slot1">Slot1</string>
+    <string name="description_target_slot2">Slot2</string>
+
+    <string name="description_direction_left">"Slide left for <xliff:g id="target_description" example="slot1">%s</xliff:g>.</string>
+    <string name="description_direction_right">Slide right for <xliff:g id="target_description" example="slot2">%s</xliff:g>.</string>
+    <string name="dialpad_cling_multi_sim_call">Slide dial button to call via slot1 or slot2.</string>
+    <!-- add for UX_enhance_dial_button -->
+    <string name="callFailure">Call Failure</string> 
+    <string name="ipnum_not_set">Not set IP dial number!</string>
+    <string name="recentCalls_IPCall_card1">Slot1 IP dial</string>
+    <string name="recentCalls_IPCall_card2">Slot2 IP dial</string>
+    <string name="recentCalls_IPCall">IP dial</string>
+    <string name="recentCalls_sendMessage">Send message</string>
     <!-- Content description for the expand or collapse name fields button.
          Clicking this button causes the name editor to toggle between showing
          a single field where the entire name is edited at once, or multiple
