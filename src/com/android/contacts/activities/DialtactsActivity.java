@@ -844,10 +844,10 @@ public class DialtactsActivity extends TransactionSafeActivity
 	   {
 		return false;
 	   }
-       // for (int i = 0; i < phoneCount; i++) {
-      //       if (!MSimTelephonyManager.getDefault().isValidSimState(i))
-      //           return false;
-     //   }
+        for (int i = 0; i < phoneCount; i++) {
+             if (!MSimTelephonyManager.getDefault().isValidSimState(i))
+                 return false;
+        }
         return true;
     }
 

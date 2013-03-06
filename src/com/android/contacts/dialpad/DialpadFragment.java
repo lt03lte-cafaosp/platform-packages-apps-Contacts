@@ -2011,10 +2011,10 @@ public class DialpadFragment extends ListFragment
 	 	{
 	 	 return false;
 	 	}
-       // for (int i = 0; i < phoneCount; i++) {
-       //      if (!MSimTelephonyManager.getDefault().isValidSimState(i))
-       //          return false;
-       // }
+        for (int i = 0; i < phoneCount; i++) {
+             if (!MSimTelephonyManager.getDefault().isValidSimState(i))
+                 return false;
+        }
         return true;
     }
 
