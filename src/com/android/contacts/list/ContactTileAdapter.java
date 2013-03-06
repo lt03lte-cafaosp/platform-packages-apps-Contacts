@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 The Android Open Source Project
+ * Copyright (C) 2011, 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -184,6 +184,9 @@ public class ContactTileAdapter extends BaseAdapter {
      * Else use {@link ContactTileLoaderFactory}
      */
     public void setContactCursor(Cursor cursor) {
+        if (cursor == null || cursor.isClosed()) {
+            return;
+        }
         mContactCursor = cursor;
         mDividerPosition = getDividerPosition(cursor);
 
