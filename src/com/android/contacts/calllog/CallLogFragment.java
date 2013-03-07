@@ -569,8 +569,8 @@ public class CallLogFragment extends ListFragment
         if (itemDeleteAll != null) {
             itemDeleteAll.setEnabled(mAdapter != null && !mAdapter.isEmpty());
 
-            showAllFilterMenuOptions(menu);
-            hideCurrentFilterMenuOption(menu);
+           // showAllFilterMenuOptions(menu);//xiaohong del
+          //  hideCurrentFilterMenuOption(menu);
 
             // Only hide if not available.  Let the above calls handle showing.
             if (!mVoicemailSourcesAvailable) {
@@ -583,7 +583,7 @@ public class CallLogFragment extends ListFragment
         }
 	//xiaohong add end 
     }
-
+/*//xiaohong del 
     private void hideCurrentFilterMenuOption(Menu menu) {
         MenuItem item = null;
         switch (mCallTypeFilter) {
@@ -615,7 +615,7 @@ public class CallLogFragment extends ListFragment
         menu.findItem(R.id.show_missed_only).setVisible(true);
         menu.findItem(R.id.show_voicemails_only).setVisible(true);
     }
-
+*/
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
