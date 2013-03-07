@@ -26,6 +26,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.android.contacts.R;
 import com.android.contacts.list.ShortcutIntentBuilder.OnShortcutIntentCreatedListener;
@@ -89,6 +90,8 @@ public class PhoneNumberPickerFragment extends ContactEntryListFragment<ContactE
         this.mListener = listener;
     }
 
+    //for the empty search result
+    private TextView emptyResultView;
     @Override
     protected void onCreateView(LayoutInflater inflater, ViewGroup container) {
         super.onCreateView(inflater, container);
@@ -102,6 +105,9 @@ public class PhoneNumberPickerFragment extends ContactEntryListFragment<ContactE
         updateFilterHeaderView();
 
         setVisibleScrollbarEnabled(!isLegacyCompatibilityMode());
+
+        //for the empty search result
+        emptyResultView = (TextView)getView().findViewById(R.id.empty_result);
     }
 
     @Override
@@ -198,6 +204,16 @@ public class PhoneNumberPickerFragment extends ContactEntryListFragment<ContactE
 
         // disable scroll bar if there is no data
         setVisibleScrollbarEnabled(data.getCount() > 0);
+    }
+
+    /**
+     * override this method to show the empty view according to the search result.
+     */
+    @Override
+    protected void showCount(int partitionIndex, Cursor data) {
+        if(null != data){
+            emptyResultView.setVisibility (data.getCount() > 0 ? View.GONE : View.VISIBLE);
+        }
     }
 
     public void setUseCallableUri(boolean useCallableUri) {

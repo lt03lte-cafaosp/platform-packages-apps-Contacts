@@ -200,6 +200,10 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
     private ArrayList<Member> mListMembersToRemove = new ArrayList<Member>();
     private ArrayList<Member> mListToDisplay = new ArrayList<Member>();
 
+    public void setmStatus(Status mStatus) {
+        this.mStatus = mStatus;
+    }
+
     public GroupEditorFragment() {
     }
 
@@ -310,7 +314,9 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
 
     private void selectAccountAndCreateGroup() {
         final List<AccountWithDataSet> accounts =
-                AccountTypeManager.getInstance(mContext).getAccounts(true /* writeable */);
+                AccountTypeManager.getInstance(mContext).getAccounts(true,
+                        AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_LOCAL);
+
         // No Accounts available
         if (accounts.isEmpty()) {
             Log.e(TAG, "No accounts were found.");
@@ -438,11 +444,14 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
                     if (member == null) {
                         return; // just in case
                     }
-                    loadMemberToAddToGroup(member.getRawContactId(),
-                            String.valueOf(member.getContactId()));
+                    if (member.getRawContactId() != -1) {
+                        loadMemberToAddToGroup(member.getRawContactId(),
+                                String.valueOf(member.getContactId()));
 
-                    // Update the autocomplete adapter so the contact doesn't get suggested again
-                    mAutoCompleteAdapter.addNewMember(member.getContactId());
+                        // Update the autocomplete adapter so the contact
+                        // doesn't get suggested again
+                        mAutoCompleteAdapter.addNewMember(member.getContactId());
+                    }
 
                     // Clear out the text field
                     mAutoCompleteTextView.setText("");

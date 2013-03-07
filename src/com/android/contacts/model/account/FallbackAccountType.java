@@ -51,6 +51,8 @@ public class FallbackAccountType extends BaseAccountType {
             addDataKindWebsite(context);
             addDataKindSipAddress(context);
 
+            addDataKindLocalGroups(context);
+
             mIsInitialized = true;
         } catch (DefinitionException e) {
             Log.e(TAG, "Problem building account type", e);

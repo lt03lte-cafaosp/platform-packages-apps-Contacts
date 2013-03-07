@@ -35,6 +35,9 @@ public class SelectAccountActivity extends ContactsActivity {
     public static final String ACCOUNT_NAME = "account_name";
     public static final String ACCOUNT_TYPE = "account_type";
     public static final String DATA_SET = "data_set";
+    public static final String VCARD_TYPE = "import_type";
+    // Add flag to indicate whether dialog is showing.
+    private static boolean mIsDialogShowing = false;
 
     private class CancelListener
             implements DialogInterface.OnClickListener, DialogInterface.OnCancelListener {
@@ -58,7 +61,16 @@ public class SelectAccountActivity extends ContactsActivity {
         // - no account -> use phone-local storage without asking the user
         final int resId = R.string.import_from_sdcard;
         final AccountTypeManager accountTypes = AccountTypeManager.getInstance(this);
-        final List<AccountWithDataSet> accountList = accountTypes.getAccounts(true);
+        List<AccountWithDataSet> writableAccountList = null; // store account list
+        boolean isNfcImport = getIntent().getBooleanExtra(VCARD_TYPE,true); //bool value indicate vcard type
+        // by import vcard type,and to create account list
+        if (isNfcImport) {
+            writableAccountList = accountTypes.getAccounts(true);
+        } else {
+            writableAccountList = accountTypes.getAccounts(true,
+                    AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_SIM);
+        }
+        final List<AccountWithDataSet> accountList = writableAccountList;
         if (accountList.size() == 0) {
             Log.w(LOG_TAG, "Account does not exist");
             finish();
@@ -92,7 +104,14 @@ public class SelectAccountActivity extends ContactsActivity {
                         finish();
                     }
                 };
-        showDialog(resId);
+
+        // Dialog shows up need one only at one time.
+        if (!mIsDialogShowing) {
+            showDialog(resId);
+            mIsDialogShowing = true;
+        } else {
+            finish();
+    }
         return;
     }
 
@@ -106,9 +125,17 @@ public class SelectAccountActivity extends ContactsActivity {
                 }
                 return AccountSelectionUtil.getSelectAccountDialog(this, resId,
                         mAccountSelectionListener,
-                        new CancelListener());
+                        new CancelListener(), false);
             }
         }
         return super.onCreateDialog(resId, bundle);
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Reset the flag mIsDialogShowing when exit.
+        mIsDialogShowing = false;
+    }
+
 }

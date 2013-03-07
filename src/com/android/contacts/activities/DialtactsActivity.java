@@ -1545,6 +1545,15 @@ public class DialtactsActivity extends TransactionSafeActivity
         return intent;
     }
 
+    public static boolean checkContactStorage(PackageManager pm, Context mContext) {
+        if (pm.getApplicationEnabledSetting(PROVIDER_NAME)
+            == PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER) {
+            Toast.makeText(mContext, R.string.contactStorageToast, Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return false;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != Activity.RESULT_OK) {

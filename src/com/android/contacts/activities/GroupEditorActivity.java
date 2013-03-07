@@ -22,6 +22,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,6 +41,7 @@ public class GroupEditorActivity extends ContactsActivity
     private static final String TAG = "GroupEditorActivity";
 
     public static final String ACTION_SAVE_COMPLETED = "saveCompleted";
+    public static final String ACTION_SAVE_ERROR = "saveError";
     public static final String ACTION_ADD_MEMBER_COMPLETED = "addMemberCompleted";
     public static final String ACTION_REMOVE_MEMBER_COMPLETED = "removeMemberCompleted";
 
@@ -123,6 +126,10 @@ public class GroupEditorActivity extends ContactsActivity
         String action = intent.getAction();
         if (ACTION_SAVE_COMPLETED.equals(action)) {
             mFragment.onSaveCompleted(true, intent.getData());
+        } else if (ACTION_SAVE_ERROR.equals(action)) {
+            // When save group failed, the state is 'SAVING' need reset to
+            // EDITING that user can resave it.
+            mFragment.setmStatus(GroupEditorFragment.Status.EDITING);
         }
     }
 
@@ -140,6 +147,12 @@ public class GroupEditorActivity extends ContactsActivity
 
         @Override
         public void onAccountsNotFound() {
+            final Intent intent = new Intent(Settings.ACTION_ADD_ACCOUNT);
+            intent.putExtra(Settings.EXTRA_AUTHORITIES, new String[] {
+                ContactsContract.AUTHORITY
+            });
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+            startActivity(intent);
             finish();
         }
 

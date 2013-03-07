@@ -26,6 +26,7 @@ import android.provider.ContactsContract.DisplayNameSources;
 
 import com.android.contacts.GroupMetaData;
 import com.android.contacts.model.account.AccountType;
+import com.android.contacts.model.account.SimAccountType;
 import com.android.contacts.model.dataitem.DataItem;
 import com.android.contacts.util.DataStatus;
 import com.android.contacts.util.StreamItemEntry;
@@ -364,6 +365,18 @@ public class Contact {
 
     public long getDirectoryId() {
         return mDirectoryId;
+    }
+
+    public boolean isSimAccountType(final Context context){
+        for (RawContact rawContact : getRawContacts()) {
+            AccountType accountType = rawContact.getAccountType();
+
+            if (accountType != null && accountType.accountType != null && 0 == accountType.accountType.compareTo(SimAccountType.ACCOUNT_TYPE)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     public boolean isDirectoryEntry() {

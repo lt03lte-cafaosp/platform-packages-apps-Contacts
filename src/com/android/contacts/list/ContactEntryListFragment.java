@@ -22,11 +22,13 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.app.LoaderManager.LoaderCallbacks;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.CursorLoader;
 import android.content.IContentService;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -59,6 +61,7 @@ import com.android.contacts.ContactPhotoManager;
 import com.android.contacts.R;
 import com.android.contacts.preference.ContactsPreferences;
 import com.android.contacts.widget.ContextMenuAdapter;
+import com.android.internal.telephony.TelephonyIntents;
 
 /**
  * Common base class for various contact-related list fragments.
@@ -112,7 +115,8 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
 
     private boolean mEnabled = true;
 
-    private T mAdapter;
+    //change to public so that we can use it in other activity.
+    public T mAdapter;
     private View mView;
     private ListView mListView;
 
@@ -136,6 +140,8 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
 
     protected boolean mUserProfileExists;
 
+    private boolean mIsStop = false;
+
     private static final int STATUS_NOT_LOADED = 0;
     private static final int STATUS_LOADING = 1;
     private static final int STATUS_LOADED = 2;
@@ -151,6 +157,12 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     private Context mContext;
 
     private LoaderManager mLoaderManager;
+
+    private BroadcastReceiver mSIMStateReceiver = new  BroadcastReceiver(){
+        @Override
+        public void onReceive(Context arg0, Intent arg1) {
+            reloadData();
+        }};
 
     private Handler mDelayedDirectorySearchHandler = new Handler() {
         @Override
@@ -287,7 +299,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     @Override
     public void onStart() {
         super.onStart();
-
+        mIsStop = false;
         mContactsPrefs.registerChangeListener(mPreferencesChangeListener);
 
         mForceLoad = loadPreferences();
@@ -377,9 +389,14 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
      * Loads the directory partition.
      */
     protected void loadDirectoryPartition(int partitionIndex, DirectoryPartition partition) {
-        Bundle args = new Bundle();
-        args.putLong(DIRECTORY_ID_ARG_KEY, partition.getDirectoryId());
-        getLoaderManager().restartLoader(partitionIndex, args, this);
+        // When the activity back to foreground, it will call startloading() to
+        // load the data, so when the activity goes to background, we need not
+        // load the data in order to avoid confusion.
+        if (!mIsStop) {
+            Bundle args = new Bundle();
+            args.putLong(DIRECTORY_ID_ARG_KEY, partition.getDirectoryId());
+            getLoaderManager().restartLoader(partitionIndex, args, this);
+        }
     }
 
     /**
@@ -459,6 +476,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     @Override
     public void onStop() {
         super.onStop();
+        mIsStop = true;
         mContactsPrefs.unregisterChangeListener();
         mAdapter.clearPartitions();
     }
@@ -856,10 +874,18 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         return false;
     }
 
+    public void onResume() {
+        super.onResume();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+        mContext.registerReceiver(mSIMStateReceiver, filter);
+    }
+
     @Override
     public void onPause() {
         super.onPause();
         removePendingDirectorySearchRequests();
+        mContext.unregisterReceiver(mSIMStateReceiver);
     }
 
     /**

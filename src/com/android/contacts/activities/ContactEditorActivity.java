@@ -21,6 +21,7 @@ import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
@@ -30,6 +31,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
@@ -39,6 +41,7 @@ import com.android.contacts.editor.ContactEditorFragment.SaveMode;
 import com.android.contacts.model.AccountTypeManager;
 import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.account.AccountWithDataSet;
+import com.android.contacts.SimContactsConstants;
 import com.android.contacts.util.DialogManager;
 
 import java.util.ArrayList;
@@ -49,6 +52,7 @@ public class ContactEditorActivity extends ContactsActivity
 
     public static final String ACTION_JOIN_COMPLETED = "joinCompleted";
     public static final String ACTION_SAVE_COMPLETED = "saveCompleted";
+    public static final String ACTION_ADD_CONTACT = "addContactPressed";
 
     /**
      * Boolean intent key that specifies that this activity should finish itself
@@ -62,6 +66,9 @@ public class ContactEditorActivity extends ContactsActivity
     private boolean mFinishActivityOnSaveCompleted;
 
     private DialogManager mDialogManager = new DialogManager(this);
+
+    //used to limit length of name to avoid OutOfMemory.
+    private static final int NAME_LENGTH_LIMIT = 512;
 
     @Override
     public void onCreate(Bundle savedState) {
@@ -91,29 +98,11 @@ public class ContactEditorActivity extends ContactsActivity
 
         setContentView(R.layout.contact_editor_activity);
 
-        ActionBar actionBar = getActionBar();
-        if (actionBar != null) {
-            // Inflate a custom action bar that contains the "done" button for saving changes
-            // to the contact
-            LayoutInflater inflater = (LayoutInflater) getSystemService
-                    (Context.LAYOUT_INFLATER_SERVICE);
-            View customActionBarView = inflater.inflate(R.layout.editor_custom_action_bar, null);
-            View saveMenuItem = customActionBarView.findViewById(R.id.save_menu_item);
-            saveMenuItem.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mFragment.doSaveAction();
-                }
-            });
-            // Show the custom action bar but hide the home icon and title
-            actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
-                    ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_SHOW_HOME |
-                    ActionBar.DISPLAY_SHOW_TITLE);
-            actionBar.setCustomView(customActionBarView);
-        }
+        addActionBar();
 
         mFragment = (ContactEditorFragment) getFragmentManager().findFragmentById(
                 R.id.contact_editor_fragment);
+        mFragment.mAddContactPressed = intent.getBooleanExtra(ACTION_ADD_CONTACT,false);
         mFragment.setListener(mFragmentListener);
         Uri uri = Intent.ACTION_EDIT.equals(action) ? getIntent().getData() : null;
         mFragment.load(action, uri, getIntent().getExtras());
@@ -134,7 +123,8 @@ public class ContactEditorActivity extends ContactsActivity
             mFragment.onSaveCompleted(true,
                     intent.getIntExtra(ContactEditorFragment.SAVE_MODE_EXTRA_KEY, SaveMode.CLOSE),
                     intent.getBooleanExtra(ContactSaveService.EXTRA_SAVE_SUCCEEDED, false),
-                    intent.getData());
+                    intent.getData(),
+                    intent.getIntExtra(ContactSaveService.SAVE_CONTACT_RESULT, 0));
         } else if (ACTION_JOIN_COMPLETED.equals(action)) {
             mFragment.onJoinCompleted(intent.getData());
         }
@@ -151,7 +141,23 @@ public class ContactEditorActivity extends ContactsActivity
 
     @Override
     public void onBackPressed() {
-        mFragment.save(SaveMode.CLOSE);
+        if (!isFragmentNameTooLong()) {
+            mFragment.save(SaveMode.CLOSE);
+        }
+    }
+
+    private boolean isFragmentNameTooLong() {
+
+        // add limit to name length
+        String s = mFragment.getNameEitorValue();
+        if (null != s && s.length() > NAME_LENGTH_LIMIT) {
+            Toast.makeText(ContactEditorActivity.this, R.string.toast_name_is_too_long,
+                    Toast.LENGTH_SHORT).show();
+
+            return true;
+        }
+
+        return false;
     }
 
     private final ContactEditorFragment.Listener mFragmentListener =
@@ -255,4 +261,65 @@ public class ContactEditorActivity extends ContactsActivity
     public DialogManager getDialogManager() {
         return mDialogManager;
     }
+
+    public static final String ACCOUNT_TYPE = "com.android.sim";
+
+    public static int getSubscription(String accountType, String accountName){
+        int subscription = -1;
+        if (accountType == null || accountName == null)
+            return subscription;
+        if (accountType.equals(ACCOUNT_TYPE)) {
+            if (accountName.equals(SimContactsConstants.SIM_NAME))
+                subscription = 0;
+            else if(accountName.equals(SimContactsConstants.SIM_NAME_1))
+                subscription = 0;
+            else if (accountName.equals(SimContactsConstants.SIM_NAME_2))
+                subscription = 1;
+        }
+        return subscription;
+    }
+
+    // Add the ActionBar
+    private void addActionBar() {
+        ActionBar actionBar = getActionBar();
+        if (actionBar != null) {
+            actionBar.removeAllTabs();
+
+            // Inflate a custom action bar that contains the "done" button for saving changes
+            // to the contact
+            LayoutInflater inflater = (LayoutInflater) getSystemService
+                    (Context.LAYOUT_INFLATER_SERVICE);
+            View customActionBarView = inflater.inflate(R.layout.editor_custom_action_bar, null);
+            View saveMenuItem = customActionBarView.findViewById(R.id.save_menu_item);
+            saveMenuItem.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (!isFragmentNameTooLong()) {
+                        mFragment.doSaveAction();
+                    }
+                }
+            });
+            // Show the custom action bar but hide the home icon and title
+            actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
+                    ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_SHOW_HOME |
+                    ActionBar.DISPLAY_SHOW_TITLE);
+            actionBar.setCustomView(customActionBarView);
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        // TODO Auto-generated method stub
+
+        // popupMenu will show at inappropriate location after rotation,so make it dismissed when rotate screen.
+        if(mFragment != null) {
+            mFragment.dismissPopupMenu();
+            mFragment.bindEditors();
+        }
+
+        // Refresh the ActionBar.
+        addActionBar();
+        super.onConfigurationChanged(newConfig);
+    }
+
 }

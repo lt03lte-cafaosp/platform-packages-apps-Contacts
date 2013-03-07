@@ -22,6 +22,7 @@ import android.net.Uri;
 import android.net.Uri.Builder;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract.Contacts.AggregationSuggestions;
 import android.provider.ContactsContract.Directory;
 import android.text.TextUtils;
@@ -31,6 +32,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.android.contacts.R;
+import com.android.contacts.model.account.SimAccountType;
 
 public class JoinContactListAdapter extends ContactListAdapter {
 
@@ -88,11 +90,15 @@ public class JoinContactListAdapter extends ContactListAdapter {
                 .appendEncodedPath(Uri.encode(filter))
                 .appendQueryParameter(
                         ContactsContract.DIRECTORY_PARAM_KEY, String.valueOf(Directory.DEFAULT))
+                .appendQueryParameter(RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE)
+                .appendQueryParameter(DefaultContactListAdapter.WITHOUT_SIM_FLAG, "true")
                 .build();
         } else {
             allContactsUri = buildSectionIndexerUri(Contacts.CONTENT_URI).buildUpon()
                 .appendQueryParameter(
                         ContactsContract.DIRECTORY_PARAM_KEY, String.valueOf(Directory.DEFAULT))
+                .appendQueryParameter(RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE)
+                .appendQueryParameter(DefaultContactListAdapter.WITHOUT_SIM_FLAG, "true")
                 .build();
         }
         loader.setUri(allContactsUri);

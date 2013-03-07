@@ -18,13 +18,22 @@ package com.android.contacts.activities;
 
 import android.app.ActionBar;
 import android.app.Fragment;
+import android.app.Dialog;
+import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -35,6 +44,8 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
@@ -52,12 +63,18 @@ import com.android.contacts.util.PhoneCapabilityTester;
 
 import java.util.ArrayList;
 
-public class ContactDetailActivity extends ContactsActivity {
+public class ContactDetailActivity extends ContactsActivity implements View.OnClickListener{
     private static final String TAG = "ContactDetailActivity";
 
     /** Shows a toogle button for hiding/showing updates. Don't submit with true */
     private static final boolean DEBUG_TRANSITIONS = false;
 
+    /** Shows a alert dialog for contact not found. Don't directly finish */
+    private static final int CONTACT_NOT_FOUND_DIALOG = 0;
+
+    /** Shows the  CONTACT_NOT_FOUND_DIALOG when viewvcard from mms */
+    private boolean mIsFromVcard = false;
+    private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
     private Contact mContactData;
     private Uri mLookupUri;
 
@@ -65,10 +82,34 @@ public class ContactDetailActivity extends ContactsActivity {
     private ContactLoaderFragment mLoaderFragment;
 
     private Handler mHandler = new Handler();
+    //add for UX_Enhance_Contacts details view
+    private ImageView mBack;
+    private TextView mName;
+    private ImageView mStar;
+    private ImageView mPhoto;
+    private boolean mStarred;
+
+    /** Airplane receiver */
+    private BroadcastReceiver mAirplaneModeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(action)) {
+                boolean isAirMode = Settings.System.getInt(context.getContentResolver(),
+                        Settings.System.AIRPLANE_MODE_ON, 0) == 1;
+                if (isAirMode && mContactData != null
+                        && mContactData.isSimAccountType(ContactDetailActivity.this)) {
+                    finish();
+                }
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedState) {
         super.onCreate(savedState);
+        // judget if view the vcard from mms to decide whether to show the CONTACT_NOT_FOUND_DIALOG.
+        mIsFromVcard = getIntent().getBooleanExtra(VIEW_VCARD,false) ;
         if (PhoneCapabilityTester.isUsingTwoPanes(this)) {
             // This activity must not be shown. We have to select the contact in the
             // PeopleActivity instead ==> Create a forward intent and finish
@@ -96,6 +137,7 @@ public class ContactDetailActivity extends ContactsActivity {
         }
 
         setContentView(R.layout.contact_detail_activity);
+        initView();
 
         mContactDetailLayoutController = new ContactDetailLayoutController(this, savedState,
                 getFragmentManager(), null, findViewById(R.id.contact_detail_container),
@@ -109,9 +151,13 @@ public class ContactDetailActivity extends ContactsActivity {
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_TITLE
                     | ActionBar.DISPLAY_SHOW_HOME);
             actionBar.setTitle("");
+            actionBar.hide();
         }
 
-        Log.i(TAG, getIntent().getData().toString());
+        // register Airplane receiver
+        IntentFilter airIntentFilter = new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mAirplaneModeReceiver, airIntentFilter);
+        //Log.i(TAG, getIntent().getData().toString());  //delete the log for NullPointerException of Monkey test
     }
 
     @Override
@@ -124,60 +170,12 @@ public class ContactDetailActivity extends ContactsActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.star, menu);
-        if (DEBUG_TRANSITIONS) {
-            final MenuItem toggleSocial =
-                    menu.add(mLoaderFragment.getLoadStreamItems() ? "less" : "more");
-            toggleSocial.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-            toggleSocial.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    mLoaderFragment.toggleLoadStreamItems();
-                    invalidateOptionsMenu();
-                    return false;
-                }
-            });
+    protected void onDestroy() {
+        // Unregister receiver
+        if (!PhoneCapabilityTester.isUsingTwoPanes(this)) {
+            unregisterReceiver(mAirplaneModeReceiver);
         }
-        return true;
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        final MenuItem starredMenuItem = menu.findItem(R.id.menu_star);
-        starredMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                // Toggle "starred" state
-                // Make sure there is a contact
-                if (mLookupUri != null) {
-                    // Read the current starred value from the UI instead of using the last
-                    // loaded state. This allows rapid tapping without writing the same
-                    // value several times
-                    final boolean isStarred = starredMenuItem.isChecked();
-
-                    // To improve responsiveness, swap out the picture (and tag) in the UI already
-                    ContactDetailDisplayUtils.configureStarredMenuItem(starredMenuItem,
-                            mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
-                            !isStarred);
-
-                    // Now perform the real save
-                    Intent intent = ContactSaveService.createSetStarredIntent(
-                            ContactDetailActivity.this, mLookupUri, !isStarred);
-                    ContactDetailActivity.this.startService(intent);
-                }
-                return true;
-            }
-        });
-        // If there is contact data, update the starred state
-        if (mContactData != null) {
-            ContactDetailDisplayUtils.configureStarredMenuItem(starredMenuItem,
-                    mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
-                    mContactData.getStarred());
-        }
-        return true;
+        super.onDestroy();
     }
 
     @Override
@@ -205,7 +203,14 @@ public class ContactDetailActivity extends ContactsActivity {
             new ContactLoaderFragmentListener() {
         @Override
         public void onContactNotFound() {
-            finish();
+            // if viewvcard from mms when the contact is deleted, show the dialog,
+            // otherwise need not the show it just finish the activity.
+            if(true == mIsFromVcard) {
+                // if contact not found, prompts a alert dialog
+                showDialog(CONTACT_NOT_FOUND_DIALOG);
+            } else {
+                finish();
+            }
         }
 
         @Override
@@ -226,7 +231,7 @@ public class ContactDetailActivity extends ContactsActivity {
                     mContactData = result;
                     mLookupUri = result.getLookupUri();
                     invalidateOptionsMenu();
-                    setupTitle();
+                    setupBar();
                     mContactDetailLayoutController.setContactData(mContactData);
                 }
             });
@@ -252,13 +257,28 @@ public class ContactDetailActivity extends ContactsActivity {
     /**
      * Setup the activity title and subtitle with contact name and company.
      */
-    private void setupTitle() {
+    private void setupBar() {
         CharSequence displayName = ContactDetailDisplayUtils.getDisplayName(this, mContactData);
         String company =  ContactDetailDisplayUtils.getCompany(this, mContactData);
 
-        ActionBar actionBar = getActionBar();
-        actionBar.setTitle(displayName);
-        actionBar.setSubtitle(company);
+        mName.setText(displayName);
+
+        byte[] photoBytes = mContactData.getPhotoBinaryData();
+        if (photoBytes != null) {
+            final Bitmap photo = BitmapFactory.decodeByteArray(photoBytes, 0,
+                    photoBytes.length);
+
+            mPhoto.setImageBitmap(photo);
+        } else {
+            mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        }
+       // If there is contact data, update the starred state
+        if (mContactData != null) {
+            ContactDetailDisplayUtils.configureStarredMenuItem(mStar,
+                    mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
+                    mContactData.getStarred());
+            mStarred = mContactData.getStarred();
+        }
 
         if (!TextUtils.isEmpty(displayName)) {
             AccessibilityManager accessibilityManager =
@@ -310,4 +330,74 @@ public class ContactDetailActivity extends ContactsActivity {
          */
         public boolean handleKeyDown(int keyCode);
     }
+
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        switch (id) {
+        case CONTACT_NOT_FOUND_DIALOG:
+            return showContactNotFoundDialog();
+        }
+        return super.onCreateDialog(id);
+    }
+
+    /**
+     * Create the AlertDialog if contact not found
+     */
+    private Dialog showContactNotFoundDialog(){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(android.R.string.dialog_alert_title);
+        builder.setIconAttribute(android.R.attr.alertDialogIcon);
+        builder.setMessage(R.string.noMatchingContacts);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        });
+        builder.setCancelable(false);
+
+        return builder.create();
+    }
+
+    //add for UX_Enhance_Contacts details view
+     private void initView(){
+         mName = ((TextView)this.findViewById(R.id.name));
+         mName.setOnClickListener(this);
+         mBack = ((ImageView)this.findViewById(R.id.back));
+         mBack.setOnClickListener(this);
+         mStar = ((ImageView)this.findViewById(R.id.star));
+         mStar.setOnClickListener(this);
+         mPhoto = ((ImageView)this.findViewById(R.id.photo));
+     }
+
+    //add for UX_Enhance_Contacts details view
+     public void onClick(View v) {
+         int id = v.getId();
+         switch(id){
+         case R.id.back:
+         case R.id.name:
+             finish();
+             break;
+         case R.id.star:
+             if (mLookupUri != null && null != mContactData) {
+                 // Read the current starred value from the UI instead of using the last
+                 // loaded state. This allows rapid tapping without writing the same
+                 // value several times
+                 mStarred = !mStarred;
+
+                 // To improve responsiveness, swap out the picture (and tag) in the UI already
+                 ContactDetailDisplayUtils.configureStarredMenuItem(mStar,
+                         mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
+                         mStarred);
+
+                 // Now perform the real save
+                 Intent intent = ContactSaveService.createSetStarredIntent(
+                         ContactDetailActivity.this, mLookupUri, mStarred);
+                 ContactDetailActivity.this.startService(intent);
+             }
+             break;
+         }
+     }
 }

@@ -80,7 +80,10 @@ import com.android.contacts.model.RawContactDeltaList;
 import com.android.contacts.model.RawContactModifier;
 import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.account.AccountWithDataSet;
+import com.android.contacts.model.account.ExchangeAccountType;
 import com.android.contacts.model.account.GoogleAccountType;
+import com.android.contacts.model.account.PhoneAccountType;
+import com.android.contacts.model.account.SimAccountType;
 import com.android.contacts.util.AccountsListAdapter;
 import com.android.contacts.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.util.ContactPhotoUtils;
@@ -208,6 +211,8 @@ public class ContactEditorFragment extends Fragment implements
      */
     private PhotoHandler mCurrentPhotoHandler;
 
+    private PhotoHandler mBindPhotoHandler;
+
     private final EntityDeltaComparator mComparator = new EntityDeltaComparator();
 
     private Cursor mGroupMetaData;
@@ -223,6 +228,11 @@ public class ContactEditorFragment extends Fragment implements
 
     private long mContactIdForJoin;
     private boolean mContactWritableForJoin;
+    private boolean mIsMenuJoinPressed = false;
+    private boolean mIsMenuDiscardPressed = false;
+    public boolean mAddContactPressed = false;
+    private int mJoinPressedCount = 0;
+    private Uri mJoinUri = null;
 
     private ContactEditorUtils mEditorUtils;
 
@@ -240,6 +250,8 @@ public class ContactEditorFragment extends Fragment implements
     private View mAggregationSuggestionView;
 
     private ListPopupWindow mAggregationSuggestionPopup;
+
+    private static CancelEditDialogFragment mCancelEditDialogFragment; // Fragment for CancelEditDialog
 
     private static final class AggregationSuggestionAdapter extends BaseAdapter {
         private final Activity mActivity;
@@ -302,6 +314,8 @@ public class ContactEditorFragment extends Fragment implements
     private boolean mNewLocalProfile = false;
     private boolean mIsUserProfile = false;
 
+    private String mRawContactIdPhoto = null;
+
     public ContactEditorFragment() {
     }
 
@@ -334,8 +348,13 @@ public class ContactEditorFragment extends Fragment implements
             mAggregationSuggestionEngine.quit();
         }
 
+        // Whether CancelEditDialog is showing
+        boolean isCancelEditDialogShow = (null != mCancelEditDialogFragment)
+                                      && (null != mCancelEditDialogFragment.getDialog())
+                                      && (mCancelEditDialogFragment.getDialog().isShowing());
         // If anything was left unsaved, save it now but keep the editor open.
-        if (!getActivity().isChangingConfigurations() && mStatus == Status.EDITING) {
+        if (!getActivity().isChangingConfigurations() && mStatus == Status.EDITING
+            && !isCancelEditDialogShow) {
             save(SaveMode.RELOAD);
         }
     }
@@ -634,6 +653,18 @@ public class ContactEditorFragment extends Fragment implements
                 oldAccount.type, oldAccount.dataSet);
         AccountType newAccountType = accountTypes.getAccountType(
                 newAccount.type, newAccount.dataSet);
+        currentAccountTpye = newAccount.type;
+
+        //Remove photo when change account to Sim.
+        if (oldAccountType.accountType.equals(PhoneAccountType.ACCOUNT_TYPE) ||
+                oldAccountType.accountType.equals(GoogleAccountType.ACCOUNT_TYPE) ||
+				oldAccountType.accountType.equals(ExchangeAccountType.ACCOUNT_TYPE_GOOGLE) ||
+                oldAccountType.accountType.equals(ExchangeAccountType.ACCOUNT_TYPE_AOSP) &&
+                newAccountType.accountType.equals(SimAccountType.ACCOUNT_TYPE) &&
+                mUpdatedPhotos != null && mRawContactIdPhoto != null) {
+            mUpdatedPhotos.remove(mRawContactIdPhoto);
+            mRawContactIdPhoto = null;
+        }
 
         if (newAccountType.getCreateContactActivityClassName() != null) {
             Log.w(TAG, "external activity called in rebind situation");
@@ -699,9 +730,15 @@ public class ContactEditorFragment extends Fragment implements
         bindEditors();
     }
 
-    private void bindEditors() {
-        // bindEditors() can only bind views if there is data in mState, so immediately return
-        // if mState is null
+    private String currentAccountTpye;
+
+    //this var will be used in function getNameEitorValue,so define it in class.
+    private BaseRawContactEditorView editor;
+
+    public void bindEditors() {
+        // This may happen when this Fragment is recreated by the system during users
+        // confirming the split action (and thus this method is called just before onCreate()),
+        // for example.Check this to prevent the occurrence of NullException when sort mState.
         if (mState == null) {
             return;
         }
@@ -712,10 +749,19 @@ public class ContactEditorFragment extends Fragment implements
         // Remove any existing editors and rebuild any visible
         mContent.removeAllViews();
 
+        // If photoActionPopup shown, the popup will leak when contact editor
+        // fragment bind editors. The popup need dismiss with content view
+        // remove all views.
+        if (mBindPhotoHandler != null) {
+            mBindPhotoHandler.destroy();
+            mBindPhotoHandler = null;
+        }
+
         final LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(
                 Context.LAYOUT_INFLATER_SERVICE);
         final AccountTypeManager accountTypes = AccountTypeManager.getInstance(mContext);
         int numRawContacts = mState.size();
+        currentAccountTpye = mState.get(0).getValues().getAsString(RawContacts.ACCOUNT_TYPE);
         for (int i = 0; i < numRawContacts; i++) {
             // TODO ensure proper ordering of entities in the list
             final RawContactDelta rawContactDelta = mState.get(i);
@@ -724,7 +770,6 @@ public class ContactEditorFragment extends Fragment implements
             final AccountType type = rawContactDelta.getAccountType(accountTypes);
             final long rawContactId = rawContactDelta.getRawContactId();
 
-            final BaseRawContactEditorView editor;
             if (!type.areContactsWritable()) {
                 editor = (BaseRawContactEditorView) inflater.inflate(
                         R.layout.raw_contact_readonly_editor_view, mContent, false);
@@ -757,8 +802,11 @@ public class ContactEditorFragment extends Fragment implements
             // If a new photo was chosen but not yet saved, we need to
             // update the thumbnail to reflect this.
             Bitmap bitmap = updatedBitmapForRawContact(rawContactId);
-            if (bitmap != null) editor.setPhotoBitmap(bitmap);
 
+            if (bitmap != null) {
+                editor.setPhotoBitmap(bitmap);
+            }
+            mUpdatedPhotos.putBoolean("has_remove",false);
             if (editor instanceof RawContactEditorView) {
                 final Activity activity = getActivity();
                 final RawContactEditorView rawContactEditor = (RawContactEditorView) editor;
@@ -772,6 +820,11 @@ public class ContactEditorFragment extends Fragment implements
                         if (request == EditorListener.FIELD_CHANGED && !isEditingUserProfile()) {
                             acquireAggregationSuggestions(activity, rawContactEditor);
                         }
+                    }
+
+                    @Override
+                    public void onDismissPopup() {
+                        // Nothing to do.
                     }
 
                     @Override
@@ -852,6 +905,8 @@ public class ContactEditorFragment extends Fragment implements
         if (mRawContactIdRequestingPhoto == editor.getRawContactId()) {
             mCurrentPhotoHandler = photoHandler;
         }
+
+        mBindPhotoHandler = photoHandler;
     }
 
     private void bindGroupMetaData() {
@@ -953,7 +1008,11 @@ public class ContactEditorFragment extends Fragment implements
         splitMenu.setVisible(mState != null && mState.size() > 1 && !isEditingUserProfile());
 
         // Cannot join a user profile
-        joinMenu.setVisible(!isEditingUserProfile());
+        if(SimAccountType.ACCOUNT_TYPE.equals(currentAccountTpye) ){
+            joinMenu.setVisible(false);
+        }else{
+            joinMenu.setVisible(!isEditingUserProfile());
+        }
 
         // help menu depending on whether this is inserting or editing
         if (Intent.ACTION_INSERT.equals(mAction)) {
@@ -973,16 +1032,80 @@ public class ContactEditorFragment extends Fragment implements
         }
     }
 
+    public void discard() {
+        // There is no need to do further step when operate simcard contact.
+        if (isCardOperation()) {
+            return;
+        }
+
+        if (mAddContactPressed){
+            mAddContactPressed = false;
+            if (mIsMenuJoinPressed && mJoinUri != null) {
+                mIsMenuJoinPressed = false;
+                mIsMenuDiscardPressed = true;
+                if (mState != null && 2 < mState.size() && (mJoinPressedCount == 1)) {
+                    mState.remove(0);
+                }
+                mJoinPressedCount = 0;
+                // Check mJoinUri here to avoid NullPointerException.
+                if (mIsMenuDiscardPressed && mJoinUri != null) {
+                    long id = ContentUris.parseId(mJoinUri);
+                    String mJoinUriStr = mJoinUri.toString();
+                    String[] strings = mJoinUriStr.split("\\.");
+                    if (4 < strings.length) {
+                       mJoinUri = Uri.withAppendedPath(Contacts.CONTENT_URI, String.valueOf(id + 1));
+                    } else {
+                       mJoinUri = Uri.withAppendedPath(Contacts.CONTENT_URI, String.valueOf(id));
+                    }
+                 }
+                 onSplitContactConfirmed();
+                 mState = null;
+            }
+        } else {
+            // Because User Profile can not join to another contact,
+            // so should do not split when editing User Profile
+            // and only split for in join status
+            if (!isEditingUserProfile() && mIsMenuJoinPressed) {
+                onSplitContactConfirmed();
+                mState = null;
+            }
+        }
+    }
+
+    private boolean isCardOperation() {
+        if (mState == null) {
+            return false;
+        }
+
+        boolean isCardOperation = false;
+        for (int i = 0; i < mState.size(); i++) {
+            final RawContactDelta rawContactDelta = mState.get(i);
+            final String accountType = rawContactDelta.getValues().getAsString(RawContacts.ACCOUNT_TYPE);
+            final String accountName = rawContactDelta.getValues().getAsString(RawContacts.ACCOUNT_NAME);
+            final int subscription = ContactEditorActivity
+                    .getSubscription(accountType, accountName);
+            if (subscription != -1) {
+                isCardOperation = true;
+                break;
+            }
+        }
+
+        return isCardOperation;
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_done:
                 return save(SaveMode.CLOSE);
             case R.id.menu_discard:
+                discard();
                 return revert();
             case R.id.menu_split:
                 return doSplitContactAction();
             case R.id.menu_join:
+                mJoinPressedCount++;
+                mIsMenuJoinPressed = true;
                 return doJoinContactAction();
         }
         return false;
@@ -1054,7 +1177,8 @@ public class ContactEditorFragment extends Fragment implements
                 mStatus = Status.EDITING;
                 return true;
             }
-            onSaveCompleted(false, saveMode, mLookupUri != null, mLookupUri);
+            onSaveCompleted(false, saveMode, mLookupUri != null, mLookupUri,
+                getActivity().getIntent().getIntExtra(ContactSaveService.SAVE_CONTACT_RESULT, 0));
             return true;
         }
 
@@ -1063,7 +1187,15 @@ public class ContactEditorFragment extends Fragment implements
         // Store account as default account, only if this is a new contact
         saveDefaultAccountIfNecessary();
 
+        // When contact saved,clear the "has_remove"
+        if (null != mUpdatedPhotos) {
+            mUpdatedPhotos.remove("has_remove");
+        }
         // Save contact
+        if (mIsMenuDiscardPressed && mJoinUri != null) {
+            ContactSaveService.mDeleteContactUri = mJoinUri;
+            mIsMenuDiscardPressed = false;
+        }
         Intent intent = ContactSaveService.createSaveContactIntent(mContext, mState,
                 SAVE_MODE_EXTRA_KEY, saveMode, isEditingUserProfile(),
                 ((Activity)mContext).getClass(), ContactEditorActivity.ACTION_SAVE_COMPLETED,
@@ -1079,9 +1211,9 @@ public class ContactEditorFragment extends Fragment implements
     public static class CancelEditDialogFragment extends DialogFragment {
 
         public static void show(ContactEditorFragment fragment) {
-            CancelEditDialogFragment dialog = new CancelEditDialogFragment();
-            dialog.setTargetFragment(fragment, 0);
-            dialog.show(fragment.getFragmentManager(), "cancelEditor");
+            mCancelEditDialogFragment = new CancelEditDialogFragment();
+            mCancelEditDialogFragment.setTargetFragment(fragment, 0);
+            mCancelEditDialogFragment.show(fragment.getFragmentManager(), "cancelEditor");
         }
 
         @Override
@@ -1123,18 +1255,97 @@ public class ContactEditorFragment extends Fragment implements
     }
 
     public void onJoinCompleted(Uri uri) {
-        onSaveCompleted(false, SaveMode.RELOAD, uri != null, uri);
+        if (mIsMenuJoinPressed) {
+            mJoinUri = uri;
+        }
+        onSaveCompleted(false, SaveMode.RELOAD, uri != null, uri,
+            getActivity().getIntent().getIntExtra(ContactSaveService.SAVE_CONTACT_RESULT, 0));
     }
 
+    private static final int RESULT_UNCHANGED = 0;
+    private static final int RESULT_SUCCESS = 1;
+    private static final int RESULT_FAILURE = 2;
+    private static final int RESULT_NO_NUMBER = 3;
+    private static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
+    private static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
+    private static final int RESULT_NUMBER_ANR_FAILURE = 6; // only for sim failure of number or anr is too long
+    private static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
+    private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
+    private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
+
+    // Only for accessing SIM card
+    // when device is in the "AirPlane" mode.
+    private static final int RESULT_AIR_PLANE_MODE = 10;
+
     public void onSaveCompleted(boolean hadChanges, int saveMode, boolean saveSucceeded,
-            Uri contactLookupUri) {
+            Uri contactLookupUri, int result) {
+        Log.d(TAG, "onSaveCompleted(" + saveMode + ", " + contactLookupUri);
         if (hadChanges) {
-            if (saveSucceeded) {
-                if (saveMode != SaveMode.JOIN) {
-                    Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT).show();
+            if (result != RESULT_NO_NUMBER && result != RESULT_SIM_FAILURE
+                    && result != RESULT_NUMBER_ANR_FAILURE && result != RESULT_EMAIL_FAILURE
+                    && result != RESULT_SIM_FULL_FAILURE && result != RESULT_TAG_FAILURE
+                    && result != RESULT_NUMBER_INVALID && result != RESULT_AIR_PLANE_MODE
+                    && saveSucceeded) {
+                if ( saveMode != SaveMode.JOIN ) {
+                    if (contactLookupUri != null) {
+                        // When save complete,change the state to edit,so next time it is edit action.
+                        ((Activity)mContext).getIntent().setAction(Intent.ACTION_EDIT);
+                        ((Activity)mContext).getIntent().setData(contactLookupUri);
+                        // contact saved
+                        Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT).show();
+                    } else {
+                        // contact deleted
+                        Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT).show();
+                    }
                 }
             } else {
-                Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG).show();
+                if (result == RESULT_AIR_PLANE_MODE) {
+                    // Access SIM card in the "AirPlane"
+                    // mode prompt a toast to alert user.
+                    Toast.makeText(mContext,
+                            R.string.airplane_mode_on,
+                            Toast.LENGTH_LONG).show();
+                } else if( result == RESULT_SIM_FAILURE ){
+                    Toast.makeText(mContext, R.string.contactSavedToSimCardError, Toast.LENGTH_LONG).show();
+                }else if ( result == RESULT_NUMBER_ANR_FAILURE ){
+                    Toast.makeText(mContext, R.string.number_anr_too_long, Toast.LENGTH_LONG).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
+                }else if ( result == RESULT_EMAIL_FAILURE ){
+                    Toast.makeText(mContext, R.string.email_address_too_long, Toast.LENGTH_LONG).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
+                }else if ( result == RESULT_SIM_FULL_FAILURE ){
+                    Toast.makeText(mContext, R.string.sim_card_full, Toast.LENGTH_LONG).show();
+                }else if( result == RESULT_TAG_FAILURE ){
+                    Toast.makeText(mContext, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
+                }else if( result == RESULT_NO_NUMBER ){
+                    Toast.makeText(mContext, R.string.no_phone_number, Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    // If there is no number when we edit/add a contact, we need
+                    // to restore the editors data and its states to beginning.
+                    // Otherwise, the label mLabelReadOnly in KindSectionView(we
+                    // set it to readOnly at start) will make phone number
+                    // editor cannot be edit.
+                    bindEditors();
+                    return;
+                } else if (result == RESULT_NUMBER_INVALID) {
+                    Toast.makeText(mContext, R.string.invalid_phone_number, Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else {
+                    Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG).show();
+                }
             }
         }
         switch (saveMode) {
@@ -1184,6 +1395,8 @@ public class ContactEditorFragment extends Fragment implements
                     load(Intent.ACTION_EDIT, contactLookupUri, null);
                     mStatus = Status.LOADING;
                     getLoaderManager().restartLoader(LOADER_DATA, null, mDataLoaderListener);
+                } else if (contactLookupUri == null) {
+                    mStatus = Status.SAVING; // change status to saving instead of editing, make sure the data will be saving.
                 }
                 break;
 
@@ -1337,6 +1550,9 @@ public class ContactEditorFragment extends Fragment implements
                 if (type1.accountType == null) {
                     return 1;
                 }
+                if (type2.accountType == null) {
+                    return -1;
+                }
                 value = type1.accountType.compareTo(type2.accountType);
                 if (value != 0) {
                     return value;
@@ -1396,6 +1612,13 @@ public class ContactEditorFragment extends Fragment implements
      */
     private void acquireAggregationSuggestions(Context context,
             RawContactEditorView rawContactEditor) {
+
+        if (mAggregationSuggestionEngine == null || !mAggregationSuggestionEngine.isAlive()) {
+            mAggregationSuggestionEngine = new AggregationSuggestionEngine(context);
+            mAggregationSuggestionEngine.setListener(this);
+            mAggregationSuggestionEngine.start();
+        }
+
         long rawContactId = rawContactEditor.getRawContactId();
         if (mAggregationSuggestionsRawContactId != rawContactId
                 && mAggregationSuggestionView != null) {
@@ -1406,16 +1629,13 @@ public class ContactEditorFragment extends Fragment implements
 
         mAggregationSuggestionsRawContactId = rawContactId;
 
-        if (mAggregationSuggestionEngine == null) {
-            mAggregationSuggestionEngine = new AggregationSuggestionEngine(context);
-            mAggregationSuggestionEngine.setListener(this);
-            mAggregationSuggestionEngine.start();
-        }
-
         mAggregationSuggestionEngine.setContactId(getContactId());
 
         LabeledEditorView nameEditor = rawContactEditor.getNameEditor();
-        mAggregationSuggestionEngine.onNameChange(nameEditor.getValues());
+
+        // Don't display local contacts aggregation suggestion when SIM Card contact is edited
+        if (!SimAccountType.ACCOUNT_TYPE.equals(currentAccountTpye))
+            mAggregationSuggestionEngine.onNameChange(nameEditor.getValues());
     }
 
     @Override
@@ -1658,6 +1878,7 @@ public class ContactEditorFragment extends Fragment implements
         final String croppedPhotoPath =
                 ContactPhotoUtils.pathForCroppedPhoto(mContext, mCurrentPhotoFile);
         mUpdatedPhotos.putString(String.valueOf(rawContact), croppedPhotoPath);
+        mRawContactIdPhoto = String.valueOf(rawContact);
     }
 
     /**
@@ -1817,6 +2038,12 @@ public class ContactEditorFragment extends Fragment implements
                 implements EditorListener {
 
             @Override
+            public void onDismissPopup() {
+                // Dismiss the popup menu.
+                destroy();
+            }
+
+            @Override
             public void onRequest(int request) {
                 if (!hasValidState()) return;
 
@@ -1860,6 +2087,10 @@ public class ContactEditorFragment extends Fragment implements
                 // Prevent bitmap from being restored if rotate the device.
                 // (only if we first chose a new photo before removing it)
                 mUpdatedPhotos.remove(String.valueOf(mRawContactId));
+
+                // When the user click to remove the contact icon,then we should
+                // set the value of "has_remove" to true.
+                mUpdatedPhotos.putBoolean("has_remove", true);
                 bindEditors();
             }
 
@@ -1879,6 +2110,34 @@ public class ContactEditorFragment extends Fragment implements
             public void onPhotoSelectionDismissed() {
                 // Nothing to do.
             }
+        }
+    }
+
+    /**
+     * used to get value of name editor.
+     */
+    public String getNameEitorValue() {
+        if (null == editor) {
+            return null;
+        }
+        if (editor instanceof RawContactReadOnlyEditorView) {
+            return null;
+        }
+        final RawContactEditorView rawContactEditor = (RawContactEditorView) editor;
+        final TextFieldsEditorView nameEditor = rawContactEditor.getNameEditor();
+        if (null != nameEditor.getEntry()) {
+            return nameEditor.getEntry().getAsString("data1");
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     *  make the popupMenu for selecting photos dismiss
+     */
+    public void dismissPopupMenu() {
+        if (mBindPhotoHandler != null) {
+            mBindPhotoHandler.destroy();
         }
     }
 }

@@ -37,6 +37,7 @@ public final class ContactListFilter implements Comparable<ContactListFilter>, P
     public static final int FILTER_TYPE_SINGLE_CONTACT = -6;
 
     public static final int FILTER_TYPE_ACCOUNT = 0;
+    public static final int FILTER_TYPE_ALL_WITHOUT_SIM = 2;
 
     /**
      * Obsolete filter which had been used in Honeycomb. This may be stored in
@@ -46,10 +47,10 @@ public final class ContactListFilter implements Comparable<ContactListFilter>, P
      */
     private static final int FILTER_TYPE_GROUP = 1;
 
-    private static final String KEY_FILTER_TYPE = "filter.type";
-    private static final String KEY_ACCOUNT_NAME = "filter.accountName";
-    private static final String KEY_ACCOUNT_TYPE = "filter.accountType";
-    private static final String KEY_DATA_SET = "filter.dataSet";
+    public static final String KEY_FILTER_TYPE = "filter.type";
+    public static final String KEY_ACCOUNT_NAME = "filter.accountName";
+    public static final String KEY_ACCOUNT_TYPE = "filter.accountType";
+    public static final String KEY_DATA_SET = "filter.dataSet";
 
     public final int filterType;
     public final String accountType;

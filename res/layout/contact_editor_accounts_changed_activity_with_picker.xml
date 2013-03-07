@@ -46,10 +46,10 @@
         android:layout_height="1dip"
         android:background="?android:attr/listDivider"/>
 
-    <Button
+    <!--Button
         android:id="@+id/add_account_button"
         style="?android:attr/buttonBarButtonStyle"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"/-->
 
 </LinearLayout>

@@ -20,6 +20,7 @@ import android.content.ComponentCallbacks2;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.AsyncQueryHandler;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -42,9 +43,12 @@ import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Contacts.Photo;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Directory;
+import android.provider.ContactsContract.RawContacts;
+import android.telephony.MSimTelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.LruCache;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.widget.ImageView;
 
@@ -155,6 +159,8 @@ public abstract class ContactPhotoManager implements ComponentCallbacks2 {
         return new ContactPhotoManagerImpl(context);
     }
 
+    public abstract void loadPhoto(ImageView view, int subscription);
+
     /**
      * Load thumbnail image into the supplied image view. If the photo is already cached,
      * it is displayed immediately.  Otherwise a request is sent to load the photo
@@ -256,6 +262,78 @@ public abstract class ContactPhotoManager implements ComponentCallbacks2 {
     @Override
     public void onTrimMemory(int level) {
     }
+
+    private static final int QUERY_SIM_TOKEN = 43;
+
+    private ContactPhotoManager mPhotoLoader;
+
+    private void onLoadContactPhoto(ImageView viewToUse, int sub){
+        if ( sub == 0 || sub == 1) {
+            mPhotoLoader.loadPhoto(viewToUse, sub);
+        }
+    }
+
+    public class SimQueryHandler extends AsyncQueryHandler{
+
+
+        public SimQueryHandler(Context context) {
+            super(context.getContentResolver());
+            mPhotoLoader = new ContactPhotoManagerImpl(context);
+        }
+
+
+        @Override
+        protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+          ImageView viewToUse;
+            try {
+                switch(token) {
+                    case QUERY_SIM_TOKEN:
+                        if (cursor != null && cursor.moveToFirst()) {
+                            int sub = getSimSubscription(cursor);
+                            Pair pair = (Pair)cookie;
+                            if(null != pair){
+                                viewToUse = (ImageView)pair.first;
+                                Log.d(TAG,"QUERY_SIM_TOKEN received, sub=" + sub);
+                                onLoadContactPhoto(viewToUse, sub);
+
+                            }
+
+                        }
+                        break;
+                }
+            }finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+
+        private  int getSimSubscription(Cursor cursor) {
+            int subscription = -1;
+            if (cursor == null || cursor.getCount() == 0) {
+                subscription = -1;
+                return subscription;
+            }
+
+            String accountName = cursor.getString(cursor.getColumnIndex(RawContacts.ACCOUNT_NAME));
+            String accountType = cursor.getString(cursor.getColumnIndex(RawContacts.ACCOUNT_TYPE));
+            if (accountType == null || accountName == null) {
+                subscription = -1;
+                return subscription;
+            }
+            if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(accountType)) {
+                if (SimContactsConstants.SIM_NAME.equals(accountName))
+                    subscription = 0;
+                else if(SimContactsConstants.SIM_NAME_1.equals(accountName))
+                    subscription = 0;
+                else if (SimContactsConstants.SIM_NAME_2.equals(accountName))
+                    subscription = 1;
+            } else {
+                subscription = -1;
+            }
+            return subscription;
+        }
+    }
 }
 
 class ContactPhotoManagerImpl extends ContactPhotoManager implements Callback {
@@ -278,6 +356,12 @@ class ContactPhotoManagerImpl extends ContactPhotoManager implements Callback {
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
     private static final String[] COLUMNS = new String[] { Photo._ID, Photo.PHOTO };
+
+    /**
+     * The resource ID of the image to be used when the photo is unavailable or being
+     * loaded.
+     */
+    private int mDefaultResourceId;
 
     /**
      * Maintains the state of a particular photo.
@@ -1220,4 +1304,34 @@ class ContactPhotoManagerImpl extends ContactPhotoManager implements Callback {
             mDefaultProvider.applyDefaultImage(view, mRequestedExtent, mDarkTheme);
         }
     }
+
+     /**
+     * Load photo into the supplied image view.  If the photo is already cached,
+     * it is displayed immediately.  Otherwise a request is sent to load the photo
+     * from the database.
+     */
+    public void loadPhoto(ImageView view, int subscription) {
+        if (subscription != 0 && subscription != 1){
+            Log.d(TAG, "load sim photo default");
+            view.setImageResource(mDefaultResourceId);
+            mPendingRequests.remove(view);
+        } else {
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                Log.d(TAG, "load sim photo for sub " + subscription);
+                if (subscription == 0) {
+                    view.setImageResource(R.drawable.ic_contact_list_sim1);
+                    mPendingRequests.remove(view);
+                } else if (subscription == 1) {
+                    view.setImageResource(R.drawable.ic_contact_list_sim2);
+                    mPendingRequests.remove(view);
+                }
+            } else {
+                if (subscription == 0) {
+                    view.setImageResource(R.drawable.ic_contact_list_sim);
+                    mPendingRequests.remove(view);
+                }
+            }
+        }
+    }
+
 }

@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.ContactsContract.Intents;
+import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -92,9 +93,9 @@ public class ContactEditorAccountsChangedActivity extends Activity {
             final TextView textView = (TextView) findViewById(R.id.text);
             textView.setText(getString(R.string.contact_editor_prompt_multiple_accounts));
 
-            final Button button = (Button) findViewById(R.id.add_account_button);
-            button.setText(getString(R.string.add_new_account));
-            button.setOnClickListener(mAddAccountClickListener);
+            //final Button button = (Button) findViewById(R.id.add_account_button);
+            //button.setText(getString(R.string.add_new_account));
+            //button.setOnClickListener(mAddAccountClickListener);
 
             final ListView accountListView = (ListView) findViewById(R.id.account_list);
             mAccountListAdapter = new AccountsListAdapter(this,
@@ -188,5 +189,12 @@ public class ContactEditorAccountsChangedActivity extends Activity {
         intent.putExtra(Intents.Insert.ACCOUNT, account);
         setResult(RESULT_OK, intent);
         finish();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // The default implementation populates the menu with standard system menu items.
+        // When don't used OptionsMenu,we should return false.
+        return false;
     }
 }
