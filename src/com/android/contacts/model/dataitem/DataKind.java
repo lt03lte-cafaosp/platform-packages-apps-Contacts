@@ -46,7 +46,15 @@ public final class DataKind {
     public int iconAltRes;
     public int iconAltDescriptionRes;
     public int weight;
+    // The max length of the EditText.
+    public int maxLength;
     public boolean editable;
+
+    /**
+     * If this is true (default), the user can add and remove values.
+     * If false, the editor will always show a single field (which might be empty).
+     */
+    public boolean isList;
 
     public StringInflater actionHeader;
     public StringInflater actionAltHeader;
@@ -101,6 +109,7 @@ public final class DataKind {
         this.titleRes = titleRes;
         this.weight = weight;
         this.editable = editable;
+        this.isList = true;
         this.typeOverallMax = -1;
         this.editorLayoutResourceId = editorLayoutResourceId;
         maxLinesForDisplay = 1;

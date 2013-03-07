@@ -15,6 +15,7 @@
  */
 package com.android.contacts.interactions;
 
+import android.accounts.Account;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -38,6 +39,7 @@ import android.provider.ContactsContract.CommonDataKinds.SipAddress;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +47,7 @@ import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.ListAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.contacts.Collapser;
 import com.android.contacts.Collapser.Collapsible;
@@ -57,6 +60,7 @@ import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.account.AccountType.StringInflater;
 import com.android.contacts.model.dataitem.DataKind;
 import com.android.contacts.model.AccountTypeManager;
+import com.android.contacts.util.Constants;
 import com.google.common.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
@@ -78,7 +82,8 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
     @VisibleForTesting
     /* package */ enum InteractionType {
         PHONE_CALL,
-        SMS
+        SMS,
+        COPY
     }
 
     /**
@@ -88,6 +93,8 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
     /* package */ static class PhoneItem implements Parcelable, Collapsible<PhoneItem> {
         long id;
         String phoneNumber;
+        String displayNamePri;
+        String displayNameAlt;
         String accountType;
         String dataSet;
         long type;
@@ -106,6 +113,8 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
             this.type        = in.readLong();
             this.label       = in.readString();
             this.mimeType    = in.readString();
+			this.displayNamePri = in.readString();
+            this.displayNameAlt = in.readString();
         }
 
         @Override
@@ -117,6 +126,8 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
             dest.writeLong(type);
             dest.writeString(label);
             dest.writeString(mimeType);
+			dest.writeString(displayNamePri);
+            dest.writeString(displayNameAlt);
         }
 
         @Override
@@ -191,6 +202,9 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
             } else {
                 typeView.setText(R.string.call_other);
             }
+            if(mInteractionType == InteractionType.COPY){
+                typeView.setVisibility(View.GONE);
+            }
             return view;
         }
     }
@@ -243,8 +257,8 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
             final View setPrimaryView = inflater.inflate(R.layout.set_primary_checkbox, null);
             return new AlertDialog.Builder(activity)
                     .setAdapter(mPhonesAdapter, this)
-                    .setTitle(mInteractionType == InteractionType.SMS
-                            ? R.string.sms_disambig_title : R.string.call_disambig_title)
+                    .setTitle(mInteractionType == InteractionType.SMS ? R.string.sms_disambig_title : 
+                    (mInteractionType == InteractionType.PHONE_CALL ? R.string.call_disambig_title : R.string.number_to_select))
                     .setView(setPrimaryView)
                     .create();
         }
@@ -264,7 +278,7 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
                     activity.startService(serviceIntent);
                 }
 
-                PhoneNumberInteraction.performAction(activity, phoneItem.phoneNumber,
+                PhoneNumberInteraction.performAction(activity, phoneItem, phoneItem.phoneNumber,
                         mInteractionType, mCallOrigin);
             } else {
                 dialog.dismiss();
@@ -276,6 +290,8 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
             Phone._ID,
             Phone.NUMBER,
             Phone.IS_SUPER_PRIMARY,
+            Phone.DISPLAY_NAME_PRIMARY,
+            Phone.DISPLAY_NAME_ALTERNATIVE,
             RawContacts.ACCOUNT_TYPE,
             RawContacts.DATA_SET,
             Phone.TYPE,
@@ -289,11 +305,12 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
                 + "'" + SipAddress.CONTENT_ITEM_TYPE + "') AND "
                 + Data.DATA1 + " NOT NULL";
 
-    private final Context mContext;
+    private static Context mContext;
     private final OnDismissListener mDismissListener;
     private final InteractionType mInteractionType;
 
     private final String mCallOrigin;
+    private static int mSub = -1;
 
     private CursorLoader mLoader;
 
@@ -310,31 +327,80 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
     }
 
     private PhoneNumberInteraction(Context context, InteractionType interactionType,
-            DialogInterface.OnDismissListener dismissListener, String callOrigin) {
+            DialogInterface.OnDismissListener dismissListener, String callOrigin, int sub) {
         mContext = context;
         mInteractionType = interactionType;
         mDismissListener = dismissListener;
         mCallOrigin = callOrigin;
+        mSub = sub;
     }
 
-    private void performAction(String phoneNumber) {
-        PhoneNumberInteraction.performAction(mContext, phoneNumber, mInteractionType, mCallOrigin);
+    private PhoneNumberInteraction(Context context, InteractionType interactionType,
+            DialogInterface.OnDismissListener dismissListener, String callOrigin) {
+        this(context, interactionType, dismissListener, callOrigin, -1);
+    }
+
+
+    private void performAction(PhoneItem phoneItem, String phoneNumber) {
+        PhoneNumberInteraction.performAction(mContext, phoneItem, phoneNumber, mInteractionType, mCallOrigin);
     }
 
     private static void performAction(
-            Context context, String phoneNumber, InteractionType interactionType,
+            Context context, PhoneItem phoneItem, String phoneNumber, InteractionType interactionType,
             String callOrigin) {
-        Intent intent;
+        Intent intent = null;
         switch (interactionType) {
             case SMS:
                 intent = new Intent(
                         Intent.ACTION_SENDTO, Uri.fromParts("sms", phoneNumber, null));
                 break;
+			
+			case COPY:
+                if (phoneItem == null)
+                {
+                    break;
+                }
+                String name = ContactsUtils.getDisplayName(context, phoneItem.displayNamePri, phoneItem.displayNameAlt);
+                if (ContactsUtils.getSimFreeCount(context, mSub) <= 0)
+                {
+                    Toast.makeText(context, R.string.card_no_space, 
+                                    Toast.LENGTH_SHORT).show();        
+                    break;
+                }
+				Uri itemUri = ContactsUtils.insertToCard(context, name, phoneItem.phoneNumber, "", "", mSub);
+                if(itemUri != null){
+                    Toast.makeText(context,R.string.copy_done,Toast.LENGTH_SHORT).show();
+                }else{
+                    Toast.makeText(context,R.string.copy_done,Toast.LENGTH_SHORT).show();
+                }
+                return;
+					
             default:
                 intent = ContactsUtils.getCallIntent(phoneNumber, callOrigin);
                 break;
         }
         context.startActivity(intent);
+    }
+
+    private void performAction(PhoneItem item) {
+        Intent intent;
+        switch (mInteractionType) {
+            case SMS:
+                intent = new Intent(
+                        Intent.ACTION_SENDTO, Uri.fromParts("sms", item.phoneNumber, null));
+                break;
+            default:
+                // need to check is SIP Call or normal call
+                if (SipAddress.CONTENT_ITEM_TYPE.equals(item.mimeType)){
+                    final Uri callUri = Uri.fromParts(Constants.SCHEME_SIP, item.phoneNumber, null);
+                    intent = ContactsUtils.getCallIntent(callUri);
+                }
+                else{
+                    intent = ContactsUtils.getCallIntent(item.phoneNumber, mCallOrigin);
+                }
+                break;
+        }
+        mContext.startActivity(intent);
     }
 
     /**
@@ -381,23 +447,32 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
 
         ArrayList<PhoneItem> phoneList = new ArrayList<PhoneItem>();
         String primaryPhone = null;
+        PhoneItem item = null;
         try {
             while (cursor.moveToNext()) {
+                /*
                 if (cursor.getInt(cursor.getColumnIndex(Phone.IS_SUPER_PRIMARY)) != 0) {
                     // Found super primary, call it.
                     primaryPhone = cursor.getString(cursor.getColumnIndex(Phone.NUMBER));
                     break;
                 }
-
-                PhoneItem item = new PhoneItem();
+*/
+                item = new PhoneItem();
                 item.id = cursor.getLong(cursor.getColumnIndex(Data._ID));
                 item.phoneNumber = cursor.getString(cursor.getColumnIndex(Phone.NUMBER));
+                item.displayNamePri = cursor.getString(cursor.getColumnIndex(Phone.DISPLAY_NAME_PRIMARY));
+                item.displayNameAlt = cursor.getString(cursor.getColumnIndex(Phone.DISPLAY_NAME_ALTERNATIVE));
                 item.accountType =
                         cursor.getString(cursor.getColumnIndex(RawContacts.ACCOUNT_TYPE));
                 item.dataSet = cursor.getString(cursor.getColumnIndex(RawContacts.DATA_SET));
                 item.type = cursor.getInt(cursor.getColumnIndex(Phone.TYPE));
                 item.label = cursor.getString(cursor.getColumnIndex(Phone.LABEL));
                 item.mimeType = cursor.getString(cursor.getColumnIndex(Phone.MIMETYPE));
+				if (cursor.getInt(cursor.getColumnIndex(Phone.IS_SUPER_PRIMARY)) != 0) {
+                    // Found super primary, call it.
+                    primaryPhone = cursor.getString(cursor.getColumnIndex(Phone.NUMBER));
+                    break;
+                }
 
                 phoneList.add(item);
             }
@@ -406,7 +481,7 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
         }
 
         if (primaryPhone != null) {
-            performAction(primaryPhone);
+            performAction(item, primaryPhone);
             onDismiss();
             return;
         }
@@ -416,9 +491,10 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
         if (phoneList.size() == 0) {
             onDismiss();
         } else if (phoneList.size() == 1) {
-            PhoneItem item = phoneList.get(0);
+            PhoneItem itemP = phoneList.get(0);
             onDismiss();
-            performAction(item.phoneNumber);
+            // if perform call need to check sip or normal call
+            performAction(itemP, phoneList.get(0).phoneNumber);
         } else {
             // There are multiple candidates. Let the user choose one.
             showDisambiguationDialog(phoneList);
@@ -480,6 +556,22 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
      */
     public static void startInteractionForTextMessage(TransactionSafeActivity activity, Uri uri) {
         (new PhoneNumberInteraction(activity, InteractionType.SMS, null)).startInteraction(uri);
+    }
+
+    /**
+     * Start number copy (a.k.a COPY) action using given contact Uri. If there are multiple
+     * candidates for the phone call, dialog is automatically shown and the user is asked to choose
+     * one.
+     *
+     * @param activity that is calling this interaction. This must be of type
+     * {@link TransactionSafeActivity} because we need to check on the activity state after the
+     * phone numbers have been queried for.
+     * @param uri contact Uri (built from {@link Contacts#CONTENT_URI}) or data Uri
+     * (built from {@link Data#CONTENT_URI}). Contact Uri may show the disambiguation dialog while
+     * data Uri won't.
+     */
+    public static void startInteractionForNumberCopy(Context context, Uri uri, int sub) {
+        (new PhoneNumberInteraction(context, InteractionType.COPY, null, null, sub)).startInteraction(uri);
     }
 
     @VisibleForTesting

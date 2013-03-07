@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.app.LoaderManager.LoaderCallbacks;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Intent;
@@ -28,6 +29,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.provider.LocalGroups;
+import android.provider.LocalGroups.Group;
 import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -42,8 +45,12 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.android.contacts.activities.PeopleActivity;
 import com.android.contacts.ContactsUtils;
 import com.android.contacts.GroupListLoader;
+import com.android.contacts.group.local.LocalGroupCountTask;
+import com.android.contacts.group.local.LocalGroupListAdapter;
+import com.android.contacts.group.local.LocalGroupListLoader;
 import com.android.contacts.R;
 import com.android.contacts.group.GroupBrowseListAdapter.GroupListItemViewCache;
 import com.android.contacts.widget.AutoScrollListView;
@@ -71,6 +78,7 @@ public class GroupBrowseListFragment extends Fragment
     private static final String TAG = "GroupBrowseListFragment";
 
     private static final int LOADER_GROUPS = 1;
+    private static final int LOADER_LOCAL_GROUPS = 2;
 
     private Context mContext;
     private Cursor mGroupListCursor;
@@ -86,6 +94,7 @@ public class GroupBrowseListFragment extends Fragment
     private View mAddAccountButton;
 
     private GroupBrowseListAdapter mAdapter;
+    private LocalGroupListAdapter mLocalAdapter;
     private boolean mSelectionVisible;
     private Uri mSelectedGroupUri;
 
@@ -115,6 +124,8 @@ public class GroupBrowseListFragment extends Fragment
         mAdapter.setSelectionVisible(mSelectionVisible);
         mAdapter.setSelectedGroup(mSelectedGroupUri);
 
+        mLocalAdapter = new LocalGroupListAdapter(mContext);
+
         mListView = (AutoScrollListView) mRootView.findViewById(R.id.list);
         mListView.setOnFocusChangeListener(this);
         mListView.setOnTouchListener(this);
@@ -122,9 +133,15 @@ public class GroupBrowseListFragment extends Fragment
         mListView.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                GroupListItemViewCache groupListItem = (GroupListItemViewCache) view.getTag();
-                if (groupListItem != null) {
-                    viewGroup(groupListItem.getUri());
+                //GroupListItemViewCache groupListItem = (GroupListItemViewCache) view.getTag();
+                Object tag = view.getTag();
+                if(tag instanceof GroupListItemViewCache){
+                    GroupListItemViewCache groupListItem = (GroupListItemViewCache) tag;
+                    if (groupListItem != null) {
+                        viewGroup(groupListItem.getUri());
+                    }
+                }else{
+                    goToGroupEdit(getSelectUri(((Group) tag).getId()));
                 }
             }
         });
@@ -146,6 +163,71 @@ public class GroupBrowseListFragment extends Fragment
 
         return mRootView;
     }
+
+    private Uri getSelectUri(long id) {
+        return ContentUris.withAppendedId(LocalGroups.CONTENT_URI, id);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        new LocalGroupCountTask(mContext, this).execute();
+    }
+
+    private void goToGroupEdit(Uri data) {
+        Intent intent = new Intent(Intent.ACTION_EDIT, data);
+        intent.putExtra("data", data);
+        intent.setType("vnd.android.cursor.item/local-groups");
+        this.startActivity(intent);
+    }
+
+    private boolean isLocalShown() {
+        PeopleActivity peopleActivity = (PeopleActivity) this.getActivity();
+        if (peopleActivity != null) {
+            return peopleActivity.isLocalGroupsShown;
+        } else {
+            return false;
+        }
+    }
+
+    private void bindLocalGroupList(Cursor data) {
+        mEmptyView.setText(R.string.noGroupsHelpText);
+        setAddAccountsVisibility(false);
+        if (data == null) {
+            return;
+        }
+        mLocalAdapter.changeCursor(data);
+    }
+
+    public void updateGroupData() {
+        if (this.getActivity() == null) {
+            return;
+        }
+        if (!isLocalShown()) {
+            getLoaderManager().restartLoader(LOADER_GROUPS, null, mGroupLoaderListener);
+        } else {
+            getLoaderManager().restartLoader(LOADER_LOCAL_GROUPS, null, mLocalGroupLoaderListener);
+        }
+    }
+
+    private final LoaderManager.LoaderCallbacks<Cursor> mLocalGroupLoaderListener =
+            new LoaderCallbacks<Cursor>() {
+
+        @Override
+        public CursorLoader onCreateLoader(int id, Bundle args) {
+            mEmptyView.setText(null);
+            return new LocalGroupListLoader(mContext);
+        }
+
+        @Override
+        public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+            mListView.setAdapter(mLocalAdapter);
+            bindLocalGroupList(data);
+        }
+
+        public void onLoaderReset(Loader<Cursor> loader) {
+        }
+    };
 
     public void setVerticalScrollbarPosition(int position) {
         if (mVerticalScrollbarPosition != position) {
@@ -184,7 +266,10 @@ public class GroupBrowseListFragment extends Fragment
 
     @Override
     public void onStart() {
-        getLoaderManager().initLoader(LOADER_GROUPS, null, mGroupLoaderListener);
+        //local group will update group data in onResume()
+        if (!isLocalShown()) {
+            updateGroupData();
+        }
         super.onStart();
     }
 
@@ -202,6 +287,14 @@ public class GroupBrowseListFragment extends Fragment
 
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+            // The GroupListLoader register the content observer, it
+            // will update the data if the DB changed(e.g. import
+            // contacts from VCard, it will update the account groups
+            // data). But we should not change mListViwe to display the
+            // account groups if we are in the Local Groups UI.
+            if (!isLocalShown()) {
+                mListView.setAdapter(mAdapter);
+            }
             mGroupListCursor = data;
             bindGroupList();
         }
@@ -306,7 +399,7 @@ public class GroupBrowseListFragment extends Fragment
 
     public void setAddAccountsVisibility(boolean visible) {
         if (mAddAccountsView != null) {
-            mAddAccountsView.setVisibility(visible ? View.VISIBLE : View.GONE);
+            mAddAccountsView.setVisibility(visible && !isLocalShown() ? View.VISIBLE : View.GONE);
         }
     }
 }

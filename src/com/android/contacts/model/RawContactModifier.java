@@ -27,6 +27,7 @@ import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.Im;
+import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.CommonDataKinds.Nickname;
 import android.provider.ContactsContract.CommonDataKinds.Note;
 import android.provider.ContactsContract.CommonDataKinds.Organization;
@@ -182,8 +183,11 @@ public class RawContactModifier {
         // Build list of valid types
         final int overallCount = typeCount.get(FREQUENCY_TOTAL);
         for (EditType type : kind.typeList) {
-            final boolean validOverall = (kind.typeOverallMax == -1 ? true
-                    : overallCount < kind.typeOverallMax);
+
+            //here change the "<" to "<=",because usim contact allowed number are two,
+            //when add tow number,the value of overallCount is 2,so the value of validOverall is false
+            final boolean validOverall = (-1 == kind.typeOverallMax ? true
+                    : overallCount <= kind.typeOverallMax);
             final boolean validSpecific = (type.specificMax == -1 ? true : typeCount
                     .get(type.rawValue) < type.specificMax);
             final boolean validSecondary = (includeSecondary ? true : !type.secondary);
@@ -541,6 +545,12 @@ public class RawContactModifier {
                     Phone.NUMBER);
             parseExtras(state, kind, extras, Insert.TERTIARY_PHONE_TYPE, Insert.TERTIARY_PHONE,
                     Phone.NUMBER);
+        }
+
+        {
+            // Sip address
+            final DataKind kind = accountType.getKindForMimetype(SipAddress.CONTENT_ITEM_TYPE);
+            parseExtras(state, kind, extras, "sip_type", "sip_address", SipAddress.SIP_ADDRESS);
         }
 
         {
@@ -981,7 +991,8 @@ public class RawContactModifier {
                 if (!kind.editable) continue;
                 final String mimeType = kind.mimeType;
                 if (DataKind.PSEUDO_MIME_TYPE_DISPLAY_NAME.equals(mimeType)
-                        || DataKind.PSEUDO_MIME_TYPE_PHONETIC_NAME.equals(mimeType)) {
+                        || DataKind.PSEUDO_MIME_TYPE_PHONETIC_NAME.equals(mimeType)
+                        || LocalGroup.CONTENT_ITEM_TYPE.equals(mimeType)) {
                     // Ignore pseudo data.
                     continue;
                 } else if (StructuredName.CONTENT_ITEM_TYPE.equals(mimeType)) {

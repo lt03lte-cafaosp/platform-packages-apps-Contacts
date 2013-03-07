@@ -15,9 +15,11 @@
  */
 package com.android.contacts.list;
 
+import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.CursorLoader;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
@@ -26,10 +28,16 @@ import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Directory;
+import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract.SearchSnippetColumns;
+import android.provider.Settings;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.view.View;
 
+import com.android.contacts.SimContactsConstants;
+import com.android.contacts.model.account.SimAccountType;
 import com.android.contacts.preference.ContactsPreferences;
 
 import java.util.ArrayList;
@@ -44,12 +52,33 @@ public class DefaultContactListAdapter extends ContactListAdapter {
     public static final char SNIPPET_END_MATCH = '\u0001';
     public static final String SNIPPET_ELLIPSIS = "\u2026";
     public static final int SNIPPET_MAX_TOKENS = 5;
+    public static final int AIRPLANE_MODE_ON_VALUE = 1;
+    public static final int AIRPLANE_MODE_OFF_VALUE = 0;
+    public static final String WITHOUT_SIM_FLAG = "no_sim";
 
     public static final String SNIPPET_ARGS = SNIPPET_START_MATCH + "," + SNIPPET_END_MATCH + ","
             + SNIPPET_ELLIPSIS + "," + SNIPPET_MAX_TOKENS;
 
-    public DefaultContactListAdapter(Context context) {
-        super(context);
+    private Activity target;
+
+    public DefaultContactListAdapter(Activity target) {
+        super(target);
+        this.target = target;
+    }
+
+    /** append Uri QueryParameter to filter contacts in SIM card */
+    private void appendUriQueryParameterWithoutSim(CursorLoader loader,
+            String key, String value) {
+        if (null == loader || null == key || null == value) {
+            return;
+        }
+
+        Uri uri = loader.getUri();
+        if (null != uri) {
+            uri = uri.buildUpon().appendQueryParameter(key, value)
+                    .appendQueryParameter(WITHOUT_SIM_FLAG, "true").build();
+            loader.setUri(uri);
+        }
     }
 
     @Override
@@ -72,19 +101,23 @@ public class DefaultContactListAdapter extends ContactListAdapter {
                 loader.setProjection(getProjection(false));
                 loader.setSelection("0");
             } else {
-                Builder builder = Contacts.CONTENT_FILTER_URI.buildUpon();
-                builder.appendPath(query);      // Builder will encode the query
-                builder.appendQueryParameter(ContactsContract.DIRECTORY_PARAM_KEY,
-                        String.valueOf(directoryId));
-                if (directoryId != Directory.DEFAULT && directoryId != Directory.LOCAL_INVISIBLE) {
-                    builder.appendQueryParameter(ContactsContract.LIMIT_PARAM_KEY,
-                            String.valueOf(getDirectoryResultLimit()));
-                }
-                builder.appendQueryParameter(SearchSnippetColumns.SNIPPET_ARGS_PARAM_KEY,
-                        SNIPPET_ARGS);
-                builder.appendQueryParameter(SearchSnippetColumns.DEFERRED_SNIPPETING_KEY,"1");
-                loader.setUri(builder.build());
+                // Still need to filter the query result in search mode.
+                configureSearchUri(query, loader, directoryId, filter);
                 loader.setProjection(getProjection(true));
+            }
+
+            boolean isAirMode = Settings.System.getInt(
+                    target.getContentResolver(),
+                    Settings.System.AIRPLANE_MODE_ON, AIRPLANE_MODE_OFF_VALUE) == AIRPLANE_MODE_ON_VALUE;
+            if ((null != filter && ContactListFilter.FILTER_TYPE_ALL_WITHOUT_SIM == filter.filterType)
+                    || isAirMode) {
+                appendUriQueryParameterWithoutSim(loader, RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE);
+            } else {
+                // not show contacts when SIM card is disabled
+                String disabledSimFilter = getDisabledSimFilter();
+                if (null != disabledSimFilter) {
+                    appendUriQueryParameterWithoutSim(loader, RawContacts.ACCOUNT_NAME, disabledSimFilter);
+                }
             }
         } else {
             configureUri(loader, directoryId, filter);
@@ -100,6 +133,51 @@ public class DefaultContactListAdapter extends ContactListAdapter {
         }
 
         loader.setSortOrder(sortOrder);
+    }
+
+    // Filter the query result and set Uri to loader.
+    private void configureSearchUri(String query, CursorLoader loader,
+            long directoryId, ContactListFilter filter) {
+        Builder builder = Contacts.CONTENT_FILTER_URI.buildUpon();
+        builder.appendPath(query); // Builder will encode the query
+        builder.appendQueryParameter(ContactsContract.DIRECTORY_PARAM_KEY,
+                String.valueOf(directoryId));
+        if (directoryId != Directory.DEFAULT && directoryId != Directory.LOCAL_INVISIBLE) {
+            builder.appendQueryParameter(ContactsContract.LIMIT_PARAM_KEY,
+                    String.valueOf(getDirectoryResultLimit()));
+        }
+        builder.appendQueryParameter(SearchSnippetColumns.SNIPPET_ARGS_PARAM_KEY,
+                SNIPPET_ARGS);
+        builder.appendQueryParameter(SearchSnippetColumns.DEFERRED_SNIPPETING_KEY, "1");
+        Uri uri = builder.build();
+
+        if (filter != null && filter.filterType == ContactListFilter.FILTER_TYPE_SINGLE_CONTACT) {
+            String lookupKey = getSelectedContactLookupKey();
+            if (lookupKey != null) {
+                uri = Uri.withAppendedPath(Contacts.CONTENT_LOOKUP_URI, lookupKey);
+            } else {
+                uri = ContentUris.withAppendedId(Contacts.CONTENT_URI, getSelectedContactId());
+            }
+        }
+
+        if (directoryId == Directory.DEFAULT && isSectionHeaderDisplayEnabled()) {
+            uri = buildSectionIndexerUri(uri);
+        }
+
+        // The "All accounts" filter is the same as the entire contents of
+        // Directory.DEFAULT
+        if (filter != null
+                && filter.filterType != ContactListFilter.FILTER_TYPE_CUSTOM
+                && filter.filterType != ContactListFilter.FILTER_TYPE_SINGLE_CONTACT) {
+            builder = uri.buildUpon();
+            builder.appendQueryParameter(ContactsContract.DIRECTORY_PARAM_KEY,
+                    String.valueOf(Directory.DEFAULT));
+            if (filter.filterType == ContactListFilter.FILTER_TYPE_ACCOUNT) {
+                filter.addAccountQueryParameterToUrl(builder);
+            }
+            uri = builder.build();
+        }
+        loader.setUri(uri);
     }
 
     protected void configureUri(CursorLoader loader, long directoryId, ContactListFilter filter) {
@@ -133,8 +211,38 @@ public class DefaultContactListAdapter extends ContactListAdapter {
         loader.setUri(uri);
     }
 
+    /** get disabled SIM card's name */
+    private String getDisabledSimFilter() {
+        if (!MSimTelephonyManager.getDefault().isMultiSimEnabled())
+            return null;
+
+        if (TelephonyManager.SIM_STATE_DEACTIVATED == MSimTelephonyManager
+                .getDefault().getSimState(0)) {
+            return SimContactsConstants.SIM_NAME_1;
+        }
+
+        if (TelephonyManager.SIM_STATE_DEACTIVATED == MSimTelephonyManager
+                .getDefault().getSimState(1)) {
+            return SimContactsConstants.SIM_NAME_2;
+        }
+
+        return null;
+    }
+
     private void configureSelection(
             CursorLoader loader, long directoryId, ContactListFilter filter) {
+        StringBuilder selection = new StringBuilder();
+        List<String> selectionArgs = new ArrayList<String>();
+        String disabledSimFilter = getDisabledSimFilter();
+
+        if(Intent.ACTION_ATTACH_DATA.equals(target.getIntent().getStringExtra("super_action"))){
+            selection.append(RawContacts.ACCOUNT_TYPE + "!=?");
+            selectionArgs.add(SimAccountType.ACCOUNT_TYPE);
+            loader.setSelection(selection.toString());
+            loader.setSelectionArgs(selectionArgs.toArray(new String[0]));
+            return;
+        }
+
         if (filter == null) {
             return;
         }
@@ -143,14 +251,26 @@ public class DefaultContactListAdapter extends ContactListAdapter {
             return;
         }
 
-        StringBuilder selection = new StringBuilder();
-        List<String> selectionArgs = new ArrayList<String>();
+        // judget if AirMode is on, when AirMode is on,not show SIM Contacts.
+        boolean isAirMode = Settings.System.getInt(
+                target.getContentResolver(),
+                Settings.System.AIRPLANE_MODE_ON, AIRPLANE_MODE_OFF_VALUE) == AIRPLANE_MODE_ON_VALUE;
 
         switch (filter.filterType) {
             case ContactListFilter.FILTER_TYPE_ALL_ACCOUNTS: {
                 // We have already added directory=0 to the URI, which takes care of this
                 // filter
+            //not show contacts in SIM card when airmode is on
+            if (isAirMode) {
+                appendUriQueryParameterWithoutSim(loader, RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE);
                 break;
+            }
+
+            // not show contacts in disabled SIM card
+            if (null != disabledSimFilter) {
+                appendUriQueryParameterWithoutSim(loader, RawContacts.ACCOUNT_NAME, disabledSimFilter);
+            }
+            break;
             }
             case ContactListFilter.FILTER_TYPE_SINGLE_CONTACT: {
                 // We have already added the lookup key to the URI, which takes care of this
@@ -170,6 +290,15 @@ public class DefaultContactListAdapter extends ContactListAdapter {
                 if (isCustomFilterForPhoneNumbersOnly()) {
                     selection.append(" AND " + Contacts.HAS_PHONE_NUMBER + "=1");
                 }
+                // not show contacts in SIM card when airmode is on
+                if (isAirMode) {
+                    appendUriQueryParameterWithoutSim(loader, RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE);
+                    break;
+                }
+                break;
+            }
+            case ContactListFilter.FILTER_TYPE_ALL_WITHOUT_SIM: {
+                appendUriQueryParameterWithoutSim(loader, RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE);
                 break;
             }
             case ContactListFilter.FILTER_TYPE_ACCOUNT: {

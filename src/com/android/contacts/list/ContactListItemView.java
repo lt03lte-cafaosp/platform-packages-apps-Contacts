@@ -1173,6 +1173,11 @@ public class ContactListItemView extends ViewGroup
                 snippet = sb.toString();
             }
         }
+
+        // When snippet is null,set it to columnContent.
+        if (snippet == null) {
+            snippet = columnContent;
+        }
         setSnippet(snippet);
     }
 

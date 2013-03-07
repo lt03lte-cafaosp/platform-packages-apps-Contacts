@@ -46,6 +46,29 @@ public class PhoneNumberHelper {
         return canPlaceCallsTo(number) && !isVoicemailNumber(number) && !isSipNumber(number);
     }
 
+    public CharSequence getDisplayNumber(CharSequence number, CharSequence formattedNumber, int subscription) {
+        if (TextUtils.isEmpty(number)) {
+            return "";
+        }
+        if (number.equals(CallerInfo.UNKNOWN_NUMBER)) {
+            return mResources.getString(R.string.unknown);
+        }
+        if (number.equals(CallerInfo.PRIVATE_NUMBER)) {
+            return mResources.getString(R.string.private_num);
+        }
+        if (number.equals(CallerInfo.PAYPHONE_NUMBER)) {
+            return mResources.getString(R.string.payphone);
+        }
+        if (isVoicemailNumber(number, subscription)) {
+            return mResources.getString(R.string.voicemail);
+        }
+        if (TextUtils.isEmpty(formattedNumber)) {
+            return number;
+        } else {
+            return formattedNumber;
+        }
+    }
+
     /**
      * Returns the string to display for the given phone number.
      *
@@ -73,6 +96,14 @@ public class PhoneNumberHelper {
         } else {
             return formattedNumber;
         }
+    }
+
+    /**
+     * Returns true if the given number is the number of the configured voicemail.
+     * To be able to mock-out this, it is not a static method.
+     */
+    public boolean isVoicemailNumber(CharSequence number, int subscription) {
+        return PhoneNumberUtils.isVoiceMailNumber(number.toString(), subscription);
     }
 
     /**

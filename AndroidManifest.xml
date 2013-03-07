@@ -48,6 +48,9 @@
     <uses-permission android:name="com.android.voicemail.permission.READ_WRITE_ALL_VOICEMAIL" />
     <uses-permission android:name="android.permission.ALLOW_ANY_CODEC_FOR_PLAYBACK" />
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
+    <!-- Add uses-permission for cooperating with xcloud -->
+    <uses-permission android:name="com.baidu.permission.QCCLOUD_PROVIDER"/>
+
     <!-- allow broadcasting secret code intents that reboot the phone -->
     <uses-permission android:name="android.permission.REBOOT" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -123,6 +126,7 @@
             android:clearTaskOnLaunch="true"
             android:icon="@mipmap/ic_launcher_phone"
             android:screenOrientation="nosensor"
+            android:configChanges="orientation|screenSize|locale"
             android:enabled="@*android:bool/config_voice_capable"
             android:taskAffinity="android.task.contacts.phone"
             android:windowSoftInputMode="stateAlwaysHidden|adjustNothing">
@@ -182,9 +186,12 @@
         </activity>
 
         <!-- The main Contacts activity with the contact list, favorites, and groups. -->
+        <!-- add config change attribute,when rotate the screen don't recreate the activity. -->
         <activity android:name=".activities.PeopleActivity"
             android:label="@string/people"
             android:theme="@style/PeopleTheme"
+            android:screenOrientation="nosensor"
+            android:configChanges="orientation|screenSize"
             android:uiOptions="splitActionBarWhenNarrow"
             android:clearTaskOnLaunch="true"
             android:launchMode="singleTop"
@@ -272,6 +279,8 @@
             android:theme="@style/ContactPickerTheme"
             android:launchMode="singleTop"
             android:clearTaskOnLaunch="true"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:uiOptions="splitActionBarWhenNarrow">
             <intent-filter>
                 <action android:name="android.intent.action.INSERT_OR_EDIT" />
@@ -344,7 +353,7 @@
         <activity android:name=".activities.JoinContactActivity"
             android:theme="@style/JoinContactActivityTheme"
             android:clearTaskOnLaunch="true"
-        >
+            android:configChanges="orientation|keyboardHidden|screenSize" >
             <intent-filter>
                 <action android:name="com.android.contacts.action.JOIN_CONTACT" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -361,6 +370,11 @@
         <activity
             android:name=".list.AccountFilterActivity"
             android:label="@string/activity_title_contacts_filter"
+            android:theme="@style/ContactListFilterTheme" />
+
+        <activity
+            android:name=".activities.MemoryStatusActivity"
+            android:label="@string/memory_status_title"
             android:theme="@style/ContactListFilterTheme" />
 
         <!-- Used to select display and sync groups -->
@@ -497,7 +511,8 @@
             android:label="@string/activity_title_confirm_add_detail"
             android:theme="@style/ConfirmAddDetailDialogTheme"
             android:windowSoftInputMode="adjustResize"
-            android:exported="false"/>
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"/>
 
         <!-- Accounts changed prompt that can appear when creating a new contact. -->
         <activity
@@ -509,6 +524,7 @@
         <!-- Create a new or edit an existing contact -->
         <activity
             android:name=".activities.ContactEditorActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|locale"
             android:theme="@style/EditorActivityTheme"
             android:windowSoftInputMode="adjustResize">
 
@@ -607,6 +623,56 @@
         <activity android:name=".vcard.ExportVCardActivity"
             android:theme="@style/BackgroundOnlyTheme" />
 
+        <activity android:name=".group.local.GroupEditActivity" />
+
+        <!-- add config change attribute,when rotate the screen don't recreate the activity. -->
+        <activity android:name=".group.local.MemberListActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/ContactsPreferencesTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/local-groups"
+                    android:host="com.android.contacts.groups" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".editor.MultiPickContactActivity"
+            android:windowSoftInputMode="stateHidden|adjustResize"
+            android:screenOrientation="nosensor"
+            android:configChanges="orientation|keyboardHidden|locale"
+            android:theme="@style/ContactsPreferencesTheme">
+            <intent-filter>
+                <action android:name="com.android.contacts.action.MULTI_PICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/person"/>
+                <data android:mimeType="vnd.android.cursor.dir/contact"/>
+                <data android:mimeType="vnd.android.cursor.dir/raw_contact"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DELETE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/person"/>
+                <data android:mimeType="vnd.android.cursor.dir/contact"/>
+                <data android:mimeType="vnd.android.cursor.dir/raw_contact"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.contacts.action.MULTI_PICK_CALL"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.contacts.action.MULTI_PICK_EMAIL"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="vnd.android.cursor.dir/person"/>
+                <data android:mimeType="vnd.android.cursor.dir/contact"/>
+                <data android:mimeType="vnd.android.cursor.dir/raw_contact"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.contacts.action.MULTI_PICK_SIM"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
         <service
             android:name=".vcard.VCardService"
             android:exported="false" />

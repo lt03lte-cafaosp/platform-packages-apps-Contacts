@@ -17,6 +17,7 @@
 package com.android.contacts.editor;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.provider.ContactsContract.CommonDataKinds.Photo;
@@ -99,7 +100,7 @@ public class PhotoEditorView extends LinearLayout implements Editor {
 
         setId(vig.getId(state, kind, values, 0));
 
-        if (values != null) {
+        if (values != null && !values.isDelete()) {
             // Try decoding photo if actual entry
             final byte[] photoBytes = values.getAsByteArray(Photo.PHOTO);
             if (photoBytes != null) {
@@ -132,7 +133,9 @@ public class PhotoEditorView extends LinearLayout implements Editor {
     public void setPhotoBitmap(Bitmap photo) {
         if (photo == null) {
             // Clear any existing photo and return
-            mEntry.put(Photo.PHOTO, (byte[])null);
+            // Here we should clear any photo instead of clear any data.
+            //mEntry.put(Photo.PHOTO, (byte[])null);
+            mEntry.markDeleted();
             resetDefault();
             return;
         }
@@ -144,6 +147,7 @@ public class PhotoEditorView extends LinearLayout implements Editor {
 
         // When the user chooses a new photo mark it as super primary
         mEntry.setSuperPrimary(true);
+        mEntry.put(Photo.MIMETYPE, Photo.CONTENT_ITEM_TYPE);
 
         // Even though high-res photos cannot be saved by passing them via
         // an EntityDeltaList (since they cause the Bundle size limit to be
@@ -200,5 +204,14 @@ public class PhotoEditorView extends LinearLayout implements Editor {
     @Override
     public void clearAllFields() {
         resetDefault();
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // When rotate the screen dissmiss the popup menu.
+        if (mListener != null) {
+            mListener.onDismissPopup();
+        }
     }
 }

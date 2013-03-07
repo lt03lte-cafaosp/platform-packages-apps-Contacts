@@ -14,10 +14,54 @@
      limitations under the License.
 -->
 
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/contact_detail_view"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="78dip"
+            android:paddingLeft="5dip"
+            android:background="@drawable/actionbar_detail_bg">
+            <ImageView
+                android:id="@+id/back"
+                android:layout_width="10dip"
+                android:layout_height="20dip"
+                android:layout_centerVertical="true"
+                android:src="@drawable/actionbar_back"/>
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingLeft="10dip"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF"
+                android:maxWidth="128dip"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:layout_toRightOf="@id/back"
+                android:layout_centerVertical="true" />
+            <ImageView
+                android:id="@+id/star"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingLeft="20dip"
+                android:layout_toRightOf="@id/name"
+                android:layout_centerVertical="true"
+                android:src="@drawable/btn_star_off_normal_holo_dark"/>
+            <ImageView
+                android:id="@+id/photo"
+                android:layout_width="72dip"
+                android:layout_height="72dip"
+                android:layout_gravity="center_vertical"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:padding="3dip"
+                android:src="@drawable/ic_contact_picture_holo_light"/>
+    </RelativeLayout>
 
     <!-- This fragment is an invisible worker fragment that loads the contact details. -->
     <fragment
@@ -34,4 +78,4 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-</FrameLayout>
+</LinearLayout>

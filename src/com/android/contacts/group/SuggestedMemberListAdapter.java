@@ -169,128 +169,159 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
         @Override
         protected FilterResults performFiltering(CharSequence prefix) {
             FilterResults results = new FilterResults();
-            if (mContentResolver == null || TextUtils.isEmpty(prefix)) {
-                return results;
-            }
 
-            // Create a list to store the suggested contacts (which will be alphabetically ordered),
-            // but also keep a map of raw contact IDs to {@link SuggestedMember}s to make it easier
-            // to add supplementary data to the contact (photo, phone, email) to the members based
+            // Create a list to store the suggested contacts (which will be
+            // alphabetically ordered),
+            // but also keep a map of raw contact IDs to {@link
+            // SuggestedMember}s to make it easier
+            // to add supplementary data to the contact (photo, phone, email) to
+            // the members based
             // on raw contact IDs after the second query is completed.
             List<SuggestedMember> suggestionsList = new ArrayList<SuggestedMember>();
             HashMap<Long, SuggestedMember> suggestionsMap = new HashMap<Long, SuggestedMember>();
 
-            // First query for all the raw contacts that match the given search query
-            // and have the same account name and type as specified in this adapter
-            String searchQuery = prefix.toString() + "%";
-            String accountClause = RawContacts.ACCOUNT_NAME + "=? AND " +
-                    RawContacts.ACCOUNT_TYPE + "=?";
-            String[] args;
-            if (mDataSet == null) {
-                accountClause += " AND " + RawContacts.DATA_SET + " IS NULL";
-                args = new String[] {mAccountName, mAccountType, searchQuery, searchQuery};
-            } else {
-                accountClause += " AND " + RawContacts.DATA_SET + "=?";
-                args = new String[] {
-                        mAccountName, mAccountType, mDataSet, searchQuery, searchQuery
-                };
-            }
-
-            Cursor cursor = mContentResolver.query(
-                    RawContacts.CONTENT_URI, PROJECTION_FILTERED_MEMBERS,
-                    accountClause + " AND (" +
-                    RawContacts.DISPLAY_NAME_PRIMARY + " LIKE ? OR " +
-                    RawContacts.DISPLAY_NAME_ALTERNATIVE + " LIKE ? )",
-                    args, RawContacts.DISPLAY_NAME_PRIMARY + " COLLATE LOCALIZED ASC");
-
-            if (cursor == null) {
-                return results;
-            }
-
-            // Read back the results from the cursor and filter out existing group members.
-            // For valid suggestions, add them to the hash map of suggested members.
             try {
-                cursor.moveToPosition(-1);
-                while (cursor.moveToNext() && suggestionsMap.keySet().size() < SUGGESTIONS_LIMIT) {
-                    long rawContactId = cursor.getLong(RAW_CONTACT_ID_COLUMN_INDEX);
-                    long contactId = cursor.getLong(CONTACT_ID_COLUMN_INDEX);
-                    // Filter out contacts that have already been added to this group
-                    if (mExistingMemberContactIds.contains(contactId)) {
-                        continue;
-                    }
-                    // Otherwise, add the contact as a suggested new group member
-                    String displayName = cursor.getString(DISPLAY_NAME_PRIMARY_COLUMN_INDEX);
-                    SuggestedMember member = new SuggestedMember(rawContactId, displayName,
-                            contactId);
-                    // Store the member in the list of suggestions and add it to the hash map too.
-                    suggestionsList.add(member);
-                    suggestionsMap.put(rawContactId, member);
+                if (mContentResolver == null || TextUtils.isEmpty(prefix)) {
+                    return results;
                 }
-            } finally {
-                cursor.close();
-            }
+                // First query for all the raw contacts that match the given
+                // search query
+                // and have the same account name and type as specified in this
+                // adapter
+                String searchQuery = prefix.toString() + "%";
+                String accountClause = RawContacts.ACCOUNT_NAME + "=? AND " +
+                        RawContacts.ACCOUNT_TYPE + "=? AND " + RawContacts.DELETED + "!=1";
+                String[] args;
+                if (mDataSet == null) {
+                    accountClause += " AND " + RawContacts.DATA_SET + " IS NULL";
+                    args = new String[] {
+                            mAccountName, mAccountType, searchQuery, searchQuery
+                    };
+                } else {
+                    accountClause += " AND " + RawContacts.DATA_SET + "=?";
+                    args = new String[] {
+                            mAccountName, mAccountType, mDataSet, searchQuery, searchQuery
+                    };
+                }
 
-            int numSuggestions = suggestionsMap.keySet().size();
-            if (numSuggestions == 0) {
-                return results;
-            }
+                Cursor cursor = mContentResolver.query(
+                        RawContacts.CONTENT_URI, PROJECTION_FILTERED_MEMBERS,
+                        accountClause + " AND (" +
+                                RawContacts.DISPLAY_NAME_PRIMARY + " LIKE ? OR " +
+                                RawContacts.DISPLAY_NAME_ALTERNATIVE + " LIKE ? )",
+                        args, RawContacts.DISPLAY_NAME_PRIMARY + " COLLATE LOCALIZED ASC");
 
-            // Create a part of the selection string for the next query with the pattern (?, ?, ?)
-            // where the number of comma-separated question marks represent the number of raw
-            // contact IDs found in the previous query (while respective the SUGGESTION_LIMIT)
-            final StringBuilder rawContactIdSelectionBuilder = new StringBuilder();
-            final String[] questionMarks = new String[numSuggestions];
-            Arrays.fill(questionMarks, "?");
-            rawContactIdSelectionBuilder.append(RawContacts._ID + " IN (")
-                    .append(TextUtils.join(",", questionMarks))
-                    .append(")");
+                if (cursor == null) {
+                    return results;
+                }
 
-            // Construct the selection args based on the raw contact IDs we're interested in
-            // (as well as the photo, email, and phone mimetypes)
-            List<String> selectionArgs = new ArrayList<String>();
-            selectionArgs.add(Photo.CONTENT_ITEM_TYPE);
-            selectionArgs.add(Email.CONTENT_ITEM_TYPE);
-            selectionArgs.add(Phone.CONTENT_ITEM_TYPE);
-            for (Long rawContactId : suggestionsMap.keySet()) {
-                selectionArgs.add(String.valueOf(rawContactId));
-            }
-
-            // Perform a second query to retrieve a photo and possibly a phone number or email
-            // address for the suggested contact
-            Cursor memberDataCursor = mContentResolver.query(
-                    RawContactsEntity.CONTENT_URI, PROJECTION_MEMBER_DATA,
-                    "(" + Data.MIMETYPE + "=? OR " + Data.MIMETYPE + "=? OR " + Data.MIMETYPE +
-                    "=?) AND " + rawContactIdSelectionBuilder.toString(),
-                    selectionArgs.toArray(new String[0]), null);
-
-            try {
-                memberDataCursor.moveToPosition(-1);
-                while (memberDataCursor.moveToNext()) {
-                    long rawContactId = memberDataCursor.getLong(RAW_CONTACT_ID_COLUMN_INDEX);
-                    SuggestedMember member = suggestionsMap.get(rawContactId);
-                    if (member == null) {
-                        continue;
+                // Read back the results from the cursor and filter out existing
+                // group members.
+                // For valid suggestions, add them to the hash map of suggested
+                // members.
+                try {
+                    cursor.moveToPosition(-1);
+                    while (cursor.moveToNext()
+                            && suggestionsMap.keySet().size() < SUGGESTIONS_LIMIT) {
+                        long rawContactId = cursor.getLong(RAW_CONTACT_ID_COLUMN_INDEX);
+                        long contactId = cursor.getLong(CONTACT_ID_COLUMN_INDEX);
+                        // Filter out contacts that have already been added to
+                        // this group
+                        if (mExistingMemberContactIds.contains(contactId)) {
+                            continue;
+                        }
+                        // Otherwise, add the contact as a suggested new group
+                        // member
+                        String displayName = cursor.getString(DISPLAY_NAME_PRIMARY_COLUMN_INDEX);
+                        SuggestedMember member = new SuggestedMember(rawContactId, displayName,
+                                contactId);
+                        // Store the member in the list of suggestions and add
+                        // it to the hash map too.
+                        suggestionsList.add(member);
+                        suggestionsMap.put(rawContactId, member);
                     }
-                    String mimetype = memberDataCursor.getString(MIMETYPE_COLUMN_INDEX);
-                    if (Photo.CONTENT_ITEM_TYPE.equals(mimetype)) {
-                        // Set photo
-                        byte[] bitmapArray = memberDataCursor.getBlob(PHOTO_COLUMN_INDEX);
-                        member.setPhotoByteArray(bitmapArray);
-                    } else if (Email.CONTENT_ITEM_TYPE.equals(mimetype) ||
-                            Phone.CONTENT_ITEM_TYPE.equals(mimetype)) {
-                        // Set at most 1 extra piece of contact info that can be a phone number or
-                        // email
-                        if (!member.hasExtraInfo()) {
-                            String info = memberDataCursor.getString(DATA_COLUMN_INDEX);
-                            member.setExtraInfo(info);
+                } finally {
+                    cursor.close();
+                }
+
+                int numSuggestions = suggestionsMap.keySet().size();
+                if (numSuggestions == 0) {
+                    return results;
+                }
+
+                // Create a part of the selection string for the next query with
+                // the pattern (?, ?, ?)
+                // where the number of comma-separated question marks represent
+                // the number of raw
+                // contact IDs found in the previous query (while respective the
+                // SUGGESTION_LIMIT)
+                final StringBuilder rawContactIdSelectionBuilder = new StringBuilder();
+                final String[] questionMarks = new String[numSuggestions];
+                Arrays.fill(questionMarks, "?");
+                rawContactIdSelectionBuilder.append(RawContacts._ID + " IN (")
+                        .append(TextUtils.join(",", questionMarks))
+                        .append(")");
+
+                // Construct the selection args based on the raw contact IDs
+                // we're interested in
+                // (as well as the photo, email, and phone mimetypes)
+                List<String> selectionArgs = new ArrayList<String>();
+                selectionArgs.add(Photo.CONTENT_ITEM_TYPE);
+                selectionArgs.add(Email.CONTENT_ITEM_TYPE);
+                selectionArgs.add(Phone.CONTENT_ITEM_TYPE);
+                for (Long rawContactId : suggestionsMap.keySet()) {
+                    selectionArgs.add(String.valueOf(rawContactId));
+                }
+
+                // Perform a second query to retrieve a photo and possibly a
+                // phone number or email
+                // address for the suggested contact
+                Cursor memberDataCursor = mContentResolver.query(
+                        RawContactsEntity.CONTENT_URI, PROJECTION_MEMBER_DATA,
+                        "(" + Data.MIMETYPE + "=? OR " + Data.MIMETYPE + "=? OR " + Data.MIMETYPE +
+                                "=?) AND " + rawContactIdSelectionBuilder.toString(),
+                        selectionArgs.toArray(new String[0]), null);
+
+                try {
+                    memberDataCursor.moveToPosition(-1);
+                    while (memberDataCursor.moveToNext()) {
+                        long rawContactId = memberDataCursor.getLong(RAW_CONTACT_ID_COLUMN_INDEX);
+                        SuggestedMember member = suggestionsMap.get(rawContactId);
+                        if (member == null) {
+                            continue;
+                        }
+                        String mimetype = memberDataCursor.getString(MIMETYPE_COLUMN_INDEX);
+                        if (Photo.CONTENT_ITEM_TYPE.equals(mimetype)) {
+                            // Set photo
+                            byte[] bitmapArray = memberDataCursor.getBlob(PHOTO_COLUMN_INDEX);
+                            member.setPhotoByteArray(bitmapArray);
+                        } else if (Email.CONTENT_ITEM_TYPE.equals(mimetype) ||
+                                Phone.CONTENT_ITEM_TYPE.equals(mimetype)) {
+                            // Set at most 1 extra piece of contact info that
+                            // can be a phone number or
+                            // email
+                            if (!member.hasExtraInfo()) {
+                                String info = memberDataCursor.getString(DATA_COLUMN_INDEX);
+                                member.setExtraInfo(info);
+                            }
                         }
                     }
+                } finally {
+                    memberDataCursor.close();
                 }
+                results.values = suggestionsList;
+                return results;
             } finally {
-                memberDataCursor.close();
+                if (results.values == null || ((List) results.values).isEmpty()) {
+                    SuggestedMember member = new SuggestedMember(-1,
+                            SuggestedMemberListAdapter.this.getContext().getResources()
+                                    .getString(R.string.no_data_found),
+                            -1);
+                    suggestionsList.clear();
+                    suggestionsList.add(member);
+                    results.values = suggestionsList;
+                }
             }
-            results.values = suggestionsList;
-            return results;
         }
 
         @Override

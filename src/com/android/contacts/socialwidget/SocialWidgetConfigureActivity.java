@@ -22,6 +22,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.provider.ContactsContract.Contacts;
 
+import com.android.contacts.activities.DialtactsActivity;
+
 public class SocialWidgetConfigureActivity extends Activity {
     private static final String KEY_LAUNCHED = "already_launched_picker_activity";
 
@@ -30,6 +32,11 @@ public class SocialWidgetConfigureActivity extends Activity {
         super.onCreate(savedInstanceState);
         // If the user presses back, we want to cancel
         setResult(RESULT_CANCELED);
+
+        if (DialtactsActivity.checkContactStorage(getPackageManager(), getApplicationContext())) {
+            finish();
+            return;
+        }
 
         // Don't launch contact-picker if we already launched it (for example, if
         // we launched it in a previous onCreate() and the device orientation changes
