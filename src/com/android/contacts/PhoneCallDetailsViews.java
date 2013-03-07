@@ -31,16 +31,18 @@ public final class PhoneCallDetailsViews {
     public final CallTypeIconsView callTypeIcons;
     public final TextView callTypeAndDate;
     public final TextView numberView;
+    public final TextView subscription;//xiaohong add 
     public final TextView labelView;
 
     private PhoneCallDetailsViews(TextView nameView, View callTypeView,
-            CallTypeIconsView callTypeIcons, TextView callTypeAndDate, TextView numberView,
+            CallTypeIconsView callTypeIcons, TextView callTypeAndDate, TextView numberView, TextView subscription,
             TextView labelView) {
         this.nameView = nameView;
         this.callTypeView = callTypeView;
         this.callTypeIcons = callTypeIcons;
         this.callTypeAndDate = callTypeAndDate;
         this.numberView = numberView;
+        this.subscription = subscription;//xiaohong add 
         this.labelView = labelView;
     }
 
@@ -57,6 +59,7 @@ public final class PhoneCallDetailsViews {
                 (CallTypeIconsView) view.findViewById(R.id.call_type_icons),
                 (TextView) view.findViewById(R.id.call_count_and_date),
                 (TextView) view.findViewById(R.id.number),
+                (TextView) view.findViewById(R.id.subscription),//xiaohong add 
                 (TextView) view.findViewById(R.id.label));
     }
 
@@ -67,6 +70,7 @@ public final class PhoneCallDetailsViews {
                 new CallTypeIconsView(context),
                 new TextView(context),
                 new TextView(context),
+                new TextView(context),//xiaohong add 
                 new TextView(context));
     }
 }

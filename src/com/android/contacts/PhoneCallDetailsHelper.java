@@ -16,6 +16,7 @@
 
 package com.android.contacts;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
@@ -32,7 +33,8 @@ import android.widget.TextView;
 import com.android.contacts.calllog.CallTypeHelper;
 import com.android.contacts.calllog.PhoneNumberHelper;
 import com.android.contacts.test.NeededForTesting;
-
+import android.provider.Settings;
+import android.telephony.TelephonyManager;//xiaohong add
 /**
  * Helper class to fill in the views in {@link PhoneCallDetailsViews}.
  */
@@ -60,10 +62,22 @@ public class PhoneCallDetailsHelper {
         mCallTypeHelper = callTypeHelper;
         mPhoneNumberHelper = phoneNumberHelper;
     }
-
+    private String getMultiSimName(Context context, int subscription) {
+        if(context == null)
+            return "sub" + subscription;
+        return Settings.System.getString(context.getContentResolver(),
+                Settings.System.MULTI_SIM_NAME[subscription]);
+	     
+    }
+  //xiaohong add end 
     /** Fills the call details views with content. */
     public void setPhoneCallDetails(PhoneCallDetailsViews views, PhoneCallDetails details,
-            boolean isHighlighted) {
+            boolean isHighlighted, Context context) {//xiaohong modify 
+            	//xiaohong add 
+           if (TelephonyManager.getDefault().isMultiSimEnabled()) { 	
+             views.subscription.setText(getMultiSimName(context,details.subscription));            
+          }
+          //xiaohong add end 
         // Display up to a given number of icons.
         views.callTypeIcons.clear();
         int count = details.callTypes.length;

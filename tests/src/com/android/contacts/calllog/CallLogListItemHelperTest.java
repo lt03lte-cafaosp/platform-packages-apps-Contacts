@@ -38,6 +38,11 @@ public class CallLogListItemHelperTest extends AndroidTestCase {
     private static final long TEST_DATE = 1300000000;
     /** A test duration value for phone calls. */
     private static final long TEST_DURATION = 62300;
+	//xiaohong add 
+    /** A test subscription value for phone calls. */
+    private static final int TEST_SUBSCRIPTION = 0;
+    private static final int TEST_DURATION_TYPE = 0;
+	//xiaohong add end 
     /** A test voicemail number. */
     private static final String TEST_VOICEMAIL_NUMBER = "123";
     /** The country ISO name used in the tests. */
@@ -129,23 +134,23 @@ public class CallLogListItemHelperTest extends AndroidTestCase {
             int callType) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(number, formattedNumber, TEST_COUNTRY_ISO, TEST_GEOCODE,
-                        new int[]{ callType }, TEST_DATE, TEST_DURATION),
-                false);
+                        new int[]{ callType }, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE),
+                false, null);//xiaohong modify 
     }
 
     /** Sets the details of a phone call using the specified call type. */
     private void setPhoneCallDetailsWithTypes(int... types) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION),
-                false);
+                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE),
+                false, null);//xiaohong modify
     }
 
     /** Sets the details of a phone call using the specified call type. */
     private void setUnreadPhoneCallDetailsWithTypes(int... types) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION),
-                true);
+                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE),
+                true, null);//xiaohong modify 
     }
 }

@@ -16,6 +16,7 @@
 
 package com.android.contacts.calllog;
 
+import android.content.Context;//xiaohong add 
 import android.content.res.Resources;
 import android.provider.CallLog.Calls;
 import android.text.TextUtils;
@@ -57,9 +58,9 @@ import com.android.contacts.R;
      * @param isHighlighted whether to use the highlight text for the call
      */
     public void setPhoneCallDetails(CallLogListItemViews views, PhoneCallDetails details,
-            boolean isHighlighted) {
+            boolean isHighlighted, Context context) {//xiaohong modify 
         mPhoneCallDetailsHelper.setPhoneCallDetails(views.phoneCallDetailsViews, details,
-                isHighlighted);
+                isHighlighted, context);//xiaohong modify 
         boolean canCall = mPhoneNumberHelper.canPlaceCallsTo(details.number);
         boolean canPlay = details.callTypes[0] == Calls.VOICEMAIL_TYPE;
 

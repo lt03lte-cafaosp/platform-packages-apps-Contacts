@@ -45,6 +45,11 @@ public class PhoneCallDetailsHelperTest extends AndroidTestCase {
         new GregorianCalendar(2011, 5, 3, 13, 0, 0).getTimeInMillis();
     /** A test duration value for phone calls. */
     private static final long TEST_DURATION = 62300;
+	//xiaohong add
+    /** A test subscription value for phone calls. */
+    private static final int TEST_SUBSCRIPTION = 0;
+    private static final int TEST_DURATION_TYPE = 0;
+	//xiaohong  add end 
     /** The number of the caller/callee in the log entry. */
     private static final String TEST_NUMBER = "14125555555";
     /** The formatted version of {@link #TEST_NUMBER}. */
@@ -293,36 +298,36 @@ public class PhoneCallDetailsHelperTest extends AndroidTestCase {
             String geocodedLocation) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(number, formattedNumber, TEST_COUNTRY_ISO, geocodedLocation,
-                        new int[]{ Calls.VOICEMAIL_TYPE }, TEST_DATE, TEST_DURATION),
-                true);
+                        new int[]{ Calls.VOICEMAIL_TYPE }, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE),
+                true, null);//xiaohong modify
     }
 
     /** Sets the phone call details with default values and the given date. */
     private void setPhoneCallDetailsWithDate(long date) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, date, TEST_DURATION),
-                false);
+                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, date, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE),
+                false, null);//xiaohong modify 
     }
 
     /** Sets the phone call details with default values and the given call types using icons. */
     private void setPhoneCallDetailsWithCallTypeIcons(int... callTypes) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, callTypes, TEST_DATE, TEST_DURATION),
-                false);
+                        TEST_GEOCODE, callTypes, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE),
+                false, null);//xiaohong modify 
     }
 
     private void setCallDetailsHeaderWithNumberOnly(String number) {
         mHelper.setCallDetailsHeader(mNameView,
                 new PhoneCallDetails(number, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, TEST_DATE, TEST_DURATION));
-    }
+                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE));
+    }//xiaohong modify 
 
     private void setCallDetailsHeader(String name) {
         mHelper.setCallDetailsHeader(mNameView,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, TEST_DATE, TEST_DURATION,
+                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION, TEST_DURATION_TYPE,
                         name, 0, "", null, null));
-    }
+    }//xiaohong modify 
 }

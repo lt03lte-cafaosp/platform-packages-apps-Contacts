@@ -204,6 +204,8 @@ public class CallDetailActivity extends Activity implements ProximitySensorAware
         CallLog.Calls.TYPE,
         CallLog.Calls.COUNTRY_ISO,
         CallLog.Calls.GEOCODED_LOCATION,
+        CallLog.Calls.SUBSCRIPTION,//xiaohong add 
+        CallLog.Calls.DURATION_TYPE,//xiaohong add 
     };
 
     static final int DATE_COLUMN_INDEX = 0;
@@ -212,6 +214,8 @@ public class CallDetailActivity extends Activity implements ProximitySensorAware
     static final int CALL_TYPE_COLUMN_INDEX = 3;
     static final int COUNTRY_ISO_COLUMN_INDEX = 4;
     static final int GEOCODED_LOCATION_COLUMN_INDEX = 5;
+    static final int SUBSCRIPTION = 6;//xiaohong add 
+    static final int DURATION_TYPE = 7;//xiaohong add 
 
     private final View.OnClickListener mPrimaryActionListener = new View.OnClickListener() {
         @Override
@@ -600,6 +604,8 @@ public class CallDetailActivity extends Activity implements ProximitySensorAware
             int callType = callCursor.getInt(CALL_TYPE_COLUMN_INDEX);
             String countryIso = callCursor.getString(COUNTRY_ISO_COLUMN_INDEX);
             final String geocode = callCursor.getString(GEOCODED_LOCATION_COLUMN_INDEX);
+            final int subscription = callCursor.getInt(SUBSCRIPTION);//xiaohong add 
+            final int durationType = callCursor.getInt(DURATION_TYPE);//xiaohong add 
 
             if (TextUtils.isEmpty(countryIso)) {
                 countryIso = mDefaultCountryIso;
@@ -634,9 +640,11 @@ public class CallDetailActivity extends Activity implements ProximitySensorAware
                 photoUri = info.photoUri;
                 lookupUri = info.lookupUri;
             }
+			//xiaohong modify 
             return new PhoneCallDetails(number, formattedNumber, countryIso, geocode,
-                    new int[]{ callType }, date, duration,
+                    new int[]{ callType }, date, duration, subscription,durationType,
                     nameText, numberType, numberLabel, lookupUri, photoUri);
+		   //xiaohong modify end 
         } finally {
             if (callCursor != null) {
                 callCursor.close();

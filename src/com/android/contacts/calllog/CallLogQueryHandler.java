@@ -171,7 +171,33 @@ import javax.annotation.concurrent.GuardedBy;
         fetchCalls(QUERY_NEW_CALLS_TOKEN, requestId, true /*isNew*/, callType);
         fetchCalls(QUERY_OLD_CALLS_TOKEN, requestId, false /*isNew*/, callType);
     }
+//xiaohong add 
+ /**
+     * Fetches the list of calls from the call log.
+     * <p>
+     * It will asynchronously update the content of the list view when the fetch completes.
+     */
+    public void fetchAllCalls() {
+        cancelFetch();
+        int requestId = newCallsRequest();
+        fetchCalls(QUERY_NEW_CALLS_TOKEN, requestId, true /*isNew*/, false /*voicemailOnly*/);
+        fetchCalls(QUERY_OLD_CALLS_TOKEN, requestId, false /*isNew*/, false /*voicemailOnly*/);
+    }
 
+ /**
+     * Fetches the list of calls from the call log but include only the voicemail.
+     * <p>
+     * It will asynchronously update the content of the list view when the fetch completes.
+     */
+    public void fetchVoicemailOnly() {
+        cancelFetch();
+        int requestId = newCallsRequest();
+        fetchCalls(QUERY_NEW_CALLS_TOKEN, requestId, true /*isNew*/, true /*voicemailOnly*/);
+        fetchCalls(QUERY_OLD_CALLS_TOKEN, requestId, false /*isNew*/, true /*voicemailOnly*/);
+    }	
+	
+	
+//xiaohong add end 
     public void fetchVoicemailStatus() {
         startQuery(QUERY_VOICEMAIL_STATUS_TOKEN, null, Status.CONTENT_URI,
                 VoicemailStatusHelperImpl.PROJECTION, null, null, null);
@@ -202,7 +228,45 @@ import javax.annotation.concurrent.GuardedBy;
                 CallLogQuery._PROJECTION, selection, selectionArgs.toArray(EMPTY_STRING_ARRAY),
                 Calls.DEFAULT_SORT_ORDER);
     }
-
+  //xiaohong add 
+  /** Fetches the list of calls in the call log, either the new one or the old ones. */
+    private void fetchCalls(int token, int requestId, boolean isNew, boolean voicemailOnly) {
+        // We need to check for NULL explicitly otherwise entries with where READ is NULL
+        // may not match either the query or its negation.
+        // We consider the calls that are not yet consumed (i.e. IS_READ = 0) as "new".
+        String selection = String.format("%s IS NOT NULL AND %s = 0 AND %s > ?",
+                Calls.IS_READ, Calls.IS_READ, Calls.DATE);
+        List<String> selectionArgs = Lists.newArrayList(
+                Long.toString(System.currentTimeMillis() - NEW_SECTION_TIME_WINDOW));
+        if (!isNew) {
+            // Negate the query.
+            selection = String.format("NOT (%s)", selection);
+        }
+        if (voicemailOnly) {
+            // Add a clause to fetch only items of type voicemail.
+            selection = String.format("(%s) AND (%s = ?)", selection, Calls.TYPE);
+            selectionArgs.add(Integer.toString(Calls.VOICEMAIL_TYPE));
+        }else if (callType != 0){
+            /* add one more Calls.TYPE of CSVT */
+            selection = String.format("(%s) AND ((%s = ?) OR (%s = ?))", selection, Calls.TYPE, Calls.TYPE);
+            selectionArgs.add(Integer.toString(callType));
+            if (callType == Calls.INCOMING_TYPE)
+              selectionArgs.add(Integer.toString(Calls.INCOMING_CSVT_TYPE));
+            else if (callType == Calls.OUTGOING_TYPE)
+              selectionArgs.add(Integer.toString(Calls.OUTGOING_CSVT_TYPE));
+            else if (callType == Calls.MISSED_TYPE)
+              selectionArgs.add(Integer.toString(Calls.MISSED_CSVT_TYPE));
+              
+        }
+        if(subscription != -1){
+            selection = String.format("(%s) AND (%s = ?)", selection, Calls.SUBSCRIPTION);
+            selectionArgs.add(Integer.toString(subscription));
+        }
+        startQuery(token, requestId, Calls.CONTENT_URI_WITH_VOICEMAIL,
+                CallLogQuery._PROJECTION, selection, selectionArgs.toArray(EMPTY_STRING_ARRAY),
+                Calls.DEFAULT_SORT_ORDER);
+    }
+  //xiaohong add end 
     /** Cancel any pending fetch request. */
     private void cancelFetch() {
         cancelOperation(QUERY_NEW_CALLS_TOKEN);
@@ -362,4 +426,16 @@ import javax.annotation.concurrent.GuardedBy;
          */
         void onCallsFetched(Cursor combinedCursor);
     }
+    //xiaohong add 
+    private int callType = 0;
+    private int subscription = -1;
+
+    public void setCallType(int callType) {
+        this.callType = callType;
+    }
+
+    public void setSubscription(int subscription) {
+        this.subscription = subscription;
+    }
+    //xiaohong add end 
 }

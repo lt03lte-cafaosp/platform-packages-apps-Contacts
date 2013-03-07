@@ -56,6 +56,22 @@ import com.android.contacts.voicemail.VoicemailStatusHelperImpl;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.ITelephony;
 import com.google.common.annotations.VisibleForTesting;
+//xiaohong add 
+import android.content.ContentValues;
+import android.widget.RadioButton;
+import android.preference.PreferenceManager;
+import android.telephony.MSimTelephonyManager;
+import android.widget.ImageView;
+import android.view.View.OnClickListener;
+import android.content.SharedPreferences.Editor;
+import android.content.SharedPreferences;
+import android.content.DialogInterface;
+import android.app.AlertDialog;
+import android.view.View.OnTouchListener;
+import android.view.MotionEvent;
+import com.qrd.plugin.feature_query.FeatureQuery;
+
+//xiaoohong add end 
 
 import java.util.List;
 
@@ -77,12 +93,14 @@ public class CallLogFragment extends ListFragment
 
     /** Whether there is at least one voicemail source installed. */
     private boolean mVoicemailSourcesAvailable = false;
+    /** Whether we are currently filtering over voicemail. */
+    private boolean mShowingVoicemailOnly = false;//xiaohong add 
 
     private VoicemailStatusHelper mVoicemailStatusHelper;
     private View mStatusMessageView;
     private TextView mStatusMessageText;
     private TextView mStatusMessageAction;
-    private TextView mFilterStatusView;
+    //private TextView mFilterStatusView;//xiaohong del
     private KeyguardManager mKeyguardManager;
 
     private boolean mEmptyLoaderRunning;
@@ -112,8 +130,70 @@ public class CallLogFragment extends ListFragment
     // Exactly same variable is in Fragment as a package private.
     private boolean mMenuVisible = true;
 
-    // Default to all calls.
-    private int mCallTypeFilter = CallLogQueryHandler.CALL_TYPE_ALL;
+    
+    //xiaohong add 
+	private RadioButton allCallTypeBut;
+    private RadioButton inCallTypeBut;
+    private RadioButton outCallTypeBut;
+    private RadioButton missCallTypeBut;
+
+    private ImageView slotList;
+    private ImageView slotSelect;
+
+    private static final int TYPE_INDEX_ALL = 0;
+
+    // Set the filename of save call type information
+    private static final String FILE_NAME = "save_calltype";
+    private int mCallType = TYPE_INDEX_ALL;
+
+    private OnClickListener callTypeListener = new OnClickListener(){
+        @Override
+        public void onClick(View v) {
+            switch(v.getId()){
+                case R.id.call_in:
+                    mCallType = Calls.INCOMING_TYPE;
+                    break;
+                case R.id.call_out:
+                    mCallType = Calls.OUTGOING_TYPE;
+                    break;
+                case R.id.call_miss:
+                    mCallType = Calls.MISSED_TYPE;
+                    break;
+                default:
+                    mCallType = TYPE_INDEX_ALL;
+                    break;
+            }
+            mCallLogQueryHandler.setCallType(mCallType);
+            mRefreshDataRequired = true;
+            refreshData();
+
+            // Write the selected call type to the save file
+            Editor editor = getActivity().getSharedPreferences(FILE_NAME, Context.MODE_WORLD_WRITEABLE).edit();
+            editor.putInt("calltype", mCallType);
+            editor.commit();
+        }
+    };
+
+    // Set the check state of selected call type
+    private void setAudioButtonChecked(int calltype) {
+        switch (calltype) {
+            case Calls.INCOMING_TYPE:
+                inCallTypeBut.setChecked(true);
+                break;
+            case Calls.OUTGOING_TYPE:
+                outCallTypeBut.setChecked(true);
+                break;
+            case Calls.MISSED_TYPE:
+                missCallTypeBut.setChecked(true);
+                break;
+            default:
+                allCallTypeBut.setChecked(true);
+                break;
+        }
+    }
+	//xiaohong add end 
+	// Default to all calls.
+    //private int mCallTypeFilter = CallLogQueryHandler.CALL_TYPE_ALL;//xiaohong del
 
     @Override
     public void onCreate(Bundle state) {
@@ -127,6 +207,7 @@ public class CallLogFragment extends ListFragment
         getActivity().getContentResolver().registerContentObserver(
                 ContactsContract.Contacts.CONTENT_URI, true, mContactsObserver);
         setHasOptionsMenu(true);
+		//addTestData();
     }
 
     /** Called by the CallLogQueryHandler when the list of calls has been fetched or updated. */
@@ -211,10 +292,142 @@ public class CallLogFragment extends ListFragment
         mStatusMessageView = view.findViewById(R.id.voicemail_status);
         mStatusMessageText = (TextView) view.findViewById(R.id.voicemail_status_message);
         mStatusMessageAction = (TextView) view.findViewById(R.id.voicemail_status_action);
-        mFilterStatusView = (TextView) view.findViewById(R.id.filter_status);
+        //xiaohong add 
+       allCallTypeBut = (RadioButton) view.findViewById(R.id.call_all);
+        inCallTypeBut = (RadioButton) view.findViewById(R.id.call_in);
+        outCallTypeBut = (RadioButton) view.findViewById(R.id.call_out);
+        missCallTypeBut = (RadioButton) view.findViewById(R.id.call_miss);
+        allCallTypeBut.setOnClickListener(callTypeListener);
+        inCallTypeBut.setOnClickListener(callTypeListener);
+        outCallTypeBut.setOnClickListener(callTypeListener);
+        missCallTypeBut.setOnClickListener(callTypeListener);
+	    slotList = (ImageView) view.findViewById(R.id.slot_list);
+        slotSelect = (ImageView) view.findViewById(R.id.slot_select);
+        if (!TelephonyManager.getDefault().isMultiSimEnabled()) {
+            view.findViewById(R.id.slot_select_container).setVisibility(View.GONE);
+        }
+        updateSubImage();
+
+        // Read the call type from the save file, to mCallType assignment.
+        // And set the specified icon is highlight. Set the icon show consistent
+        // with the context of mCallType.
+        SharedPreferences prefs = getActivity().getSharedPreferences(FILE_NAME, Context.MODE_WORLD_READABLE);
+        mCallType = prefs.getInt("calltype", 0);
+        setAudioButtonChecked(mCallType);
+        //xiaohong add end 
+        //mFilterStatusView = (TextView) view.findViewById(R.id.filter_status);//xiaohong del
+       //xiaohong add 
+       slotList.setOnClickListener(new OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                showSlotChangeDialog();
+            }
+        });
+        slotList.setOnTouchListener(new OnTouchListener(){
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction() & MotionEvent.ACTION_MASK;
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN: {
+                        slotSelect.setImageResource(R.drawable.ic_tab_sim_select_touch);
+                        break;
+                    }
+                    case MotionEvent.ACTION_CANCEL:
+                    case MotionEvent.ACTION_UP:
+                        slotSelect.setImageResource(R.drawable.ic_tab_sim_select);
+                        break;
+                }
+                return false;
+            }});
+		//xiaohong add end 
         return view;
     }
+  //xiaohong add 
+    private void addTestData() {
+        Log.d("xiaohong","++++addTestData++++=");
+        ContentValues content;
+        Uri uri;
+        for (int i = 0; i < 10; i++) {
+            content = new ContentValues();
+            if (i % 10 == 0) {
+                content.put(Calls.NUMBER, "1111111111");
+            }
+            if (i % 10 == 1) {
+                content.put(Calls.NUMBER, "2222222222");
+            }
+            if (i % 10 == 2) {
+                content.put(Calls.NUMBER, "3333333333");
+            }
+            if (i % 10 >= 3) {
+                content.put(Calls.NUMBER, "18954299737");
+            }
+            content.put(Calls.DATE, System.currentTimeMillis());
+            content.put(Calls.DURATION, 200);
+            if (i % 3 == 0) {
+                content.put(Calls.TYPE, Calls.INCOMING_TYPE);
+            } else if (i % 3 == 1) {
+                content.put(Calls.TYPE, Calls.OUTGOING_TYPE);
+            } else {
+                content.put(Calls.TYPE, Calls.MISSED_TYPE);
+            }
+            content.put(Calls.NEW, 1);
+            content.put(Calls.CACHED_NAME, "SDES" + i);
+            content.put(Calls.CACHED_NUMBER_TYPE, 1);
+            content.put(Calls.CACHED_NUMBER_LABEL, "HD_DEV" + i);
+            getActivity().getContentResolver().insert(Calls.CONTENT_URI, content);
+        }
+    }
 
+ protected void showSlotChangeDialog() {
+        new AlertDialog.Builder(this.getActivity()).setSingleChoiceItems(
+                new MultiSlotAdapter(this.getActivity()), 0, slotListener).setTitle(
+                R.string.title_slot_change).create().show();
+  }
+ private DialogInterface.OnClickListener slotListener = new DialogInterface.OnClickListener() {
+
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            dialog.dismiss();
+            int sub = -1;
+            if (which >= MSimTelephonyManager.getDefault().getPhoneCount())
+                sub = -1;
+            else
+                sub = which;
+            saveSlot(sub);
+            updateSubImage();
+            mCallLogQueryHandler.setSubscription(sub);
+            mRefreshDataRequired = true;
+            refreshData();
+        }
+   };
+//xiaohong add end 
+    //xiaohong add 
+    private void updateSubImage(){
+        Log.d("xiaohong","updateSubImage");
+        int sub = getSlot();
+	 Log.d("xiaohong","sub"+sub);
+        switch(sub){
+            case -1:
+                slotList.setImageResource(R.drawable.ic_tab_sim12);
+                break;
+            case 0:
+                slotList.setImageResource(R.drawable.ic_tab_sim1);
+                break;
+            case 1:
+                slotList.setImageResource(R.drawable.ic_tab_sim2);
+                break;
+        }
+
+    }
+
+    private void saveSlot(int slot) {
+        PreferenceManager.getDefaultSharedPreferences(this.getActivity()).edit().putInt("Subscription", slot).commit();
+    }
+
+    private int getSlot() {
+        return PreferenceManager.getDefaultSharedPreferences(this.getActivity()).getInt("Subscription", -1);
+    }
+    //xiaohong add end 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -252,6 +465,13 @@ public class CallLogFragment extends ListFragment
     @Override
     public void onResume() {
         super.onResume();
+		//xiaohong add 
+        mCallLogQueryHandler.setSubscription(getSlot());
+        // Specify the selected type.
+        mCallLogQueryHandler.setCallType(mCallType);
+        // Refresh call log data when enter the call log
+		mRefreshDataRequired = true;
+        //xiaohong add end 
         refreshData();
     }
 
@@ -304,17 +524,31 @@ public class CallLogFragment extends ListFragment
         mAdapter.changeCursor(null);
         getActivity().getContentResolver().unregisterContentObserver(mCallLogObserver);
         getActivity().getContentResolver().unregisterContentObserver(mContactsObserver);
-        unregisterPhoneCallReceiver();
+        //unregisterPhoneCallReceiver();
     }
 
     @Override
     public void fetchCalls() {
-        mCallLogQueryHandler.fetchCalls(mCallTypeFilter);
+	    //xiaohong modify
+        if (mShowingVoicemailOnly) {
+            mCallLogQueryHandler.fetchVoicemailOnly();
+        } else {
+            mCallLogQueryHandler.fetchAllCalls();
+        }
+		//xiaohong modify end 
+        //mCallLogQueryHandler.fetchCalls(mCallTypeFilter);
     }
 
     public void startCallsQuery() {
         mAdapter.setLoading(true);
-        mCallLogQueryHandler.fetchCalls(mCallTypeFilter);
+		//xiaohong modify
+        //mCallLogQueryHandler.fetchCalls(mCallTypeFilter);
+		mCallLogQueryHandler.fetchAllCalls();
+		//xiaohong modify end 
+        if (mShowingVoicemailOnly) {
+            mShowingVoicemailOnly = false;
+            getActivity().invalidateOptionsMenu();
+        }
     }
 
     private void startVoicemailStatusQuery() {
@@ -343,6 +577,11 @@ public class CallLogFragment extends ListFragment
                 menu.findItem(R.id.show_voicemails_only).setVisible(false);
             }
         }
+		  //xiaohong add 2013/2/22
+	 if (FeatureQuery.FEATURE_CALLLOG_FOR_CMCC){
+           menu.findItem(R.id.calltime).setVisible(false);
+        }
+	//xiaohong add end 
     }
 
     private void hideCurrentFilterMenuOption(Menu menu) {
@@ -381,10 +620,11 @@ public class CallLogFragment extends ListFragment
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.delete_all:
-                ClearCallLogDialog.show(getFragmentManager());
+                //ClearCallLogDialog.show(getFragmentManager());
+                onDelCallLog();//xiaohong add 
                 return true;
-
-            case R.id.show_outgoing_only:
+            //xiaohong del
+           /* case R.id.show_outgoing_only:
                 // We only need the phone call receiver when there is an active call type filter.
                 // Not many people may use the filters so don't register the receiver until now .
                 registerPhoneCallReceiver();
@@ -395,34 +635,51 @@ public class CallLogFragment extends ListFragment
             case R.id.show_incoming_only:
                 registerPhoneCallReceiver();
                 mCallLogQueryHandler.fetchCalls(Calls.INCOMING_TYPE);
-                updateFilterTypeAndHeader(Calls.INCOMING_TYPE);
+               updateFilterTypeAndHeader(Calls.INCOMING_TYPE);
                 return true;
 
             case R.id.show_missed_only:
                 registerPhoneCallReceiver();
                 mCallLogQueryHandler.fetchCalls(Calls.MISSED_TYPE);
                 updateFilterTypeAndHeader(Calls.MISSED_TYPE);
-                return true;
-
+                return true;*/
+             //xiaohong del end
             case R.id.show_voicemails_only:
-                registerPhoneCallReceiver();
+                /*registerPhoneCallReceiver();
                 mCallLogQueryHandler.fetchCalls(Calls.VOICEMAIL_TYPE);
-                updateFilterTypeAndHeader(Calls.VOICEMAIL_TYPE);
+                updateFilterTypeAndHeader(Calls.VOICEMAIL_TYPE);*/
+				mCallLogQueryHandler.fetchVoicemailOnly();
+                mShowingVoicemailOnly = true;
                 return true;
 
-            case R.id.show_all_calls:
+           /* case R.id.show_all_calls:
                 // Filter is being turned off, receiver no longer needed.
                 unregisterPhoneCallReceiver();
                 mCallLogQueryHandler.fetchCalls(CallLogQueryHandler.CALL_TYPE_ALL);
-                updateFilterTypeAndHeader(CallLogQueryHandler.CALL_TYPE_ALL);
+                //updateFilterTypeAndHeader(CallLogQueryHandler.CALL_TYPE_ALL);
+                mShowingVoicemailOnly = false;
                 return true;
-
+           */
+		    //xiaohong add 2013/2/21
+              case R.id.calltime:
+            	IntentProvider intentProvider = IntentProvider.getReturnCallDurationTabProvider();
+            	if(intentProvider != null) {
+	                startActivity(intentProvider.getIntent(getActivity()));
+                }
+		        return true;
+             //xiaohong add end 
             default:
                 return false;
         }
     }
-
-    private void updateFilterTypeAndHeader(int filterType) {
+//xiaohong add 	
+  private void onDelCallLog(){
+        Intent intent = new Intent("com.android.contacts.action.MULTI_PICK_CALL");
+        startActivity(intent);
+    }
+//xiaohong add end 
+  /*  //xiaohong del 
+  private void updateFilterTypeAndHeader(int filterType) {
         mCallTypeFilter = filterType;
 
         switch (filterType) {
@@ -448,7 +705,7 @@ public class CallLogFragment extends ListFragment
         mFilterStatusView.setText(resId);
         mFilterStatusView.setVisibility(View.VISIBLE);
     }
-
+*/
     public void callSelectedEntry() {
         int position = getListView().getSelectedItemPosition();
         if (position < 0) {
@@ -576,7 +833,8 @@ public class CallLogFragment extends ListFragment
     /**
      * Register a phone call filter to reset the call type when a phone call is place.
      */
-    private void registerPhoneCallReceiver() {
+	 //xiaohong del
+  /*  private void registerPhoneCallReceiver() {
         if (mPhoneStateListener != null) {
             return; // Already registered.
         }
@@ -606,10 +864,11 @@ public class CallLogFragment extends ListFragment
     /**
      * Un-registers the phone call receiver.
      */
-    private void unregisterPhoneCallReceiver() {
+   /* private void unregisterPhoneCallReceiver() {
         if (mPhoneStateListener != null) {
             mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
             mPhoneStateListener = null;
         }
-    }
+    }*/
+	//xiaohong del end
 }

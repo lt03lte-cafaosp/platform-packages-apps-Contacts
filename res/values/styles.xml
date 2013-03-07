@@ -360,4 +360,15 @@
     <style name="FragmentActionBarPadding">
         <item name="android:paddingBottom">?android:attr/actionBarSize</item>
     </style>
+    <!--xiaohong add -->
+    <style name="call_log_tab_bottom">
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:button">@null</item>
+        <item name="android:maxLines">0</item>
+        <item name="android:layout_weight">1.0</item>
+        <item name="android:background">@drawable/call_log_background</item>
+    </style>
+     <!--xiaohong add end-->
 </resources>
