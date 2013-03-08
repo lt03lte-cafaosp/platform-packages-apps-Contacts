@@ -17,10 +17,13 @@
 package com.android.contacts.activities;
 
 import android.app.ActionBar;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.Fragment;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -57,6 +60,9 @@ public class ContactDetailActivity extends ContactsActivity {
 
     /** Shows a toogle button for hiding/showing updates. Don't submit with true */
     private static final boolean DEBUG_TRANSITIONS = false;
+
+    /** Shows a alert dialog for contact not found. Don't directly finish */
+    private static final int CONTACT_NOT_FOUND_DIALOG = 0;
 
     private Contact mContactData;
     private Uri mLookupUri;
@@ -205,7 +211,9 @@ public class ContactDetailActivity extends ContactsActivity {
             new ContactLoaderFragmentListener() {
         @Override
         public void onContactNotFound() {
-            finish();
+
+            // if contact not found, prompts an alert dialog
+            showDialog(CONTACT_NOT_FOUND_DIALOG);
         }
 
         @Override
@@ -309,5 +317,35 @@ public class ContactDetailActivity extends ContactsActivity {
          * otherwise.
          */
         public boolean handleKeyDown(int keyCode);
+    }
+
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        switch (id) {
+        case CONTACT_NOT_FOUND_DIALOG:
+            return showContactNotFoundDialog();
+        }
+        return super.onCreateDialog(id);
+    }
+
+    /**
+     * Create the AlertDialog if contact not found
+     */
+    private Dialog showContactNotFoundDialog(){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(android.R.string.dialog_alert_title);
+        builder.setIconAttribute(android.R.attr.alertDialogIcon);
+        builder.setMessage(R.string.noMatchingContacts);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        });
+        builder.setCancelable(false);
+
+        return builder.create();
     }
 }
