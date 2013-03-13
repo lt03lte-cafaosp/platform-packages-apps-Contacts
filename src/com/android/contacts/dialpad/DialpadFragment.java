@@ -756,11 +756,11 @@ public class DialpadFragment extends ListFragment
         final MenuItem callSettingsMenuItem = menu.findItem(R.id.menu_call_settings_dialpad);
         final MenuItem addToContactMenuItem = menu.findItem(R.id.menu_add_contacts);
         final MenuItem twoSecPauseMenuItem = menu.findItem(R.id.menu_2s_pause);
-	  final MenuItem waitMenuItem = menu.findItem(R.id.menu_add_wait);
-	  final MenuItem sendMessageMenuItem = menu.findItem(R.id.menu_send_message);
-	  final MenuItem ipSub1CallMenuItem =menu.findItem(R.id.menu_sub1ipcall);
-	  final MenuItem ipSub2CallMenuItem =menu.findItem(R.id.menu_sub2ipcall);
-	  
+        final MenuItem waitMenuItem = menu.findItem(R.id.menu_add_wait);
+        final MenuItem sendMessageMenuItem = menu.findItem(R.id.menu_send_message);
+        final MenuItem ipSub1CallMenuItem =menu.findItem(R.id.menu_sub1ipcall);
+        final MenuItem ipSub2CallMenuItem =menu.findItem(R.id.menu_sub2ipcall);
+
         // Check if all the menu items are inflated correctly. As a shortcut, we assume all menu
         // items are ready if the first item is non-null.
         if (callSettingsMenuItem == null) {
@@ -783,32 +783,32 @@ public class DialpadFragment extends ListFragment
             addToContactMenuItem.setVisible(false);
             twoSecPauseMenuItem.setVisible(false);
             waitMenuItem.setVisible(false);
-	     sendMessageMenuItem.setVisible(false);
+            sendMessageMenuItem.setVisible(false);
             if(ipSub1CallMenuItem != null) {
-	            ipSub1CallMenuItem.setVisible(false);
+                ipSub1CallMenuItem.setVisible(false);
             }
             if(ipSub2CallMenuItem != null) {
-	            ipSub2CallMenuItem.setVisible(false);
-            }	
+                 ipSub2CallMenuItem.setVisible(false);
+            }
         } else {
             final CharSequence digits = mDigits.getText();
 
             // Put the current digits string into an intent
             addToContactMenuItem.setIntent(getAddToContactIntent(digits));
             addToContactMenuItem.setVisible(true);
-	      sendMessageMenuItem.setVisible(true);
+            sendMessageMenuItem.setVisible(true);
             if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
-            	{
-            	  ipSub1CallMenuItem.setVisible(true);
-		  ipSub2CallMenuItem.setVisible(true);
-		  ipSub1CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card1));
-		  ipSub2CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card2));
-            	}else
-            	{
-            	  ipSub1CallMenuItem.setVisible(true);
-		  ipSub2CallMenuItem.setVisible(false);
-            	  ipSub1CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall));	  
-            	}
+            {
+                ipSub1CallMenuItem.setVisible(true);
+                ipSub2CallMenuItem.setVisible(true);
+                ipSub1CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card1));
+                ipSub2CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card2));
+            }else
+            {
+                ipSub1CallMenuItem.setVisible(true);
+                ipSub2CallMenuItem.setVisible(false);
+                ipSub1CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall));	  
+            }
             // Check out whether to show Pause & Wait option menu items
             int selectionStart;
             int selectionEnd;
@@ -1678,7 +1678,7 @@ public class DialpadFragment extends ListFragment
             case R.id.menu_add_wait:
                 updateDialString(";");
                 return true;
-	     case R.id.menu_sub1ipcall:
+            case R.id.menu_sub1ipcall:
                 if(!isDigitsEmpty())
                     getIPCallIntent(mDigits.getText(), 0);
                 return true;
@@ -1715,38 +1715,36 @@ public class DialpadFragment extends ListFragment
         
         number = number.replace('P',',');
         number = number.replace('W',';');
-        number = number.replace('p',',');
-        number = number.replace('w',';');
-	 number = number.replace('T',';');
-	 number = number.replace('(',' ');
-	 number = number.replace(')',' ');
-	 number = number.replace('-',' ');
-	 number = number.replace('.',' ');
+        number = number.replace('T',';');
+        number = number.replace('(',' ');
+        number = number.replace(')',' ');
+        number = number.replace('-',' ');
+        number = number.replace('.',' ');
 
         if(number.startsWith("+86")){
             number = number.substring(3);
         }
 
         if(sub == 0) {
-		//ipnumber = Settings.System.getString(getActivity().getContentResolver(), Settings.System.IPCALL_PREFIX[0]);
-		Log.d(TAG," sub_0  ip number is " + ipnumber);
+                ipnumber = Settings.System.getString(getActivity().getContentResolver(), Settings.System.IPCALL_PREFIX[0]);
+                Log.d(TAG," sub_0  ip number is " + ipnumber);
         }
         else if(sub == 1) {
-		//ipnumber = Settings.System.getString(getActivity().getContentResolver(), Settings.System.IPCALL_PREFIX[1]);
-		Log.d(TAG," sub_1  ip number is " + ipnumber);
+                ipnumber = Settings.System.getString(getActivity().getContentResolver(), Settings.System.IPCALL_PREFIX[1]);
+                Log.d(TAG," sub_1  ip number is " + ipnumber);
         }
         
         if(ipnumber != null) {        
-	       number = ipnumber + number ;
+            number = ipnumber + number ;
         }else
         {
-		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-		builder.setTitle(R.string.callFailure);
-		builder.setNegativeButton(android.R.string.cancel, null);
-		builder.setMessage(R.string.ipnum_not_set);
-		builder.create().show();
-		return ;
-	  }
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setTitle(R.string.callFailure);
+            builder.setNegativeButton(android.R.string.cancel, null);
+            builder.setMessage(R.string.ipnum_not_set);
+            builder.create().show();
+            return ;
+        }
 
         //if (telManager.SIM_STATE_ABSENT == telManager.getSimState()) {
         //    return;
@@ -2007,10 +2005,10 @@ public class DialpadFragment extends ListFragment
             return false;
 
         int phoneCount = MSimTelephonyManager.getDefault().getPhoneCount();
-	 if(phoneCount == 1)
-	 	{
-	 	 return false;
-	 	}
+        if(phoneCount == 1)
+            {
+                return false;
+            }
         for (int i = 0; i < phoneCount; i++) {
              if (!MSimTelephonyManager.getDefault().isValidSimState(i))
                  return false;
