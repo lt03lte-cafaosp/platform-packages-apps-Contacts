@@ -117,6 +117,8 @@ import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
 import com.android.internal.telephony.MSimConstants;
 
 import com.android.contacts.DialpadCling;
+import com.android.contacts.ContactsLib;
+
 /**
  * Fragment that displays a twelve-key phone dialpad.
  */
@@ -350,7 +352,7 @@ public class DialpadFragment extends ListFragment
         mAddContact.setOnClickListener(this);
         mAddContactText = (TextView)fragmentView.findViewById(R.id.add_contact_text);
         mDigits = (EditText) fragmentView.findViewById(R.id.digits);
-        mDigits.setKeyListener(UnicodeDialerKeyListener.INSTANCE);
+        mDigits.setKeyListener(DialpadDialerKeyListener.getInstance());
         mDigits.setOnClickListener(this);
         mDigits.setOnKeyListener(this);
         mDigits.setOnLongClickListener(this);
@@ -584,6 +586,8 @@ public class DialpadFragment extends ListFragment
 
         // Long-pressing zero button will enter '+' instead.
         fragmentView.findViewById(R.id.zero).setOnLongClickListener(this);
+        fragmentView.findViewById(R.id.star).setOnLongClickListener(this);
+        fragmentView.findViewById(R.id.pound).setOnLongClickListener(this);
 
     }
 
@@ -1063,7 +1067,8 @@ public class DialpadFragment extends ListFragment
 
     @Override
     public boolean onLongClick(View view) {
-        final Editable digits = mDigits.getText();
+        final Editable digits = mDigits.getText();        
+        String networkType = ContactsLib.UsimRecords.getNetWorkType();
         final int id = view.getId();
         switch (id) {
             case R.id.deleteButton: {
@@ -1131,6 +1136,59 @@ public class DialpadFragment extends ListFragment
                     return true;
                 } else {
                     return false;
+                }
+            }
+             case R.id.star: {
+                if(mDigits.length() >= 12) {
+                    mDigits.setTextSize(23.0f);
+                }
+                
+                if(!isDigitsEmpty() && mDigits.getSelectionStart() != 1) {
+                               removePreviousDigitIfPossible();
+                                if(ContactsLib.isExportProduct()){
+                                        keyPressed(KeyEvent.KEYCODE_COMMA);
+                                }
+                                else{
+                                        keyPressed(KeyEvent.KEYCODE_SHIFT_LEFT);
+                                        keyPressed(KeyEvent.KEYCODE_P);
+                                        keyUp(KeyEvent.KEYCODE_SHIFT_LEFT);
+                                }
+                                stopTone();
+                                if (mDialpadPressCount > 0) mDialpadPressCount--;
+                    return true;
+                }
+            }
+            case R.id.pound: {
+                if(mDigits.length() >= 12) {
+                    mDigits.setTextSize(23.0f);
+                }
+                if(!isDigitsEmpty() && mDigits.getSelectionStart() != 1) {
+                                removePreviousDigitIfPossible();
+                                if(ContactsLib.isExportProduct()){
+                                        keyPressed(KeyEvent.KEYCODE_SEMICOLON);
+                                }
+                                else{
+                                        keyPressed(KeyEvent.KEYCODE_SHIFT_RIGHT);
+                                        //String networkType = ContactsLib.UsimRecords.getNetWorkType();
+                                        if(ContactsLib.isSingleMode() &&
+                                            TelephonyManager.getDefault().getPhoneType()==TelephonyManager.PHONE_TYPE_CDMA)
+                                                {
+                                                    keyPressed(KeyEvent.KEYCODE_T);
+                                                }
+                                        else if(networkType.equals("4,1")) {
+                                            keyPressed(KeyEvent.KEYCODE_T);
+                                        }
+                                        else if(networkType.equals("0,1")) {
+                                            keyPressed(KeyEvent.KEYCODE_W);
+                                        }
+                                        else { // single card
+                                            keyPressed(KeyEvent.KEYCODE_W);
+                                        }
+                                        keyUp(KeyEvent.KEYCODE_SHIFT_LEFT);
+                                    }
+                                stopTone();
+                                if (mDialpadPressCount > 0) mDialpadPressCount--;
+                    return true;
                 }
             }
         }
