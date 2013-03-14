@@ -1042,7 +1042,7 @@
     <string name="share_via">Share contact via</string>
 
     <!-- Toast indicating that sharing a contact has failed. [CHAR LIMIT=NONE]  -->
-    <string name="share_error">This contact can\'t be shared.</string>
+    <string name="share_error">Have not shared contacts.</string>
 
     <!-- Header that expands to list all name types when editing a structured name of a contact [CHAR LIMIT=20] -->
     <string name="nameLabelsGroup">Name</string>

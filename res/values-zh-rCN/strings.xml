@@ -293,7 +293,7 @@
     <string name="dialog_import" msgid="2431698729761448759">"导入联系人"</string>
     <string name="menu_share" msgid="943789700636542260">"分享"</string>
     <string name="share_via" msgid="563121028023030093">"联系人分享方式"</string>
-    <string name="share_error" msgid="948429331673358107">"无法分享此联系人。"</string>
+    <string name="share_error" msgid="948429331673358107">"没有可分享联系人。"</string>
     <string name="nameLabelsGroup" msgid="2034640839640477827">"姓名"</string>
     <string name="nicknameLabelsGroup" msgid="2891682101053358010">"昵称"</string>
     <string name="organizationLabelsGroup" msgid="2478611760751832035">"组织"</string>
