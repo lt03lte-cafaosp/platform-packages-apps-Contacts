@@ -1065,8 +1065,14 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private String getMultiSimName(int subscription) {
-        return Settings.System.getString(getContentResolver(),
+        String name = Settings.System.getString(getContentResolver(),
                 Settings.System.MULTI_SIM_NAME[subscription]);
+
+        if(TextUtils.isEmpty(name)) {
+            name = getResources().getStringArray(R.array.select_slot_item)[subscription];
+        }
+
+        return name;        
     }
 
     private boolean isPickContact() {
@@ -1395,8 +1401,13 @@ public class MultiPickContactActivity extends ListActivity implements
         }
 
         private String getMultiSimName(int subscription) {
-            return Settings.System.getString(getContentResolver(),
+            String name = Settings.System.getString(getContentResolver(),
                     Settings.System.MULTI_SIM_NAME[subscription]);
+            if(TextUtils.isEmpty(name)) {
+                name = getResources().getStringArray(R.array.select_slot_item)[subscription];
+            }
+
+            return name;        
         }
 
         @Override

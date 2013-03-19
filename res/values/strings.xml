@@ -2068,4 +2068,9 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 	<string name="number_to_select">Select number</string>
 	<string name="add_to_white">Add to whitelist</string>
 	<string name="add_to_black">Add to blacklist</string>
+	
+	<string-array name="select_slot_item">
+		<item>"SLOT1"</item>
+		<item>"SLOT2"</item>
+	</string-array>
 </resources>

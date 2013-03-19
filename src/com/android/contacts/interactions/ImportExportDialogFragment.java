@@ -197,8 +197,13 @@ public class ImportExportDialogFragment extends DialogFragment
     }
 
     private String getMultiSimName(int subscription) {
-        return Settings.System.getString(getActivity().getContentResolver(),
+        String name = Settings.System.getString(getActivity().getContentResolver(),
             Settings.System.MULTI_SIM_NAME[subscription]);
+        if(TextUtils.isEmpty(name) && mactiv != null) {
+            name = mactiv.getResources().getStringArray(R.array.select_slot_item)[subscription];
+        }
+
+        return name;
     }
 
     Activity mactiv;
