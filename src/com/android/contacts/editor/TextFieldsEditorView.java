@@ -20,7 +20,9 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -36,6 +38,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import com.android.contacts.ContactsUtils;
+import com.android.contacts.editor.Editor.EditorListener;
+import com.android.contacts.editor.LocalGroupsSelector.OnGroupSelectListener;
 import com.android.contacts.R;
 import com.android.contacts.model.RawContactDelta;
 import com.android.contacts.model.RawContactDelta.ValuesDelta;
@@ -52,6 +56,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
     private static final String TAG = TextFieldsEditorView.class.getSimpleName();
 
     private EditText[] mFieldEditTexts = null;
+    private LocalGroupsSelector[] localGroupsSelectors = null;
     private ViewGroup mFields = null;
     private View mExpansionViewContainer;
     private ImageView mExpansionView;
@@ -178,85 +183,115 @@ public class TextFieldsEditorView extends LabeledEditorView {
             for (EditText fieldEditText : mFieldEditTexts) {
                 mFields.removeView(fieldEditText);
             }
+            mFieldEditTexts = null;
+        }
+        if (localGroupsSelectors != null) {
+            for (View view : localGroupsSelectors) {
+                mFields.removeView(view);
+            }
+            localGroupsSelectors = null;
         }
         boolean hidePossible = false;
 
         int fieldCount = kind.fieldList.size();
-        mFieldEditTexts = new EditText[fieldCount];
+        if (LocalGroup.CONTENT_ITEM_TYPE.equals(kind.mimeType))
+            localGroupsSelectors = new LocalGroupsSelector[fieldCount];
+        else
+            mFieldEditTexts = new EditText[fieldCount];
         for (int index = 0; index < fieldCount; index++) {
             final EditField field = kind.fieldList.get(index);
-            final EditText fieldView = new EditText(mContext);
-            fieldView.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                    field.isMultiLine() ? LayoutParams.WRAP_CONTENT : mMinFieldHeight));
-            // Set either a minimum line requirement or a minimum height (because {@link TextView}
-            // only takes one or the other at a single time).
-            if (field.minLines != 0) {
-                fieldView.setMinLines(field.minLines);
+            if (LocalGroup.CONTENT_ITEM_TYPE.equals(kind.mimeType)) {
+                final LocalGroupsSelector localGroupsSelector = new LocalGroupsSelector(
+                        mContext, entry, field.column);
+                localGroupsSelector.setOnGroupSelectListener(new OnGroupSelectListener(){
+                    @Override
+                    public void onGroupChanged() {
+                        setDeleteButtonVisible(localGroupsSelector.getGroupId() > -1);
+                    }});
+                // Show the delete button if we have a non-null value
+                setDeleteButtonVisible(localGroupsSelector.getGroupId() > -1);
+                localGroupsSelectors[index] = localGroupsSelector;
+                mFields.addView(localGroupsSelector);
             } else {
-                fieldView.setMinHeight(mMinFieldHeight);
-            }
-            fieldView.setTextAppearance(getContext(), android.R.style.TextAppearance_Medium);
-            fieldView.setGravity(Gravity.TOP);
-            mFieldEditTexts[index] = fieldView;
-            fieldView.setId(vig.getId(state, kind, entry, index));
-            if (field.titleRes > 0) {
-                fieldView.setHint(field.titleRes);
-            }
-            int inputType = field.inputType;
-            fieldView.setInputType(inputType);
-            if (inputType == InputType.TYPE_CLASS_PHONE) {
-                PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(mContext, fieldView);
-            }
-
-            // Show the "next" button in IME to navigate between text fields
-            // TODO: Still need to properly navigate to/from sections without text fields,
-            // See Bug: 5713510
-            fieldView.setImeOptions(EditorInfo.IME_ACTION_NEXT);
-
-            // Read current value from state
-            final String column = field.column;
-            final String value = entry.getAsString(column);
-            fieldView.setText(value);
-
-            // Show the delete button if we have a non-null value
-            setDeleteButtonVisible(value != null);
-
-            // Prepare listener for writing changes
-            fieldView.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void afterTextChanged(Editable s) {
-                    // Trigger event for newly changed value
-                    onFieldChanged(column, s.toString());
+                final EditText fieldView = new EditText(mContext);
+                fieldView.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
+                        field.isMultiLine() ? LayoutParams.WRAP_CONTENT : mMinFieldHeight));
+                // Set the max length of EditText if user provide a value more
+                // than zero.
+                if (kind.maxLength > 0) {
+                    fieldView.setFilters(new InputFilter[] {
+                            new InputFilter.LengthFilter(kind.maxLength)});
+                }
+                // Set either a minimum line requirement or a minimum height (because {@link TextView}
+                // only takes one or the other at a single time).
+                if (field.minLines != 0) {
+                    fieldView.setMinLines(field.minLines);
+                } else {
+                    fieldView.setMinHeight(mMinFieldHeight);
+                }
+                fieldView.setTextAppearance(getContext(), android.R.style.TextAppearance_Medium);
+                fieldView.setGravity(Gravity.TOP);
+                mFieldEditTexts[index] = fieldView;
+                fieldView.setId(vig.getId(state, kind, entry, index));
+                if (field.titleRes > 0) {
+                    fieldView.setHint(field.titleRes);
+                }
+                int inputType = field.inputType;
+                fieldView.setInputType(inputType);
+                if (inputType == InputType.TYPE_CLASS_PHONE) {
+                    PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(mContext, fieldView);
                 }
 
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // Show the "next" button in IME to navigate between text fields
+                // TODO: Still need to properly navigate to/from sections without text fields,
+                // See Bug: 5713510
+                fieldView.setImeOptions(EditorInfo.IME_ACTION_NEXT);
+
+                // Read current value from state
+                final String column = field.column;
+                final String value = entry.getAsString(column);
+                fieldView.setText(value);
+
+                // Show the delete button if we have a non-null value
+                setDeleteButtonVisible(value != null);
+
+                // Prepare listener for writing changes
+                fieldView.addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        // Trigger event for newly changed value
+                        onFieldChanged(column, s.toString());
+                    }
+
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    }
+
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    }
+                });
+
+                fieldView.setEnabled(isEnabled() && !readOnly);
+
+                if (field.shortForm) {
+                    hidePossible = true;
+                    mHasShortAndLongForms = true;
+                    fieldView.setVisibility(mHideOptional ? View.VISIBLE : View.GONE);
+                } else if (field.longForm) {
+                    hidePossible = true;
+                    mHasShortAndLongForms = true;
+                    fieldView.setVisibility(mHideOptional ? View.GONE : View.VISIBLE);
+                } else {
+                    // Hide field when empty and optional value
+                    final boolean couldHide = (!ContactsUtils.isGraphic(value) && field.optional);
+                    final boolean willHide = (mHideOptional && couldHide);
+                    fieldView.setVisibility(willHide ? View.GONE : View.VISIBLE);
+                    hidePossible = hidePossible || couldHide;
                 }
 
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-                }
-            });
-
-            fieldView.setEnabled(isEnabled() && !readOnly);
-
-            if (field.shortForm) {
-                hidePossible = true;
-                mHasShortAndLongForms = true;
-                fieldView.setVisibility(mHideOptional ? View.VISIBLE : View.GONE);
-            } else if (field.longForm) {
-                hidePossible = true;
-                mHasShortAndLongForms = true;
-                fieldView.setVisibility(mHideOptional ? View.GONE : View.VISIBLE);
-            } else {
-                // Hide field when empty and optional value
-                final boolean couldHide = (!ContactsUtils.isGraphic(value) && field.optional);
-                final boolean willHide = (mHideOptional && couldHide);
-                fieldView.setVisibility(willHide ? View.GONE : View.VISIBLE);
-                hidePossible = hidePossible || couldHide;
+                mFields.addView(fieldView);
             }
-
-            mFields.addView(fieldView);
         }
 
         // When hiding fields, place expandable
@@ -267,9 +302,17 @@ public class TextFieldsEditorView extends LabeledEditorView {
     @Override
     public boolean isEmpty() {
         for (int i = 0; i < mFields.getChildCount(); i++) {
-            EditText editText = (EditText) mFields.getChildAt(i);
-            if (!TextUtils.isEmpty(editText.getText())) {
-                return false;
+            View editor = mFields.getChildAt(i);
+            if (editor instanceof EditText) {
+                EditText editText = (EditText) editor;
+                if (!TextUtils.isEmpty(editText.getText())) {
+                    return false;
+                }
+            } else if (editor instanceof LocalGroupsSelector) {
+                LocalGroupsSelector selector = (LocalGroupsSelector) editor;
+                if (selector.getGroupId() > -1) {
+                    return false;
+                }
             }
         }
         return true;
@@ -314,8 +357,13 @@ public class TextFieldsEditorView extends LabeledEditorView {
 
         final int numChildren = mFieldEditTexts == null ? 0 : mFieldEditTexts.length;
         ss.mVisibilities = new int[numChildren];
+        ss.mSelStart = new int[numChildren];
+        ss.mSelEnd = new int[numChildren];
         for (int i = 0; i < numChildren; i++) {
             ss.mVisibilities[i] = mFieldEditTexts[i].getVisibility();
+            // Save current EditTexts start index and end index
+            ss.mSelStart[i] = mFieldEditTexts[i].getSelectionStart();
+            ss.mSelEnd[i] = mFieldEditTexts[i].getSelectionEnd();
         }
 
         return ss;
@@ -331,15 +379,32 @@ public class TextFieldsEditorView extends LabeledEditorView {
 
         mHideOptional = ss.mHideOptional;
 
-        int numChildren = Math.min(mFieldEditTexts.length, ss.mVisibilities.length);
-        for (int i = 0; i < numChildren; i++) {
-            mFieldEditTexts[i].setVisibility(ss.mVisibilities[i]);
+        if( mFieldEditTexts != null ){
+	        int numChildren = Math.min(mFieldEditTexts.length, ss.mVisibilities.length);
+	        for (int i = 0; i < numChildren; i++) {
+	            mFieldEditTexts[i].setVisibility(ss.mVisibilities[i]);
+	            /**
+	             * If mSelStart does not equal mSelEnd, that indicate some text string was selected.
+	             * So cursor should hide in current UI.
+	             */
+	            if (null != ss.mSelStart && null != ss.mSelEnd) {
+	                int selStart = ss.mSelStart[i];
+	                int selEnd = ss.mSelEnd[i];
+	                if ((selStart >= 0) && (selEnd >= 0) && (selStart < selEnd)) {
+	                    mFieldEditTexts[i].setCursorVisible(false);
+	                }
+	            }
+	        }
         }
     }
 
     private static class SavedState extends BaseSavedState {
         public boolean mHideOptional;
         public int[] mVisibilities;
+        // Save the start index of selected text in EditText
+        public int[] mSelStart;
+        // Save the end index of selected text in EditText
+        public int[] mSelEnd;
 
         SavedState(Parcelable superState) {
             super(superState);
@@ -381,5 +446,26 @@ public class TextFieldsEditorView extends LabeledEditorView {
                 fieldEditText.setText("");
             }
         }
+        if (localGroupsSelectors != null) {
+            for (LocalGroupsSelector selector : localGroupsSelectors) {
+                selector.clear();
+            }
+        }
+    }
+
+    /**
+     * use for account type is ACCOUNT_TYPE_SIM only because that sim card can not store expand fields.
+     */
+
+    public void setExpansionViewContainerDisabled() {
+        mExpansionViewContainer.setEnabled(false);
+        mExpansionView.setVisibility(View.INVISIBLE);
+    }
+
+    /**
+     * use for sim card is USIM or CSIM.
+     */
+    public void setLabelReadOnly(boolean readOnly){
+        mLabelReadOnly = readOnly;
     }
 }

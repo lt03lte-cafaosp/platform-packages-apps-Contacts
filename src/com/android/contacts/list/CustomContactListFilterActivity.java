@@ -27,6 +27,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.EntityIterator;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.OperationApplicationException;
@@ -145,8 +146,7 @@ public class CustomContactListFilterActivity extends ContactsActivity
                 if (account.dataSet != null) {
                     groupsUri.appendQueryParameter(Groups.DATA_SET, account.dataSet).build();
                 }
-                android.content.EntityIterator iterator =
-                        ContactsContract.Groups.newEntityIterator(resolver.query(
+                EntityIterator iterator = ContactsContract.Groups.newEntityIterator(resolver.query(
                         groupsUri.build(), null, null, null, null));
                 try {
                     boolean hasGroups = false;

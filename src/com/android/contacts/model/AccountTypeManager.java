@@ -39,11 +39,15 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.provider.ContactsContract;
+import android.provider.Settings;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.TimingLogger;
 
 import com.android.contacts.ContactsUtils;
+import com.android.contacts.activities.ContactEditorActivity;
 import com.android.contacts.list.ContactListFilterController;
 import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.account.AccountTypeWithDataSet;
@@ -52,6 +56,8 @@ import com.android.contacts.model.account.ExchangeAccountType;
 import com.android.contacts.model.account.ExternalAccountType;
 import com.android.contacts.model.account.FallbackAccountType;
 import com.android.contacts.model.account.GoogleAccountType;
+import com.android.contacts.model.account.PhoneAccountType;
+import com.android.contacts.model.account.SimAccountType;
 import com.android.contacts.model.dataitem.DataKind;
 import com.android.contacts.util.Constants;
 import com.android.internal.util.Objects;
@@ -78,6 +84,13 @@ public abstract class AccountTypeManager {
     static final String TAG = "AccountTypeManager";
 
     public static final String ACCOUNT_TYPE_SERVICE = "contactAccountTypes";
+    
+	public static final int FLAG_ALL_ACCOUNTS = 0;
+	/**
+	 * without sim and phone accounts
+	 */
+	public static final int FLAG_ALL_ACCOUNTS_WITHOUT_SIM = 1;
+	public static final int FLAG_ALL_ACCOUNTS_WITHOUT_LOCAL = 2;
 
     /**
      * Requests the singleton instance of {@link AccountTypeManager} with data bound from
@@ -103,6 +116,8 @@ public abstract class AccountTypeManager {
      * contact writable accounts (if contactWritableOnly is true).
      */
     // TODO: Consider splitting this into getContactWritableAccounts() and getAllAccounts()
+    public abstract List<AccountWithDataSet> getAccounts(boolean contactWritableOnly, int flag);
+
     public abstract List<AccountWithDataSet> getAccounts(boolean contactWritableOnly);
 
     /**
@@ -412,6 +427,10 @@ class AccountTypeManagerImpl extends AccountTypeManager
                     accountType = new GoogleAccountType(mContext, auth.packageName);
                 } else if (ExchangeAccountType.isExchangeType(type)) {
                     accountType = new ExchangeAccountType(mContext, auth.packageName, type);
+                } else if (SimAccountType.ACCOUNT_TYPE.equals(type)) {
+                    accountType = new SimAccountType(mContext, auth.packageName);
+                } else if (PhoneAccountType.ACCOUNT_TYPE.equals(type)) {
+                    accountType = new PhoneAccountType(mContext, auth.packageName);
                 } else {
                     // TODO: use syncadapter package instead, since it provides resources
                     Log.d(TAG, "Registering external account type=" + type
@@ -565,13 +584,65 @@ class AccountTypeManagerImpl extends AccountTypeManager
         return null;
     }
 
+    @Override
+    public List<AccountWithDataSet> getAccounts(boolean contactWritableOnly) {
+        return getAccounts(contactWritableOnly, FLAG_ALL_ACCOUNTS);
+    }
+
     /**
      * Return list of all known, contact writable {@link AccountWithDataSet}'s.
      */
     @Override
-    public List<AccountWithDataSet> getAccounts(boolean contactWritableOnly) {
+    public List<AccountWithDataSet> getAccounts(boolean contactWritableOnly,
+            int flag) {
         ensureAccountsLoaded();
+        boolean isAirMode = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.AIRPLANE_MODE_ON, 0) == 1;
+        switch (flag) {
+            case FLAG_ALL_ACCOUNTS:
+                return trimAccountByType(
+                        contactWritableOnly ? mContactWritableAccounts : mAccounts,
+                        isAirMode ? SimAccountType.ACCOUNT_TYPE : null);
+            case FLAG_ALL_ACCOUNTS_WITHOUT_LOCAL:
+                return trimAccountByType(
+                        contactWritableOnly ? mContactWritableAccounts : mAccounts,
+                        SimAccountType.ACCOUNT_TYPE, PhoneAccountType.ACCOUNT_TYPE);
+            case FLAG_ALL_ACCOUNTS_WITHOUT_SIM:
+                return trimAccountByType(
+                        contactWritableOnly ? mContactWritableAccounts : mAccounts,
+                        SimAccountType.ACCOUNT_TYPE);
+        }
         return contactWritableOnly ? mContactWritableAccounts : mAccounts;
+    }
+
+    private boolean isSimStateDeactived(Account accunt){
+        int subscription = ContactEditorActivity.getSubscription(accunt.type, accunt.name);
+        int simState;
+
+        if (subscription == -1 || !MSimTelephonyManager.getDefault().isMultiSimEnabled())
+            return false;
+
+        simState = MSimTelephonyManager.getDefault().getSimState(subscription);
+        return simState == TelephonyManager.SIM_STATE_DEACTIVATED ? true :false ;
+    }
+
+    private List<AccountWithDataSet> trimAccountByType(final List<AccountWithDataSet> list,
+            String... trimAccountTypes) {
+        List<AccountWithDataSet> tempList = Lists.newArrayList();
+        outer: for (AccountWithDataSet accountWithDataSet : list) {
+            if (trimAccountTypes != null && trimAccountTypes.length > 0) {
+                for (String type : trimAccountTypes) {
+                    if (type != null && type.equals(accountWithDataSet.type)) {
+                        continue outer;
+                    }
+                }
+            }
+            if (isSimStateDeactived(accountWithDataSet)) {
+                continue outer;
+            }
+            tempList.add(accountWithDataSet);
+        }
+        return tempList;
     }
 
     /**

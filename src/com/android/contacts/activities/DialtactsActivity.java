@@ -26,6 +26,7 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
@@ -56,6 +57,7 @@ import android.widget.PopupMenu;
 import android.widget.SearchView;
 import android.widget.SearchView.OnCloseListener;
 import android.widget.SearchView.OnQueryTextListener;
+import android.widget.Toast;
 
 import com.android.contacts.ContactsUtils;
 import com.android.contacts.R;
@@ -105,6 +107,7 @@ public class DialtactsActivity extends TransactionSafeActivity
      */
     private static final String ACTION_TOUCH_DIALER = "com.android.phone.action.TOUCH_DIALER";
 
+    private static final String PROVIDER_NAME = "com.android.providers.contacts";
     /** Used both by {@link ActionBar} and {@link ViewPagerAdapter} */
     private static final int TAB_INDEX_DIALER = 0;
     private static final int TAB_INDEX_CALL_LOG = 1;
@@ -1259,6 +1262,15 @@ public class DialtactsActivity extends TransactionSafeActivity
         }
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         return intent;
+    }
+
+    public static boolean checkContactStorage(PackageManager pm, Context mContext) {
+        if (pm.getApplicationEnabledSetting(PROVIDER_NAME)
+            == PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER) {
+            Toast.makeText(mContext, R.string.contactStorageToast, Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return false;
     }
 
     @Override

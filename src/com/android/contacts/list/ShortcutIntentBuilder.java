@@ -92,6 +92,8 @@ public class ShortcutIntentBuilder {
     public static final String INTENT_EXTRA_IGNORE_LAUNCH_ANIMATION =
             "com.android.launcher.intent.extra.shortcut.INGORE_LAUNCH_ANIMATION";
 
+    private static final String EXTRA_SHORTCUT_PACKAGENAME = "shortcut_packagename";
+
     /**
      * Listener interface.
      */
@@ -270,6 +272,8 @@ public class ShortcutIntentBuilder {
                 ContactsContract.QuickContact.MODE_LARGE);
         shortcutIntent.putExtra(ContactsContract.QuickContact.EXTRA_EXCLUDE_MIMES,
                 (String[]) null);
+        // Tell launcher the package name, so launcher can feedback by package name
+        shortcutIntent.putExtra(EXTRA_SHORTCUT_PACKAGENAME, mContext.getPackageName());
 
         final Bitmap icon = generateQuickContactIcon(bitmap);
 

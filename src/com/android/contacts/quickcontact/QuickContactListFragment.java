@@ -34,6 +34,7 @@ import android.widget.TextView;
 
 import com.android.contacts.ContactPresenceIconUtil;
 import com.android.contacts.R;
+import com.qrd.plugin.feature_query.FeatureQuery;
 
 import java.util.List;
 
@@ -110,7 +111,10 @@ public class QuickContactListFragment extends Fragment {
                         R.id.actions_view_container);
                 final ImageView alternateActionButton = (ImageView) resultView.findViewById(
                         R.id.secondary_action_button);
+                final ImageView alternateActionButton1 = (ImageView) resultView.findViewById(
+                        R.id.third_action_button);
                 final View alternateActionDivider = resultView.findViewById(R.id.vertical_divider);
+                final View alternateActionDividerThird = resultView.findViewById(R.id.vertical_divider_third);
                 final ImageView presenceIconView =
                         (ImageView) resultView.findViewById(R.id.presence_icon);
 
@@ -118,12 +122,30 @@ public class QuickContactListFragment extends Fragment {
                 actionsContainer.setTag(action);
                 alternateActionButton.setOnClickListener(mSecondaryActionClickListener);
                 alternateActionButton.setTag(action);
+                if(FeatureQuery.FEATURE_CSVT)
+                {
+                    alternateActionButton1.setOnClickListener(mThirdActionClickListener);
+                    alternateActionButton1.setTag(action);
+                }
 
                 final boolean hasAlternateAction = action.getAlternateIntent() != null;
+                final boolean hasAlternateAction1 = action.get2AlternateIntent() != null;
                 alternateActionDivider.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+                if(FeatureQuery.FEATURE_CSVT)
+                    alternateActionDivider.setVisibility(hasAlternateAction1 ? View.VISIBLE : View.GONE);
                 alternateActionButton.setImageDrawable(action.getAlternateIcon());
+                if(FeatureQuery.FEATURE_CSVT)
+                    alternateActionButton1.setImageDrawable(action.get2AlternateIcon());
                 alternateActionButton.setContentDescription(action.getAlternateIconDescription());
+                if(FeatureQuery.FEATURE_CSVT)
+                    alternateActionButton1.setContentDescription(action.get2AlternateIconDescription());
                 alternateActionButton.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+                if(FeatureQuery.FEATURE_CSVT)
+                    alternateActionButton1.setVisibility(hasAlternateAction1 ? View.VISIBLE : View.GONE);
+                else {
+                    alternateActionButton1.setVisibility(View.GONE);
+                    alternateActionDividerThird.setVisibility(View.GONE);
+                }
 
                 // Special case for phone numbers in accessibility mode
                 if (mimeType.equals(Phone.CONTENT_ITEM_TYPE)) {
@@ -132,6 +154,10 @@ public class QuickContactListFragment extends Fragment {
                     if (hasAlternateAction) {
                         alternateActionButton.setContentDescription(getActivity()
                                 .getString(R.string.description_send_message, action.getBody()));
+                    }
+                    if (FeatureQuery.FEATURE_CSVT && hasAlternateAction1) {
+                        alternateActionButton1.setContentDescription(getActivity()
+                                .getString(R.string.description_dial_vt, action.getBody()));
                     }
                 }
 
@@ -176,6 +202,17 @@ public class QuickContactListFragment extends Fragment {
         }
     };
 
+   
+    /** A third action (VT) was clicked */
+    protected final OnClickListener mThirdActionClickListener = new OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            final Action action = (Action) v.getTag();
+            if (mListener != null) mListener.on2ItemClicked(action, true);
+        }
+    };
+
+   
     private final OnClickListener mOutsideClickListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -186,5 +223,6 @@ public class QuickContactListFragment extends Fragment {
     public interface Listener {
         void onOutsideClick();
         void onItemClicked(Action action, boolean alternate);
+        void on2ItemClicked(Action action, boolean alternate);
     }
 }

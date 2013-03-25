@@ -286,6 +286,10 @@ public class ContactDeletionInteraction extends Fragment
                 )
                 .create();
 
+        if (messageId == R.string.deleteConfirmation) {
+            mDialog.setTitle(R.string.deleteConfirmation_title);
+            mDialog.setIconAttribute(android.R.attr.alertDialogIcon);
+        }
         mDialog.setOnDismissListener(this);
         mDialog.show();
     }
