@@ -27,6 +27,7 @@ import com.android.internal.telephony.TelephonyIntents;
 import android.app.AlertDialog;
 import android.app.KeyguardManager;
 import android.app.ProgressDialog;
+import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -62,6 +63,7 @@ import android.widget.Toast;
 public class SpecialCharSequenceMgr {
     private static final String TAG = "SpecialCharSequenceMgr";
     private static final String MMI_IMEI_DISPLAY = "*#06#";
+    private static final String PRL_VERSION_DISPLAY = "*#0000#";
     private static final int SUB1 = 0;
     private static final int SUB2 = 1;
 
@@ -99,14 +101,28 @@ public class SpecialCharSequenceMgr {
 
         //get rid of the separators so that the string gets parsed correctly
         String dialString = PhoneNumberUtils.stripSeparators(input);
-
-        if (handleIMEIDisplay(context, dialString, useSystemWindow)
+        if ( handlePRLVersion(context, dialString)
+                || handleIMEIDisplay(context, dialString, useSystemWindow)
                 || handlePinEntry(context, dialString)
                 || handleAdnEntry(context, dialString, textField)
                 || handleSecretCode(context, dialString)) {
             return true;
         }
 
+        return false;
+    }
+    static private boolean handlePRLVersion(Context context, String input) {
+        if (input.equals(PRL_VERSION_DISPLAY)) {
+            try {
+                Log.d(TAG, "handlePRLVersion showing device info!!!!!!!!!!!!!!!!!!!");
+                Intent intent = new Intent("android.intent.action.ENGINEER_MODE_DEVICEINFO");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+                return true;
+            } catch(ActivityNotFoundException e) {
+                Log.d(TAG, "no activity to handle showing device info");
+            }
+        }
         return false;
     }
 
