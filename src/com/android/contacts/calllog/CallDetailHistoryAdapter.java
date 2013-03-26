@@ -27,7 +27,7 @@ import android.widget.TextView;
 
 import com.android.contacts.PhoneCallDetails;
 import com.android.contacts.R;
-
+import com.qrd.plugin.feature_query.FeatureQuery;
 /**
  * Adapter for a ListView containing history items from the details of a call.
  */
@@ -150,13 +150,20 @@ public class CallDetailHistoryAdapter extends BaseAdapter {
                 DateUtils.FORMAT_SHOW_WEEKDAY | DateUtils.FORMAT_SHOW_YEAR);
         dateView.setText(dateValue);
         // Set the duration
+         
+        if (FeatureQuery.FEATURE_CALLLOG_FOR_CMCC){
+          durationView.setVisibility(View.GONE);
+         }
+      
+        else
+        {
         if (callType == Calls.MISSED_TYPE || callType == Calls.VOICEMAIL_TYPE) {
             durationView.setVisibility(View.GONE);
         } else {
             durationView.setVisibility(View.VISIBLE);
             durationView.setText(formatDuration(details.duration));
         }
-
+        }
         return result;
     }
 

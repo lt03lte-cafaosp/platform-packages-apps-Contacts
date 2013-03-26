@@ -57,18 +57,21 @@ public class PhoneCallDetails {
      * This is meant to store the high-res photo only.
      */
     public final Uri photoUri;
-
+    public final int subscription;
+    public final int durationType;
+   
     /** Create the details for a call with a number not associated with a contact. */
     public PhoneCallDetails(CharSequence number, CharSequence formattedNumber,
-            String countryIso, String geocode, int[] callTypes, long date, long duration) {
-        this(number, formattedNumber, countryIso, geocode, callTypes, date, duration, "", 0, "",
-                null, null);
+            String countryIso, String geocode, int[] callTypes, long date, long duration,
+            int subscription, int durationType) {
+        this(number, formattedNumber, countryIso, geocode, callTypes, date, duration, subscription,
+                durationType, "", 0, "", null, null);
     }
-
+    
     /** Create the details for a call with a number associated with a contact. */
     public PhoneCallDetails(CharSequence number, CharSequence formattedNumber,
-            String countryIso, String geocode, int[] callTypes, long date, long duration,
-            CharSequence name, int numberType, CharSequence numberLabel, Uri contactUri,
+            String countryIso, String geocode, int[] callTypes, long date, long duration, int subscription,
+            int durationType, CharSequence name, int numberType, CharSequence numberLabel, Uri contactUri,
             Uri photoUri) {
         this.number = number;
         this.formattedNumber = formattedNumber;
@@ -82,5 +85,7 @@ public class PhoneCallDetails {
         this.numberLabel = numberLabel;
         this.contactUri = contactUri;
         this.photoUri = photoUri;
+        this.subscription = subscription;
+        this.durationType = durationType;
     }
 }
