@@ -2059,11 +2059,11 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 	<string name="memory_size">Total</string>
 	<string name="memory_available">Available</string>
 	<string name="memory_used">Used</string>
-	<string name="calculating_status_now">Calculating Status now¡­</string>
+	<string name="calculating_status_now">Calculating Status now</string>
 	<!-- add for MemoryStatusActivity -->
 	
-	<string name="copy_done">Copy done£¡</string>
-	<string name="copy_failure">Copy Failed£¡</string>
+	<string name="copy_done">Copy done!</string>
+	<string name="copy_failure">Copy Failed!</string>
 	<string name="card_no_space">Card has no space ,some record copy failed</string>
 	<string name="no_empty_email_in_usim">No more Email space in USIM card, coping whitout the Email</string>
 	<string name="number_to_select">Select number</string>
