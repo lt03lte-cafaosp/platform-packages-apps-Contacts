@@ -17,6 +17,7 @@
 package com.android.contacts.format;
 
 import android.text.SpannableString;
+import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.widget.TextView;
 
@@ -60,7 +61,39 @@ public class PrefixHighlighter {
             result.setSpan(mPrefixColorSpan, index, index + prefix.length, 0 /* flags */);
             return result;
         } else {
+            return simpleApply(text, prefix);
+        }
+    }
+
+    /**
+     * Returns a CharSequence which highlights the given prefix if found in the given text.
+     *
+     * @param text the text to which to apply the highlight
+     * @param prefix the prefix to look for
+     */
+    private CharSequence simpleApply(CharSequence text, char[] prefix) {
+        if (prefix == null || prefix.length == 0 || TextUtils.isEmpty(text)) {
             return text;
         }
+
+        String destText = text.toString();
+        SpannableString result = new SpannableString(text);
+        int startIdx = 0;
+        for (int i = 0; i < prefix.length; i++) {
+            if (!Character.isLetterOrDigit(prefix[i])) {
+                continue;
+            }
+
+            int index = destText.indexOf(prefix[i], startIdx);
+
+            if (index == -1) {
+                break;
+            } else {
+                ForegroundColorSpan mPrefixColorSpan = new ForegroundColorSpan(mPrefixHighlightColor);
+                result.setSpan(mPrefixColorSpan, index, index + 1, 0);
+                startIdx = index + 1;
+            }
+        }
+        return result;
     }
 }

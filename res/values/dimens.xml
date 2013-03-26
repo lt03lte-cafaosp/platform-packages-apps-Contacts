@@ -19,6 +19,9 @@
     <!-- Top position of quick contact. If this is -1, the vertical position is determined
     based on the source of the request -->
     <dimen name="quick_contact_top_position">48dip</dimen>
+    <!-- Width of the selected_tab_rectangle in quick contact.
+    The same as the defination in quickcontact_track.xml -->
+    <dimen name="quick_contact_selected_tab_rectangle_width">60dip</dimen>
 
     <!-- Top padding of the entire contact editor  -->
     <dimen name="editor_padding_top">0dip</dimen>
@@ -235,8 +238,9 @@
          LinearLayout (dialpad_fragment.xml), configuring dialpad screen's vertical
          ratio. -->
     <integer name="dialpad_layout_weight_digits">20</integer>
-    <integer name="dialpad_layout_weight_dialpad">65</integer>
-    <integer name="dialpad_layout_weight_additional_buttons">15</integer>
+    <integer name="dialpad_layout_weight_dialpad">57</integer>
+    <integer name="dialpad_layout_weight_additional_buttons">12</integer>
+    <integer name="dialpad_list_weight">11</integer>
 
     <!-- Minimum height used with @drawable/list_section_divider_holo_custom.
          Right now the drawable has implicit 32dip minimal height, which is confusing.
@@ -251,6 +255,19 @@
         wide screen devices). -->
     <dimen name="contact_picker_contact_list_min_height">550dip</dimen>
 
+    <dimen name="contact_shortcut_frame_width">50dip</dimen>
+    <dimen name="contact_shortcut_frame_height">56dip</dimen>
     <!-- Min with of fake menu buttons, which should be same as ActionBar's one -->
     <dimen name="fake_menu_button_min_width">56dip</dimen>
+<!-- add for UX_enhance_dial_button -->
+    <dimen name="keyguard_lockscreen_outerring_diameter">220dp</dimen>
+    <dimen name="glowpadview_target_placement_radius">110dip</dimen>
+    <dimen name="glowpadview_glow_radius">75dip</dimen>
+    <dimen name="glowpadview_snap_margin">40dip</dimen>
+    <dimen name="glowpadview_inner_radius">15dip</dimen>
+
+    <dimen name="clingPunchThroughGraphicCenterRadius">94dp</dimen>
+    <dimen name="reveal_radius">48dp</dimen>
+    <dimen name="button_bar_height">62dip</dimen>
+<!-- add for UX_enhance_dial_button -->
 </resources>

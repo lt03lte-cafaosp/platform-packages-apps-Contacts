@@ -16,6 +16,8 @@
 
 package com.android.contacts.activities;
 
+import com.android.contacts.R;
+
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.Loader;
@@ -30,6 +32,7 @@ import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.DisplayPhoto;
 import android.util.Log;
 
+import android.widget.Toast;
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
 import com.android.contacts.ContactsUtils;
@@ -64,7 +67,7 @@ public class AttachPhotoActivity extends ContactsActivity {
     private ContentResolver mContentResolver;
 
     // Height and width (in pixels) to request for the photo - queried from the provider.
-    private static int mPhotoDim;
+    private static int mPhotoDim = 480;
 
     private Uri mContactUri;
 
@@ -83,6 +86,7 @@ public class AttachPhotoActivity extends ContactsActivity {
             mTempPhotoUri = Uri.fromFile(mTempPhotoFile);
 
             Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.putExtra("withoutCreate", true);
             intent.setType(Contacts.CONTENT_TYPE);
             startActivityForResult(intent, REQUEST_PICK_CONTACT);
         }
@@ -96,7 +100,9 @@ public class AttachPhotoActivity extends ContactsActivity {
             c.moveToFirst();
             mPhotoDim = c.getInt(0);
         } finally {
-            c.close();
+            if (null != c) {
+                c.close();
+            }
         }
     }
 
@@ -172,11 +178,25 @@ public class AttachPhotoActivity extends ContactsActivity {
      */
     private void saveContact(Contact contact) {
 
+        // judgement null, the contact.getEntities() maybe null in some situations
+        if (null == contact || (null != contact && null == contact.getRawContacts())) {
+
+            // show operate failt prompt.
+            Toast.makeText(AttachPhotoActivity.this,R.string.saveContact_failt,Toast.LENGTH_SHORT).show();
+
+            // finish phone photo screen
+            finish();
+            return;
+        }
         // Obtain the raw-contact that we will save to.
         RawContactDeltaList deltaList = contact.createRawContactDeltaList();
         RawContactDelta raw = deltaList.getFirstWritableRawContact(this);
         if (raw == null) {
             Log.w(TAG, "no writable raw-contact found");
+
+            // show a toast to tell user this a read-only contact and finish this acitivty.
+            Toast.makeText(this, R.string.not_edit_read_only_contact, Toast.LENGTH_SHORT).show();
+            finish();
             return;
         }
 
@@ -187,6 +207,10 @@ public class AttachPhotoActivity extends ContactsActivity {
         final byte[] compressed = ContactPhotoUtils.compressBitmap(scaled);
         if (compressed == null) {
             Log.w(TAG, "could not create scaled and compressed Bitmap");
+            // Show a toast to tell user operate fail and finish this acitivty.
+            Toast.makeText(AttachPhotoActivity.this, R.string.saveContact_failt, Toast.LENGTH_SHORT)
+                    .show();
+            finish();
             return;
         }
 
@@ -199,6 +223,11 @@ public class AttachPhotoActivity extends ContactsActivity {
                 RawContactModifier.ensureKindExists(raw, account, Photo.CONTENT_ITEM_TYPE);
         if (values == null) {
             Log.w(TAG, "cannot attach photo to this account type");
+            // Show a toast to tell user cannot attach photo to current account
+            // and finish this acitivty.
+            Toast.makeText(AttachPhotoActivity.this, R.string.not_attach_photo_to_account,
+                    Toast.LENGTH_SHORT).show();
+            finish();
             return;
         }
         values.setPhoto(compressed);

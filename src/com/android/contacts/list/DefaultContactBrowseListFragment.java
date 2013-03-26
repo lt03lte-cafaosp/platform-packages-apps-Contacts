@@ -84,7 +84,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
     @Override
     protected ContactListAdapter createListAdapter() {
-        DefaultContactListAdapter adapter = new DefaultContactListAdapter(getContext());
+        DefaultContactListAdapter adapter = new DefaultContactListAdapter(getActivity());
         adapter.setSectionHeaderDisplayEnabled(isSectionHeaderDisplayEnabled());
         adapter.setDisplayPhotos(getResources().getBoolean(R.bool.config_browse_list_show_images));
         return adapter;

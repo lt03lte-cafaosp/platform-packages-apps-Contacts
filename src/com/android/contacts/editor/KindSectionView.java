@@ -52,6 +52,7 @@ public class KindSectionView extends LinearLayout implements EditorListener {
     private DataKind mKind;
     private RawContactDelta mState;
     private boolean mReadOnly;
+    private boolean mLabelReadOnly;
 
     private ViewIdGenerator mViewIdGenerator;
 
@@ -75,12 +76,6 @@ public class KindSectionView extends LinearLayout implements EditorListener {
             for (int i = 0; i < childCount; i++) {
                 mEditors.getChildAt(i).setEnabled(enabled);
             }
-        }
-
-        if (enabled && !mReadOnly) {
-            mAddFieldFooter.setVisibility(View.VISIBLE);
-        } else {
-            mAddFieldFooter.setVisibility(View.GONE);
         }
     }
 
@@ -130,6 +125,10 @@ public class KindSectionView extends LinearLayout implements EditorListener {
         }
     }
 
+    @Override
+    public void onDismissPopup() {
+        // Nothing to do.
+    }
     public void setState(DataKind kind, RawContactDelta state, boolean readOnly, ViewIdGenerator vig) {
         mKind = kind;
         mState = state;
@@ -178,6 +177,12 @@ public class KindSectionView extends LinearLayout implements EditorListener {
         }
     }
 
+    /**
+     * use for sim card is USIM or CSIM.
+     */
+    public void setLabelReadOnly(boolean readOnly){
+        mLabelReadOnly = readOnly;
+    }
 
     /**
      * Creates an EditorView for the given entry. This function must be used while constructing
@@ -197,6 +202,10 @@ public class KindSectionView extends LinearLayout implements EditorListener {
 
         view.setEnabled(isEnabled());
 
+        if (view instanceof TextFieldsEditorView && mLabelReadOnly) {
+            TextFieldsEditorView texteditor = (TextFieldsEditorView) view;
+            texteditor.setLabelReadOnly(true);
+        }
         if (view instanceof Editor) {
             Editor editor = (Editor) view;
             editor.setDeletable(true);
@@ -261,6 +270,11 @@ public class KindSectionView extends LinearLayout implements EditorListener {
                 // this {@link View}, then remove this empty editor.
                 if (emptyEditorView.findFocus() == null) {
                     mEditors.removeView(emptyEditorView);
+
+                    // when a emptyEditorView was removed,we should delete the value in related ValueDelta.
+                    if (emptyEditorView instanceof Editor) {
+                        ((Editor) emptyEditorView).deleteEditor();
+                    }
                 }
             }
         }

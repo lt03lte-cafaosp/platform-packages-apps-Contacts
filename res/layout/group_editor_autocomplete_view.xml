@@ -24,5 +24,6 @@
     android:textColor="?android:attr/textColorPrimary"
     android:imeOptions="flagNoExtractUi|flagNoFullscreen"
     android:hint="@string/enter_contact_name"
+    android:completionThreshold="1"
     android:minHeight="48dip"
     android:paddingLeft="@dimen/group_editor_autocomplete_left_padding"/>
