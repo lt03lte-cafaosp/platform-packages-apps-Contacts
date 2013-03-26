@@ -300,9 +300,14 @@ public class SpecialCharSequenceMgr {
     static void showIMEIPanel(Context context, boolean useSystemWindow) {
         int subscription = MSimTelephonyManager.getDefault().getPreferredVoiceSubscription();
         String imeiStr;
+        String imeiStr2;
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
             imeiStr = ((MSimTelephonyManager)context.
-                    getSystemService(Context.MSIM_TELEPHONY_SERVICE)).getDeviceId(subscription);
+                    getSystemService(Context.MSIM_TELEPHONY_SERVICE)).getDeviceId(0);
+            imeiStr += "\n";
+            imeiStr2 = ((MSimTelephonyManager)context.
+                    getSystemService(Context.MSIM_TELEPHONY_SERVICE)).getDeviceId(1);
+            imeiStr += imeiStr2;
         } else {
             imeiStr = ((TelephonyManager)context.
                     getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
