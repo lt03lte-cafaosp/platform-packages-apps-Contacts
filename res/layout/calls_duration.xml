@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content">
+	<RelativeLayout
+		android:id="@+id/widget27"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:layout_marginLeft="@dimen/shortcut_overlay_text_size"
+        android:layout_marginRight="@dimen/shortcut_overlay_text_size"
+		xmlns:android="http://schemas.android.com/apk/res/android"
+	>
+		<TextView
+			android:id="@+id/widget28"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/last_call_duration"
+			android:layout_alignParentTop="true"
+			android:layout_alignParentLeft="true"
+			
+            android:textSize="18sp"
+		>
+		</TextView>
+		<TextView
+			android:id="@+id/last_call_duration"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_below="@+id/widget28"
+			android:layout_alignParentRight="true"
+			
+            android:textSize="16sp"
+		>
+		</TextView>
+		<TextView
+			android:id="@+id/widget30"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/incoming_calls_duration"
+			android:layout_below="@+id/last_call_duration"
+			android:layout_alignParentLeft="true"
+			
+            android:textSize="18sp"
+		>
+		</TextView>
+		<TextView
+			android:id="@+id/incoming_calls_duration"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_below="@+id/widget30"
+			android:layout_alignParentRight="true"
+			
+            android:textSize="16sp"
+		>
+		</TextView>
+		<TextView
+			android:id="@+id/widget32"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/outgoing_calls_duration"
+			android:layout_below="@+id/incoming_calls_duration"
+			android:layout_alignParentLeft="true"
+			
+            android:textSize="18sp"
+		>
+		</TextView>
+		<TextView
+			android:id="@+id/outgoing_calls_duration"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_below="@+id/widget32"
+			android:layout_alignParentRight="true"
+			
+            android:textSize="16sp"
+		>
+		</TextView>
+		<TextView
+			android:id="@+id/widget34"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/all_calls_duration"
+			android:layout_below="@+id/outgoing_calls_duration"
+			android:layout_alignParentLeft="true"
+			
+            android:textSize="18sp"
+		>
+		</TextView>
+		<TextView
+			android:id="@+id/all_calls_duration"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_below="@+id/widget34"
+			android:layout_alignParentRight="true"
+			
+            android:textSize="16sp"
+		>
+		</TextView>
+	</RelativeLayout>
+</ScrollView>

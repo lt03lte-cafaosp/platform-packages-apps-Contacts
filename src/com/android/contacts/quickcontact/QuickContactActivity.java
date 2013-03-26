@@ -57,6 +57,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.Collapser;
+import com.android.contacts.ContactPhotoManager;
 import com.android.contacts.R;
 import com.android.contacts.model.Contact;
 import com.android.contacts.model.ContactLoader;
@@ -296,6 +297,12 @@ public class QuickContactActivity extends Activity {
         close(true);
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        close(true);
+    }
+
     /** Assign this string to the view if it is not empty. */
     private void setHeaderNameText(int id, int resId) {
         setHeaderNameText(id, getText(resId));
@@ -340,7 +347,11 @@ public class QuickContactActivity extends Activity {
         mStopWatch.lap("sph"); // Start photo setting
 
         final ImageView photoView = (ImageView) mPhotoContainer.findViewById(R.id.photo);
-        mPhotoSetter.setupContactPhoto(data, photoView);
+        if(data != null) {
+            mPhotoSetter.setupContactPhoto(data, photoView);
+        } else {
+            photoView.setImageResource(ContactPhotoManager.getDefaultAvatarResId(true, false));
+        }
 
         mStopWatch.lap("ph"); // Photo set
 
@@ -392,7 +403,9 @@ public class QuickContactActivity extends Activity {
 
         mStopWatch.lap("c"); // List collapsed
 
-        setHeaderNameText(R.id.name, data.getDisplayName());
+        if(data != null) {
+            setHeaderNameText(R.id.name, data.getDisplayName());
+        }
 
         // All the mime-types to add.
         final Set<String> containedTypes = new HashSet<String>(mActions.keySet());
@@ -509,10 +522,8 @@ public class QuickContactActivity extends Activity {
             }
             if (data.isNotFound()) {
                 Log.i(TAG, "No contact found: " + ((ContactLoader)loader).getLookupUri());
-                Toast.makeText(QuickContactActivity.this, R.string.invalidContactMessage,
-                        Toast.LENGTH_LONG).show();
-                close(false);
-                return;
+                mOpenDetailsPushLayerButton.setEnabled(false);
+                data = null;
             }
 
             bindData(data);
@@ -636,5 +647,25 @@ public class QuickContactActivity extends Activity {
             // Defer the action to make the window properly repaint
             new Handler().post(startAppRunnable);
         }
+    
+     @Override
+     public void on2ItemClicked(final Action action, final boolean alternate) {
+            final Runnable startAppRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        startActivity(alternate ? action.get2AlternateIntent() : action.getIntent());
+                    } catch (ActivityNotFoundException e) {
+                        Toast.makeText(QuickContactActivity.this, R.string.quickcontact_missing_app,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    close(false);
+                }
+            };
+            // Defer the action to make the window properly repaint
+            new Handler().post(startAppRunnable);
+        }
+    
     };
 }

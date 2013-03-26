@@ -39,6 +39,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.OpenableColumns;
+import android.provider.Telephony.Mms.Part;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -62,6 +63,7 @@ import com.android.vcard.exception.VCardVersionException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -77,6 +79,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The class letting users to import vCard. This includes the UI part for letting them select
@@ -102,6 +106,13 @@ public class ImportVCardActivity extends ContactsActivity {
     /* package */ final static int VCARD_VERSION_V21 = 1;
     /* package */ final static int VCARD_VERSION_V30 = 2;
 
+    // Constant of connect status.
+    private final static int STATUS_DEFAULT = 0;
+    // When connection bind success.
+    private final static int STATUS_CONNECT = 1;
+    // When connection unbind.
+    private final static int STATUS_DISCONNECT = 2;
+
     private static final String SECURE_DIRECTORY_NAME = ".android_secure";
 
     /**
@@ -110,6 +121,9 @@ public class ImportVCardActivity extends ContactsActivity {
     private static final int FAILURE_NOTIFICATION_ID = 1;
 
     final static String CACHED_URIS = "cached_uris";
+
+    // Connect status,default value is STATUS_DEFAULT.
+    private int mConnectStatus = STATUS_DEFAULT;
 
     private AccountSelectionUtil.AccountSelectedListener mAccountSelectionListener;
 
@@ -195,6 +209,9 @@ public class ImportVCardActivity extends ContactsActivity {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
+
+            // when service connect set mConnectStatus as STATUS_CONNECT.
+            mConnectStatus = STATUS_CONNECT;
             mService = ((VCardService.MyBinder) binder).getService();
             Log.i(LOG_TAG,
                     String.format("Connected to VCardService. Kick a vCard cache thread (uri: %s)",
@@ -309,18 +326,24 @@ public class ImportVCardActivity extends ContactsActivity {
 
                         String displayName = null;
                         Cursor cursor = null;
+                        String projection = null;
                         // Try to get a display name from the given Uri. If it fails, we just
                         // pick up the last part of the Uri.
+                        if (sourceUri.getAuthority().startsWith("mms")) {
+                            // to deal with the vcard received from mms.
+                            projection = Part.NAME;
+                        } else {
+                            projection = OpenableColumns.DISPLAY_NAME;
+                        }
                         try {
-                            cursor = resolver.query(sourceUri,
-                                    new String[] { OpenableColumns.DISPLAY_NAME },
+                            cursor = resolver.query(sourceUri, new String[] { projection },
                                     null, null, null);
                             if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
                                 if (cursor.getCount() > 1) {
                                     Log.w(LOG_TAG, "Unexpected multiple rows: "
                                             + cursor.getCount());
                                 }
-                                int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                                int index = cursor.getColumnIndex(projection);
                                 if (index >= 0) {
                                     displayName = cursor.getString(index);
                                 }
@@ -370,7 +393,11 @@ public class ImportVCardActivity extends ContactsActivity {
             } finally {
                 Log.i(LOG_TAG, "Finished caching vCard.");
                 mWakeLock.release();
-                unbindService(mConnection);
+
+                // only STATUS_CONNECT we here need to unbind service.
+                if (STATUS_CONNECT == mConnectStatus) {
+                    unbindService(mConnection);
+                }
                 mProgressDialogForCachingVCard.dismiss();
                 mProgressDialogForCachingVCard = null;
                 finish();
@@ -406,7 +433,17 @@ public class ImportVCardActivity extends ContactsActivity {
                 while (buffer.hasRemaining()) {
                     outputChannel.write(buffer);
                 }
-            } finally {
+            } catch(FileNotFoundException e){
+
+               // Parse fileName from source uri,if file exists,prompt as file xxx import failt,if fileName
+               // is null,just prompt as I/O error.
+               String sourceFileName = parseNameFromUri(sourceUri);
+               if (null != sourceFileName) {
+                   showFailureNotification(getString(R.string.fail_reason_import_vcard,sourceFileName));
+               } else {
+                   showFailureNotification(R.string.fail_reason_io_error);
+               }
+            }finally {
                 if (inputChannel != null) {
                     try {
                         inputChannel.close();
@@ -844,14 +881,17 @@ public class ImportVCardActivity extends ContactsActivity {
             mAccount = new AccountWithDataSet(accountName, accountType, dataSet);
         } else {
             final AccountTypeManager accountTypes = AccountTypeManager.getInstance(this);
-            final List<AccountWithDataSet> accountList = accountTypes.getAccounts(true);
+            final List<AccountWithDataSet> accountList = accountTypes.getAccounts(true,
+                    AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_SIM);
             if (accountList.size() == 0) {
                 mAccount = null;
             } else if (accountList.size() == 1) {
                 mAccount = accountList.get(0);
             } else {
-                startActivityForResult(new Intent(this, SelectAccountActivity.class),
-                        SELECT_ACCOUNT);
+                // create intent to start SelectAccountActivity and put import type
+                Intent importIntent = new Intent(this, SelectAccountActivity.class);
+                importIntent.putExtra("import_type",false);
+                startActivityForResult(importIntent,SELECT_ACCOUNT);
                 return;
             }
         }
@@ -903,9 +943,10 @@ public class ImportVCardActivity extends ContactsActivity {
             }
             case R.id.dialog_searching_vcard: {
                 if (mProgressDialogForScanVCard == null) {
+                    String title = getString(R.string.searching_vcard_title);
                     String message = getString(R.string.searching_vcard_message);
                     mProgressDialogForScanVCard =
-                        ProgressDialog.show(this, "", message, true, false);
+                        ProgressDialog.show(this, title, message, true, false);
                     mProgressDialogForScanVCard.setOnCancelListener(mVCardScanThread);
                     mVCardScanThread.start();
                 }
@@ -913,6 +954,7 @@ public class ImportVCardActivity extends ContactsActivity {
             }
             case R.id.dialog_sdcard_not_found: {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                    .setTitle(R.string.no_sdcard_title)
                     .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setMessage(R.string.no_sdcard_message)
                     .setOnCancelListener(mCancelListener)
@@ -922,6 +964,7 @@ public class ImportVCardActivity extends ContactsActivity {
             case R.id.dialog_vcard_not_found: {
                 final String message = getString(R.string.import_failure_no_vcard_file);
                 AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                        .setTitle(R.string.scanning_sdcard_failed_title)
                         .setMessage(message)
                         .setOnCancelListener(mCancelListener)
                         .setPositiveButton(android.R.string.ok, mCancelListener);
@@ -953,6 +996,7 @@ public class ImportVCardActivity extends ContactsActivity {
                 String message = (getString(R.string.scanning_sdcard_failed_message,
                         getString(R.string.fail_reason_io_error)));
                 AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                    .setTitle(R.string.scanning_sdcard_failed_title)
                     .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setMessage(message)
                     .setOnCancelListener(mCancelListener)
@@ -989,6 +1033,13 @@ public class ImportVCardActivity extends ContactsActivity {
                 mConnection, Context.BIND_AUTO_CREATE);
     }
 
+    // when this activity destroy we should set mConnectStatus as STATUS_DISCONNECT.
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mConnectStatus = STATUS_DISCONNECT;
+    }
+
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
@@ -1023,12 +1074,16 @@ public class ImportVCardActivity extends ContactsActivity {
     }
 
     /* package */ void showFailureNotification(int reasonId) {
+          showFailureNotification(getString(reasonId));
+    }
+
+    /* package */ void showFailureNotification(String reason) {
         final NotificationManager notificationManager =
                 (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         final Notification notification =
                 NotificationImportExportListener.constructImportFailureNotification(
                         ImportVCardActivity.this,
-                        getString(reasonId));
+                        reason);
         notificationManager.notify(NotificationImportExportListener.FAILURE_NOTIFICATION_TAG,
                 FAILURE_NOTIFICATION_ID, notification);
         mHandler.post(new Runnable() {
@@ -1038,5 +1093,32 @@ public class ImportVCardActivity extends ContactsActivity {
                         getString(R.string.vcard_import_failed), Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+   /**
+    * For getting vCard name from uri.
+    *
+    * @param uri the uri that vcard need to copy
+    * @return uri vcard file name.
+    */
+    private String parseNameFromUri(Uri uri) {
+
+        if (null == uri) {
+            return null;
+        }
+        String mUri = String.valueOf(uri);
+
+        // The regex expression for uri filter
+        String uriRegex ="^file:\\/\\/\\/[\\w+\\/]+\\w+.vcf$";
+        Pattern uriPattern = Pattern.compile(uriRegex);
+        Matcher uriMatcher = uriPattern.matcher(mUri);
+
+        // judgement is valid vCard file url or not
+        if (!uriMatcher.matches()) {
+            return null;
+        }
+
+        // get the vCard name.
+        return mUri.substring(mUri.lastIndexOf("/") + 1);
     }
 }

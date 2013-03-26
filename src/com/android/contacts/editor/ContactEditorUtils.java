@@ -29,6 +29,8 @@ import android.util.Log;
 import com.android.contacts.model.AccountTypeManager;
 import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.account.AccountWithDataSet;
+import com.android.contacts.model.account.PhoneAccountType;
+import com.android.contacts.model.account.SimAccountType;
 import com.android.contacts.test.NeededForTesting;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -247,6 +249,24 @@ public class ContactEditorUtils {
     }
 
     /**
+     * Add this new function for get the allowable add account type.
+     * Leave the {@link #getWritableAccountTypeStrings()} for testing.
+     */
+    private String[] getAllowableAddAccountTypeStrings() {
+        final Set<String> types = Sets.newHashSet();
+        for (AccountType type : mAccountTypes.getAccountTypes(true)) {
+            // These two account needn't to added by user.
+            if (PhoneAccountType.ACCOUNT_TYPE.equals(type.accountType)
+                    || SimAccountType.ACCOUNT_TYPE.equals(type.accountType)) {
+                continue;
+            }
+
+            types.add(type.accountType);
+        }
+        return types.toArray(new String[types.size()]);
+    }
+
+    /**
      * Create an {@link Intent} to start "add new account" setup wizard.  Selectable account
      * types will be limited to ones that supports editing contacts.
      *
@@ -259,7 +279,7 @@ public class ContactEditorUtils {
         return AccountManager.newChooseAccountIntent(
                 null, // selectedAccount
                 new ArrayList<Account>(), // allowableAccounts
-                getWritableAccountTypeStrings(), // allowableAccountTypes
+                getAllowableAddAccountTypeStrings(), // allowableAccountTypes
                 false, // alwaysPromptForAccount
                 null, // descriptionOverrideText
                 null, // addAccountAuthTokenType

@@ -30,6 +30,8 @@ import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.DisplayPhoto;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.MediaStore;
+import android.provider.MediaStore.MediaColumns;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -113,6 +115,13 @@ public abstract class PhotoSelectionHandler implements OnClickListener {
      * @return Whether the handler was able to process the result.
      */
     public boolean handlePhotoActivityResult(int requestCode, int resultCode, Intent data) {
+
+        // when pick icon from file explorer,that will return the file uri,
+        // here we should judge whether if the file is a valid image.
+        if (null != data && null != data.getData() && !isValidFile(data.getData())) {
+            return false;
+        }
+
         final PhotoActionListener listener = getListener();
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
@@ -121,6 +130,23 @@ public abstract class PhotoSelectionHandler implements OnClickListener {
                     final String path = ContactPhotoUtils.pathForCroppedPhoto(
                             mContext, listener.getCurrentPhotoFile());
                     Bitmap bitmap = BitmapFactory.decodeFile(path);
+
+                    // if bitmap is null ,we should consider to pass the file to CropImage
+                    if (null == bitmap) {
+                        Uri uri = parseFileToUri(data.getData());
+
+                        // there is case that uri is null which will cause exception.
+                        // for example, try to access in /data/com.android.contacts/cache/tmp
+                        if (uri != null) {
+                            goToCropImage(uri,listener.getCurrentPhotoFile(),Uri.fromFile(new File(path)));
+
+                            // To fix a case that user try to add contact icon through file explorer, after select the file explorer,
+                            // rotate the screen to landscape and go on. As a result, the picture is not added.
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }
                     listener.onPhotoSelected(bitmap);
                     return true;
                 }
@@ -132,6 +158,74 @@ public abstract class PhotoSelectionHandler implements OnClickListener {
             }
         }
         return false;
+    }
+
+    /**
+     * this method used to judge whether if the file is a valid icon
+     * @param fileUri the file uri
+     * @return true if is a valid image,or false if invalid
+     */
+    private boolean isValidFile(Uri fileUri) {
+
+        if (null == fileUri || TextUtils.isEmpty(fileUri.getPath())) {
+            return false;
+        }
+
+        String fileName = fileUri.getPath();
+        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length()).toLowerCase();
+
+        if (suffix.equals("jpg") || suffix.equals("jpeg") || suffix.equals("gif")
+            || suffix.equals("png") || suffix.equals("bmp")) {
+            return true;
+        }
+
+        Toast.makeText(mContext, R.string.fail_reason_not_supported, Toast.LENGTH_SHORT).show();
+        return false;
+    }
+
+    /**
+     * this method go to the CropImage Activity in Gallery
+     */
+    private void goToCropImage(Uri uri,String fileName,Uri path) {
+        Intent intent = new Intent("com.android.camera.action.CROP");
+        intent.setType("image/*");
+        intent.setData(uri);
+        ContactPhotoUtils.addGalleryIntentExtras(intent, path, mPhotoPickSize);
+        intent.putExtra("get-content", true);
+        intent.putExtra("type-bits", 1);
+        startPhotoActivity(intent, REQUEST_CODE_PHOTO_PICKED_WITH_DATA, fileName);
+    }
+
+    /**
+     * this method parse file name from string to related uri
+     * @param filename the file name of string
+     * @return return related uri saved in media db
+     */
+    private Uri parseFileToUri(Uri filename){
+        if (null == filename) {
+            return null;
+        }
+        if (TextUtils.isEmpty(filename.getPath())) {
+            return null;
+        }
+
+        Cursor imageCursor = null;
+        try {
+            imageCursor = mContext.getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null,
+                    MediaStore.MediaColumns.DATA+"=?", new String[]{filename.getPath()}, null);
+            if (imageCursor == null || imageCursor.getCount() == 0) {
+                return null;
+            }
+            if (imageCursor.moveToFirst()) {
+                int id = imageCursor.getInt(imageCursor.getColumnIndex(MediaColumns._ID));
+                return Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,""+id);
+            }
+            return null;
+        } finally {
+            if (imageCursor != null) {
+                imageCursor.close();
+            }
+        }
     }
 
     /**

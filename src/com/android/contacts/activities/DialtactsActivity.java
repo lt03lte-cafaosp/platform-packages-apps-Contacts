@@ -16,16 +16,42 @@
 
 package com.android.contacts.activities;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Set;
+
+import android.content.pm.PackageManager;
+import android.widget.Toast;
+import com.android.contacts.ContactsUtils;
+import com.android.contacts.R;
+import com.android.contacts.calllog.CallLogFragment;
+import com.android.contacts.dialpad.DialpadFragment;
+import com.android.contacts.editor.SelectAccountDialogFragment;
+import com.android.contacts.interactions.ImportExportDialogFragment;
+import com.android.contacts.interactions.PhoneNumberInteraction;
+//import com.android.contacts.interactions.ImportExportDialogFragment.ExportToSimThread;
+import com.android.contacts.list.ContactListFilterController;
+import com.android.contacts.list.ContactListFilterController.ContactListFilterListener;
+import com.android.contacts.list.ContactListItemView;
+import com.android.contacts.list.OnPhoneNumberPickerActionListener;
+import com.android.contacts.list.PhoneFavoriteFragment;
+import com.android.contacts.list.PhoneNumberPickerFragment;
+import com.android.contacts.util.AccountFilterUtil;
+import com.android.contacts.util.Constants;
+import com.android.internal.telephony.ITelephony;
+
 import android.app.ActionBar;
 import android.app.ActionBar.LayoutParams;
 import android.app.ActionBar.Tab;
 import android.app.ActionBar.TabListener;
 import android.app.Activity;
+import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
@@ -42,6 +68,7 @@ import android.telephony.MSimTelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -51,27 +78,31 @@ import android.view.View.OnClickListener;
 import android.view.View.OnFocusChangeListener;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.PopupMenu;
 import android.widget.SearchView;
 import android.widget.SearchView.OnCloseListener;
 import android.widget.SearchView.OnQueryTextListener;
+import android.widget.Toast;
+import android.view.MotionEvent;
+import android.os.Handler;
+import android.view.View.OnTouchListener;
+import com.android.contacts.CustomViewPager;
+import com.qrd.plugin.feature_query.FeatureQuery;
+import android.os.Handler;
+import java.lang.Runnable;
 
-import com.android.contacts.ContactsUtils;
-import com.android.contacts.R;
-import com.android.contacts.calllog.CallLogFragment;
-import com.android.contacts.dialpad.DialpadFragment;
-import com.android.contacts.interactions.PhoneNumberInteraction;
-import com.android.contacts.list.ContactListFilterController;
-import com.android.contacts.list.ContactListFilterController.ContactListFilterListener;
-import com.android.contacts.list.ContactListItemView;
-import com.android.contacts.list.OnPhoneNumberPickerActionListener;
-import com.android.contacts.list.PhoneFavoriteFragment;
-import com.android.contacts.list.PhoneNumberPickerFragment;
-import com.android.contacts.util.AccountFilterUtil;
-import com.android.contacts.util.Constants;
-import com.android.internal.telephony.ITelephony;
-
+import android.app.ActivityManager;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.view.animation.AccelerateInterpolator;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
+import com.android.internal.telephony.TelephonyIntents;
+import com.android.contacts.DialpadCling;
 /**
  * The dialer activity that has one tab with the virtual 12key
  * dialer, a tab with recent calls in it, a tab with the contacts and
@@ -97,7 +128,7 @@ public class DialtactsActivity extends TransactionSafeActivity
      */
     public static final String EXTRA_CALL_ORIGIN = "com.android.phone.CALL_ORIGIN";
     /** @see #getCallOrigin() */
-    private static final String CALL_ORIGIN_DIALTACTS =
+    public static final String CALL_ORIGIN_DIALTACTS =
             "com.android.contacts.activities.DialtactsActivity";
 
     /**
@@ -105,6 +136,7 @@ public class DialtactsActivity extends TransactionSafeActivity
      */
     private static final String ACTION_TOUCH_DIALER = "com.android.phone.action.TOUCH_DIALER";
 
+    private static final String PROVIDER_NAME = "com.android.providers.contacts";
     /** Used both by {@link ActionBar} and {@link ViewPagerAdapter} */
     private static final int TAB_INDEX_DIALER = 0;
     private static final int TAB_INDEX_CALL_LOG = 1;
@@ -120,6 +152,13 @@ public class DialtactsActivity extends TransactionSafeActivity
     private static final int PREF_LAST_MANUALLY_SELECTED_TAB_DEFAULT = TAB_INDEX_DIALER;
 
     private static final int SUBACTIVITY_ACCOUNT_FILTER = 1;
+    private static final int DIALBUTTON_LONGCLICK_DURATION = 0;
+    private static final int DIALBUTTON_ACTIVE_DURATION = 500;
+    private static long mDownPressTime;
+
+    private static final int SHOW_CLING_DURATION = 550;
+    public static final int DISMISS_CLING_DURATION = 250;
+    public static boolean dialpadClingShowed = false;
 
     public class ViewPagerAdapter extends FragmentPagerAdapter {
         public ViewPagerAdapter(FragmentManager fm) {
@@ -247,6 +286,9 @@ public class DialtactsActivity extends TransactionSafeActivity
                     invalidateOptionsMenu();
 
                     mCurrentPosition = mNextPosition;
+                    if (mCurrentPosition == TAB_INDEX_DIALER && !dialpadClingShowed && canShowDialpadCling()){
+                        showFirstRunDialpadCling();
+                    }
                     break;
                 }
                 case ViewPager.SCROLL_STATE_DRAGGING: {
@@ -270,7 +312,7 @@ public class DialtactsActivity extends TransactionSafeActivity
     private String mFilterText;
 
     /** Enables horizontal swipe between Fragments. */
-    private ViewPager mViewPager;
+    private CustomViewPager mViewPager;
     private final PageChangeListener mPageChangeListener = new PageChangeListener();
     private DialpadFragment mDialpadFragment;
     private CallLogFragment mCallLogFragment;
@@ -494,7 +536,7 @@ public class DialtactsActivity extends TransactionSafeActivity
 
         findViewById(R.id.dialtacts_frame).addOnLayoutChangeListener(mFirstLayoutListener);
 
-        mViewPager = (ViewPager) findViewById(R.id.pager);
+        mViewPager = (CustomViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(new ViewPagerAdapter(getFragmentManager()));
         mViewPager.setOnPageChangeListener(mPageChangeListener);
         mViewPager.setOffscreenPageLimit(2);
@@ -663,6 +705,248 @@ public class DialtactsActivity extends TransactionSafeActivity
         getActionBar().setCustomView(searchViewLayout,
                 new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
     }
+
+    //add for UX_enhance_dial_button start
+    private MotionEvent mDownEvent;
+    private MotionEvent mMoveEvent;
+    private Handler handler = new Handler();
+    private Runnable runnable = new Runnable() {
+        public void run () {
+               if (mDialpadFragment.canShowDialWidget()){
+                   mDialpadFragment.transferCoordinates();
+                   if (mDownEvent != null){
+                       mDownEvent = MotionEvent.obtain(mDownEvent.getDownTime(),
+                                                       mDownEvent.getDownTime(),
+                                                       mDownEvent.getAction(),
+                                                       mDownEvent.getX()+mDialpadFragment.getTransferCoordinateX(),
+                                                       mDownEvent.getY()+mDialpadFragment.getTransferCoordinateY(),
+                                                       mDownEvent.getMetaState());
+                       mDialpadFragment.getGlowPadView().onTouchEvent(mDownEvent);
+                   }
+                   if (mMoveEvent != null){
+                       mMoveEvent = MotionEvent.obtain(mMoveEvent.getEventTime(),
+                                                       mMoveEvent.getEventTime(),
+                                                       mMoveEvent.getAction(),
+                                                       mMoveEvent.getX()+mDialpadFragment.getTransferCoordinateX(),
+                                                       mMoveEvent.getY()+mDialpadFragment.getTransferCoordinateY(),
+                                                       mMoveEvent.getMetaState());
+                       mDialpadFragment.getGlowPadView().onTouchEvent(mMoveEvent);
+                    }
+                    mDialpadFragment.getGlowPadView().resumeAnimations();
+                    updateFakeMenuButtonsVisibility(false);
+                    mDialpadFragment.setDialButtonLongClicked(true);
+                    mDownEvent = null;
+               }
+        }
+    };
+    boolean newAction = false;
+
+    private OnTouchListener mTouchToDialButton = new OnTouchListener(){
+       @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction() & MotionEvent.ACTION_MASK;
+
+		   if (DEBUG) Log.d(TAG,"action is " + action);
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+			    newAction = true;
+                        mDownEvent = MotionEvent.obtain(event.getDownTime(),
+                                                        event.getDownTime(),
+                                                        event.getAction(),
+                                                        event.getX(),
+                                                        event.getY(),
+                                                        event.getMetaState());
+                        mDownPressTime = event.getEventTime();
+                        mViewPager.setPagingEnabled(false);
+                        return false;
+                    case MotionEvent.ACTION_MOVE:
+                        if (mDialpadFragment.getDialWidgetVisibility() == View.VISIBLE){
+                            MotionEvent ev = MotionEvent.obtain(event.getEventTime(),
+                                                                event.getEventTime(),
+                                                                event.getAction(),
+                                                                event.getX()+mDialpadFragment.getTransferCoordinateX(),
+                                                                event.getY()+mDialpadFragment.getTransferCoordinateY(),
+                                                                event.getMetaState());
+                            mDialpadFragment.getGlowPadView().onTouchEvent(ev);
+                            return true;
+                        }else
+                        {
+                        if (DEBUG)Log.d(TAG," newAction is " + newAction + " canShowDialpadCling() is " + canShowDialpadCling());
+                        if (event.getEventTime() - mDownPressTime > DIALBUTTON_ACTIVE_DURATION)
+                        	{
+					if( newAction && !canShowDialpadCling())
+					{
+					  newAction = false;
+					  mDialpadFragment.dialButtonPressed();
+					  return true;
+					}else
+					{
+					  handler.postDelayed(runnable,DIALBUTTON_LONGCLICK_DURATION);
+					  return true;
+					}
+                        	}
+                        }
+                        return false;
+                    case MotionEvent.ACTION_UP:
+                        if (handler != null && runnable != null)
+                            handler.removeCallbacks(runnable);
+                        if (event.getEventTime() - mDownPressTime <= DIALBUTTON_ACTIVE_DURATION) {
+                            mDialpadFragment.dialButtonPressed();
+                        }else if (mDialpadFragment.getDialWidgetVisibility() == View.VISIBLE){
+                            MotionEvent ev = MotionEvent.obtain(event.getDownTime(),
+                                                                event.getDownTime(),
+                                                                event.getAction(),
+                                                                event.getX()+mDialpadFragment.getTransferCoordinateX(),
+                                                                event.getY()+mDialpadFragment.getTransferCoordinateY(),
+                                                                event.getMetaState());
+                            mDialpadFragment.getGlowPadView().onTouchEvent(ev);
+                        }
+                        final int currentPosition = mPageChangeListener.getCurrentPosition();
+                        updateFakeMenuButtonsVisibility(currentPosition == TAB_INDEX_DIALER && !mInSearchUi);
+                        mViewPager.setPagingEnabled(true);
+                        mDialpadFragment.setDialWidgetVisibility(false);
+                        return false;
+                    case MotionEvent.ACTION_CANCEL:
+                        // After user lock screen this button would receive
+                        // action_cancle, we need reset ui.
+                        if (handler != null && runnable != null)
+                            handler.removeCallbacks(runnable);
+                        if (mDialpadFragment.getDialWidgetVisibility() == View.VISIBLE) {
+                            // Send action_cancle event to GlowPadView
+                            MotionEvent ev = MotionEvent.obtain(event.getEventTime(),
+                                    event.getEventTime(), event.getAction(), event.getX()
+                                    + mDialpadFragment.getTransferCoordinateX(),
+                                    event.getY() + mDialpadFragment.getTransferCoordinateY(),
+                                    event.getMetaState());
+                            mDialpadFragment.getGlowPadView().onTouchEvent(ev);
+                        }
+                        // Refresh current ui
+                        int position = mPageChangeListener.getCurrentPosition();
+                        updateFakeMenuButtonsVisibility(position == TAB_INDEX_DIALER
+                                && !mInSearchUi);
+                        mViewPager.setPagingEnabled(true);
+                        mDialpadFragment.setDialWidgetVisibility(false);
+                        return false;
+                }
+                return false;
+            }};
+
+    public OnTouchListener getDialButtonTouchListener(){
+        return mTouchToDialButton;
+    }
+
+    public boolean canShowDialpadCling(){
+        if (DialpadFragment.phoneIsInUse())
+            return false;
+        int phoneCount = MSimTelephonyManager.getDefault().getPhoneCount();
+	
+	if(phoneCount == 1)
+	   {
+		return false;
+	   }
+        for (int i = 0; i < phoneCount; i++) {
+             if (!MSimTelephonyManager.getDefault().isValidSimState(i))
+                 return false;
+        }
+        return true;
+    }
+
+    /* DialpadCling related */
+    private boolean isDialpadClingsEnabled() {
+        // disable clings when running in a test harness
+        if(ActivityManager.isRunningInTestHarness()) return false;
+
+        return true;
+    }
+
+    private DialpadCling initCling(int clingId, boolean animate, int delay) {
+        DialpadCling DialpadCling = mDialpadFragment != null?mDialpadFragment.getDialpadCling():null;
+        if (DialpadCling != null) {
+            DialpadCling.init(this);
+            DialpadCling.setVisibility(View.VISIBLE);
+            DialpadCling.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            DialpadCling.requestAccessibilityFocus();
+            if (animate) {
+                DialpadCling.buildLayer();
+                DialpadCling.setAlpha(0f);
+                DialpadCling.animate()
+                    .alpha(1f)
+                    .setInterpolator(new AccelerateInterpolator())
+                    .setDuration(SHOW_CLING_DURATION)
+                    .setStartDelay(delay)
+                    .start();
+            } else {
+                DialpadCling.setAlpha(1f);
+            }
+            dialpadClingShowed = true;
+        }
+        return DialpadCling;
+    }
+
+    public void dismissCling(final DialpadCling DialpadCling, final String flag, int duration) {
+        if (DialpadCling != null) {
+            ObjectAnimator anim = ObjectAnimator.ofFloat(DialpadCling, "alpha", 0f);
+            anim.setDuration(duration);
+            anim.addListener(new AnimatorListenerAdapter() {
+                public void onAnimationEnd(Animator animation) {
+                    DialpadCling.setVisibility(View.GONE);
+                    DialpadCling.cleanup();
+                    // We should update the shared preferences on a background thread
+                    new Thread("dismissClingThread") {
+                        public void run() {
+                            SharedPreferences.Editor editor = mPrefs.edit();
+                            editor.putBoolean(flag, true);
+                            editor.commit();
+                        }
+                    }.start();
+                };
+            });
+            anim.start();
+        }
+    }
+
+    private void removeCling(int id) {
+        final View DialpadCling = findViewById(id);
+        if (DialpadCling != null) {
+            final ViewGroup parent = (ViewGroup) DialpadCling.getParent();
+            parent.post(new Runnable() {
+                @Override
+                public void run() {
+                    parent.removeView(DialpadCling);
+                }
+            });
+        }
+    }
+
+    public void showFirstRunDialpadCling() {
+        // Enable the clings only if they have not been dismissed before
+        if (isDialpadClingsEnabled() &&
+                !mPrefs.getBoolean(DialpadCling.DIALPAD_CLING_DISMISSED_KEY, false)) {
+            initCling(R.id.dialpad_cling, false, 0);
+        } else {
+            removeCling(R.id.dialpad_cling);
+        }
+    }
+
+    public void dismissDialpadCling(View v) {
+        DialpadCling DialpadCling = (DialpadCling) findViewById(R.id.dialpad_cling);
+        dismissCling(DialpadCling, DialpadCling.DIALPAD_CLING_DISMISSED_KEY, DISMISS_CLING_DURATION);
+    }
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(action) ||
+                Intent.ACTION_AIRPLANE_MODE_CHANGED.equals(action)) {
+                final int currentPosition = mPageChangeListener.getCurrentPosition();
+                if (currentPosition == TAB_INDEX_DIALER &&!dialpadClingShowed && canShowDialpadCling()){
+                    showFirstRunDialpadCling();
+                }
+            }
+        }
+    };
+    //add for UX_enhance_dial_button end
 
     @Override
     public void onAttachFragment(Fragment fragment) {
@@ -836,7 +1120,7 @@ public class DialtactsActivity extends TransactionSafeActivity
 
         if (mViewPager.getCurrentItem() == TAB_INDEX_DIALER) {
             if (mDialpadFragment != null) {
-                mDialpadFragment.setStartedFromNewIntent(true);
+                mDialpadFragment.configureScreenFromIntent(newIntent);
             } else {
                 Log.e(TAG, "DialpadFragment isn't ready yet when the tab is already selected.");
             }
@@ -1259,6 +1543,15 @@ public class DialtactsActivity extends TransactionSafeActivity
         }
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         return intent;
+    }
+
+    public static boolean checkContactStorage(PackageManager pm, Context mContext) {
+        if (pm.getApplicationEnabledSetting(PROVIDER_NAME)
+            == PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER) {
+            Toast.makeText(mContext, R.string.contactStorageToast, Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return false;
     }
 
     @Override

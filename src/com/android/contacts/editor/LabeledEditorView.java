@@ -21,8 +21,10 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnShowListener;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextUtils.TruncateAt;
@@ -87,6 +89,8 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
     private DialogManager mDialogManager = null;
     private EditorListener mListener;
     protected int mMinLineItemHeight;
+
+    protected boolean mLabelReadOnly;
 
     /**
      * A marker in the spinner adapter of the currently selected custom type.
@@ -201,7 +205,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
      */
     private void setupLabelButton(boolean shouldExist) {
         if (shouldExist) {
-            mLabel.setEnabled(!mReadOnly && isEnabled());
+            mLabel.setEnabled(!mLabelReadOnly && isEnabled());
             mLabel.setVisibility(View.VISIBLE);
         } else {
             mLabel.setVisibility(View.GONE);
@@ -246,7 +250,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-        mLabel.setEnabled(!mReadOnly && enabled);
+        mLabel.setEnabled(!mLabelReadOnly && enabled);
         mDelete.setEnabled(!mReadOnly && enabled);
     }
 
@@ -350,7 +354,9 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
         mViewIdGenerator = vig;
         setId(vig.getId(state, kind, entry, ViewIdGenerator.NO_VIEW_INDEX));
 
-        if (!entry.isVisible()) {
+        //when local group we skip this,because when screen from vertical to horizontal,
+        //this view show exception.
+        if (!entry.isVisible() && !LocalGroup.CONTENT_ITEM_TYPE.equals(kind.mimeType)) {
             // Hide ourselves entirely if deleted
             setVisibility(View.GONE);
             return;
@@ -360,7 +366,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
         // Display label selector if multiple types available
         final boolean hasTypes = RawContactModifier.hasEditTypes(kind);
         setupLabelButton(hasTypes);
-        mLabel.setEnabled(!readOnly && isEnabled());
+        mLabel.setEnabled(!mLabelReadOnly && isEnabled());
         if (hasTypes) {
             mType = RawContactModifier.getCurrentType(entry, kind);
             rebuildLabel();
@@ -576,6 +582,17 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
             }
             textView.setText(text);
             return textView;
+        }
+    }
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // When rotate the screen,dissmiss the popup menu.
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
+                || newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            if (mLabel != null) {
+                mLabel.dismissPop();
+            }
         }
     }
 }

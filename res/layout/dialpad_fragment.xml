@@ -14,7 +14,11 @@
      limitations under the License.
 -->
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:prvandroid="http://schemas.android.com/apk/prv/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+<LinearLayout
     android:id="@+id/top"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -39,6 +43,8 @@
             android:layout_weight="1"
             android:layout_height="match_parent"
             android:gravity="center"
+            android:maxLength ="32"
+            android:singleLine="true"
             android:textAppearance="@style/DialtactsDigitsTextAppearance"
             android:textColor="?android:attr/textColorPrimary"
             android:nextFocusRight="@+id/overflow_menu"
@@ -56,9 +62,94 @@
             android:src="@drawable/ic_dial_action_delete" />
     </LinearLayout>
 
-    <!-- Keypad section -->
-    <include layout="@layout/dialpad" />
-
+    <View
+       android:layout_width="match_parent"
+       android:layout_height="@dimen/dialpad_vertical_margin"
+       android:background="#66000000"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0px"
+        android:layout_weight="85"
+        android:id="@+id/listoutside"
+        android:orientation="vertical"
+        android:background="@drawable/dialpad_background" >
+        <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="0px"
+                android:layout_weight="@integer/dialpad_list_weight"
+                android:background="#000000"
+                android:id="@+id/listlayout">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingTop="15dip"
+                android:visibility="invisible"
+                android:id="@+id/add_contact">
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_add_contact_holo_dark"/>
+                <TextView
+                    android:id="@+id/add_contact_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:text="@string/non_phone_add_to_contacts"
+                    android:paddingLeft="10dip"
+                    android:textColor="#FFFFFF"/>
+            </LinearLayout>
+            <ListView
+                android:id="@android:id/list"
+                android:background="#000000"
+                android:cacheColorHint="#000000"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:fastScrollEnabled="true"
+                android:visibility="gone"
+            />
+            <RelativeLayout
+                android:layout_width="70dip"
+                android:layout_height="wrap_content"
+                android:id="@+id/filterbutton"
+                android:background="#2a2a2a"
+                android:cacheColorHint="#2a2a2a"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentRight="true"
+                android:visibility="gone">
+                <TextView
+                    android:id="@+id/filter_number"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:paddingTop="15dip"
+                    android:layout_centerHorizontal="true"
+                    android:textColor="#FFFFFF"/>
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="8dip"
+                    android:layout_alignParentRight="true"
+                    android:layout_below="@id/filter_number"
+                    android:src="@drawable/ic_tab_smart_dial_list"/>
+            </RelativeLayout>
+        </RelativeLayout>
+        <!-- Keypad section -->
+        <include layout="@layout/dialpad" />
+        <Button
+            android:id="@+id/cancel_btn"
+            android:layout_width="match_parent"
+            android:layout_height="60px"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@android:string/cancel"
+            android:textSize="20sp"
+            android:paddingRight="60dip"
+            android:paddingLeft="60dip"
+            android:visibility="gone"/>
+    </LinearLayout>
     <View
        android:layout_width="match_parent"
        android:layout_height="@dimen/dialpad_vertical_margin"
@@ -96,3 +187,63 @@
     />
 
 </LinearLayout>
+
+        <com.android.internal.widget.multiwaveview.GlowPadView
+            android:id="@+id/dialDualWidget"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="-130dp"
+            android:visibility="invisible"
+            prvandroid:targetDrawables="@array/dial_targets_with_dual_sim"
+            prvandroid:targetDescriptions="@array/dial_target_descriptions_with_dual_sim"
+            prvandroid:directionDescriptions="@array/dial_direction_descriptions"
+            prvandroid:handleDrawable="@drawable/ic_dial_handle"
+            prvandroid:outerRingDrawable="@drawable/ic_dial_outerring"
+            prvandroid:outerRadius="@dimen/glowpadview_target_placement_radius"
+            prvandroid:innerRadius="@dimen/glowpadview_inner_radius"
+            prvandroid:snapMargin="@dimen/glowpadview_snap_margin"
+            prvandroid:feedbackCount="1"
+            prvandroid:glowRadius="@dimen/glowpadview_glow_radius"
+            prvandroid:pointDrawable="@drawable/ic_dial_glowdot"
+            />
+
+    <com.android.contacts.DialpadCling
+        android:id="@+id/dialpad_cling"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/clingText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="130dp"
+            android:layout_gravity="bottom"
+            android:gravity="center"
+            android:textSize="15sp"
+            android:textColor="#FFFFFF"
+            android:shadowColor="#000000"
+            android:shadowDy="2"
+            android:shadowRadius="2.0"
+            android:lineSpacingMultiplier="1.1"
+            android:text="@string/dialpad_cling_multi_sim_call" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="10dp"
+            android:paddingBottom="15dp"
+            android:paddingLeft="35dp"
+            android:paddingRight="35dp"
+            android:text="@string/btn_ok"
+            android:textStyle="bold"
+            android:background="@drawable/cling_button_bg"
+            android:layout_marginBottom="15dp"
+            android:layout_marginRight="10dp"
+            android:layout_gravity="bottom|right"
+            android:onClick="dismissDialpadCling" />
+    </com.android.contacts.DialpadCling>
+    <!-- add for UX style dial button end -->
+</RelativeLayout>

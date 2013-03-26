@@ -124,7 +124,16 @@ public class SocialWidgetProvider extends AppWidgetProvider {
                     }
                 });
         contactLoader.startLoading();
+        waiteLauncher(500);
         sLoaders.append(widgetId, contactLoader);
+    }
+
+    private static void waiteLauncher(int milliseconds) {
+        try {
+            Thread.currentThread().sleep(milliseconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void bindRemoteViews(final Context context, final int widgetId,

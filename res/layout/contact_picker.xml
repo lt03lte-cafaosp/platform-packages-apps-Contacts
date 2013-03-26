@@ -34,4 +34,27 @@
         android:layout_width="match_parent"
         android:layout_height="0dip"
         android:layout_weight="1" />
+
+    <!-- This should look like a menu on the split action bar. -->
+    <LinearLayout
+        android:id="@+id/new_contact"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dip"
+        android:background="@drawable/gray_action_bar_background"
+        android:paddingLeft="16dip"
+        android:paddingRight="16dip">
+        <TextView
+            android:id="@android:id/title"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:duplicateParentState="true"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@color/action_bar_button_text_color"
+            style="@android:style/Widget.Holo.ActionBar.TabText"
+            android:text="@string/pickerNewContactText"/>
+    </LinearLayout>
 </view>
