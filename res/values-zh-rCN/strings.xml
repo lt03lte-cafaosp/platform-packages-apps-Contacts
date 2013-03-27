@@ -723,4 +723,20 @@
 		<item>"卡槽1"</item>
 		<item>"卡槽2"</item>
 	</string-array>
+		<!--modify for call log   -->
+	<string name="last_call_duration">上次通话时长:</string> 
+	<string name="incoming_calls_duration">已接电话通话时长:</string> 
+	<string name="outgoing_calls_duration">呼出电话通话时长:</string> 
+	<string name="all_calls_duration">所有通话时长:</string> 
+	<string name="clear">清除</string>
+	<string name="sub1">卡 1</string> 
+	<string name="sub2">卡 2</string>
+	<string name="cdma">CDMA</string> 
+	<string name="gsm">GSM</string>
+	<string name="all">所有通话</string>
+	<string name="duration">通话时长</string>
+	<string name="str_slot1">卡1 </string>
+  <string name="str_slot2">卡2 </string>
+  <string name="str_slot">卡</string>	
+  <!--modify for call log  -->
 </resources>
