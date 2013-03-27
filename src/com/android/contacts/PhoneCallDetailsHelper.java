@@ -65,8 +65,11 @@ public class PhoneCallDetailsHelper {
     private String getMultiSimName(Context context, int subscription) {
         if(context == null)
             return "sub" + subscription;
-        return Settings.System.getString(context.getContentResolver(),
-                Settings.System.MULTI_SIM_NAME[subscription]);
+       String name = Settings.System.getString(context.getContentResolver(),Settings.System.MULTI_SIM_NAME[subscription]);
+       if(name == null){
+	  name = context.getResources().getStringArray(R.array.select_slot_item)[subscription];
+	}
+	return name ;
 	     
     }
 

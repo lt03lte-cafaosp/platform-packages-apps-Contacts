@@ -77,8 +77,13 @@ public class MultiSlotAdapter extends BaseAdapter {
     }
 
     private String getMultiSimName(int subscription) {
-        return Settings.System.getString(mContext.getContentResolver(),
-                Settings.System.MULTI_SIM_NAME[subscription]);
+        //return Settings.System.getString(mContext.getContentResolver(),
+               // Settings.System.MULTI_SIM_NAME[subscription]);
+	String name = Settings.System.getString(mContext.getContentResolver(),Settings.System.MULTI_SIM_NAME[subscription]);
+	if(name == null){
+	name = mContext.getResources().getStringArray(R.array.select_slot_item)[subscription];
+	}
+	return name ;
     }
 
     public int getCount() {
