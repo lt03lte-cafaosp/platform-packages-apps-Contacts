@@ -46,7 +46,7 @@ public class SimAccountType extends BaseAccountType{
     private static final String TAG = "SimContactsType";
 
     public static final String ACCOUNT_TYPE = "com.android.sim";
-    public static final String RES_PACKAGE_NAME = "com.qrd.simcontacts";
+    public static final String RES_PACKAGE_NAME = "com.qualcomm.simcontacts";
     public static final int FLAGS_PERSON_NAME = EditorInfo.TYPE_CLASS_TEXT
             | EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS | EditorInfo.TYPE_TEXT_VARIATION_PERSON_NAME;
     public static final int FLAGS_PHONETIC = EditorInfo.TYPE_CLASS_TEXT
