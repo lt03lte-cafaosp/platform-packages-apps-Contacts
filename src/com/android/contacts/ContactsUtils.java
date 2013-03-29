@@ -462,7 +462,7 @@ public class ContactsUtils {
             new ArrayList<ContentProviderOperation>();
         ContentProviderOperation.Builder builder =
             ContentProviderOperation.newInsert(RawContacts.CONTENT_URI);
-        builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_SUSPENDED);
+        builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DISABLED);
         if (account != null) {
             builder.withValue(RawContacts.ACCOUNT_NAME, account.name);
             builder.withValue(RawContacts.ACCOUNT_TYPE, account.type);

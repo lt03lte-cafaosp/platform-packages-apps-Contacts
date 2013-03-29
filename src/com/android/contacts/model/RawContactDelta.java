@@ -599,12 +599,12 @@ public class RawContactDelta implements Parcelable {
             buildInto.add(firstIndex, builder.build());
 
             // Restore aggregation mode as last operation
-            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_DEFAULT);
+            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_DISABLED);
             buildInto.add(builder.build());
         } else if (isContactInsert) {
             // Restore aggregation mode as last operation
             builder = ContentProviderOperation.newUpdate(mContactsQueryUri);
-            builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DEFAULT);
+            builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DISABLED);
             builder.withSelection(RawContacts._ID + "=?", new String[1]);
             builder.withSelectionBackReference(0, firstIndex);
             buildInto.add(builder.build());
