@@ -31,6 +31,7 @@ import android.location.CountryDetector;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.StatFs;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Im;
 import android.provider.ContactsContract.CommonDataKinds.Email;
@@ -48,6 +49,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 import com.android.contacts.activities.DialtactsActivity;
 import com.android.contacts.model.AccountTypeManager;
 import com.android.contacts.model.account.AccountType;
@@ -58,6 +60,7 @@ import com.android.contacts.util.Constants;
 import com.android.internal.telephony.IIccPhoneBook;
 import com.android.internal.telephony.msim.IIccPhoneBookMSim;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -697,5 +700,19 @@ public class ContactsUtils {
         }
 
         return getAdnCount(sub) - count;
+    }
+    public static boolean checkContactsFull(){
+     
+        File path = new File("/data/");
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        
+        long available = availableBlocks*blockSize;
+        if (available < 10*1024*1024)
+        {
+            return true;
+        }
+    	  return false;
     }
 }

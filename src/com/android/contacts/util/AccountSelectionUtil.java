@@ -34,7 +34,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
-
+import android.widget.Toast;
+import com.android.contacts.ContactsUtils;
 import com.android.contacts.R;
 import com.android.contacts.SimContactsConstants;
 import com.android.contacts.model.AccountTypeManager;
@@ -217,6 +218,11 @@ public class AccountSelectionUtil {
     public static final String ACTION_MULTI_PICK_SIM = "com.android.contacts.action.MULTI_PICK_SIM";   // multi pick sim contacts action
 
     public static void doImportFromSim(Context context, AccountWithDataSet account) {
+        if(ContactsUtils.checkContactsFull()){
+              Toast.makeText(context, R.string.contacts_full, 
+                                Toast.LENGTH_SHORT).show();
+              return;
+        }
         Intent importIntent = new Intent(ACTION_MULTI_PICK_SIM);
         if (account != null) {
             importIntent.putExtra("account_name", account.name);
@@ -250,6 +256,11 @@ public class AccountSelectionUtil {
     }
 
     public static void doImportFromSdCard(Context context, AccountWithDataSet account) {
+        if(ContactsUtils.checkContactsFull()){
+              Toast.makeText(context, R.string.contacts_full, 
+                                Toast.LENGTH_SHORT).show();
+              return;
+        }
         Intent importIntent = new Intent(context,
                 com.android.contacts.vcard.ImportVCardActivity.class);
         if (account != null) {

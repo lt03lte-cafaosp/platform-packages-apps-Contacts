@@ -739,4 +739,7 @@
   <string name="str_slot2">卡2 </string>
   <string name="str_slot">卡</string>	
   <!--modify for call log  -->
+  
+  <string name="contacts_full">存储空间满，联系人操作失败</string>
+
 </resources>

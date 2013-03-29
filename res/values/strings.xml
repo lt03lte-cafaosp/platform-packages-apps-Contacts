@@ -2074,4 +2074,5 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 		<item>"SLOT1"</item>
 		<item>"SLOT2"</item>
 	</string-array>
+	<string name="contacts_full">Data partion full ,contacts creation failed</string>
 </resources>
