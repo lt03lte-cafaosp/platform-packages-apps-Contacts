@@ -577,6 +577,11 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
     }
 
     private void copyToPhone() {
+        if(ContactsUtils.checkContactsFull()){
+              Toast.makeText(mContext, R.string.contacts_full, 
+                                Toast.LENGTH_SHORT).show();
+              return;
+        }
         String name = mContactData.getDisplayName();
         if(TextUtils.isEmpty(name)) {
             name = "";

@@ -75,6 +75,7 @@ import com.android.contacts.SimContactsOperation;
 import android.content.ContentValues;
 import com.android.contacts.activities.ContactEditorActivity;
 import com.android.contacts.activities.GroupEditorActivity;
+import com.android.contacts.ContactsUtils;
 import com.android.contacts.editor.ContactEditorFragment.SaveMode;
 import com.android.contacts.model.RawContactDelta.ValuesDelta;
 import com.android.internal.telephony.IIccPhoneBook;
@@ -261,6 +262,14 @@ public class ContactSaveService extends IntentService {
         // handled, then notify the fact to in-call screen.
         String action = intent.getAction();
         if (ACTION_NEW_RAW_CONTACT.equals(action)) {
+            if(ContactsUtils.checkContactsFull()){
+              showToast(R.string.contacts_full);
+              Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+              if(callbackIntent != null){
+                deliverCallback(callbackIntent);
+              }
+              return;
+            }
             createRawContact(intent);
             CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
         } else if (ACTION_SAVE_CONTACT.equals(action)) {
