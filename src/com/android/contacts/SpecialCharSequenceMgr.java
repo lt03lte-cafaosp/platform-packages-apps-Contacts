@@ -64,6 +64,7 @@ public class SpecialCharSequenceMgr {
     private static final String TAG = "SpecialCharSequenceMgr";
     private static final String MMI_IMEI_DISPLAY = "*#06#";
     private static final String PRL_VERSION_DISPLAY = "*#0000#";
+    private static final String FTMODE_DISPLAY = "*#0532#";
     private static final int SUB1 = 0;
     private static final int SUB2 = 1;
 
@@ -105,7 +106,8 @@ public class SpecialCharSequenceMgr {
                 || handleIMEIDisplay(context, dialString, useSystemWindow)
                 || handlePinEntry(context, dialString)
                 || handleAdnEntry(context, dialString, textField)
-                || handleSecretCode(context, dialString)) {
+                || handleSecretCode(context, dialString)
+                || handleFTModeDisplay(context, dialString)) {
             return true;
         }
 
@@ -121,6 +123,20 @@ public class SpecialCharSequenceMgr {
                 return true;
             } catch(ActivityNotFoundException e) {
                 Log.d(TAG, "no activity to handle showing device info");
+            }
+        }
+        return false;
+    }
+    static private boolean handleFTModeDisplay(Context context, String input) {
+    if (input.equals(FTMODE_DISPLAY)) {
+            try {
+                Log.d(TAG, "handleFTModeDisplay !!!!!!!!!!!!!!!!!!!");
+                Intent FTModeIntent = new Intent(Intent.ACTION_VIEW);
+                FTModeIntent.setClassName("com.android.ftmode", "com.android.ftmode.FTModeActivity");
+                context.startActivity(FTModeIntent);
+                return true;
+            } catch(ActivityNotFoundException e) {
+                Log.d(TAG, "no activity to handle handleFTModeDisplay");
             }
         }
         return false;
