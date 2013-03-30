@@ -132,7 +132,7 @@ public class SpecialCharSequenceMgr {
             try {
                 Log.d(TAG, "handleFTModeDisplay !!!!!!!!!!!!!!!!!!!");
                 Intent FTModeIntent = new Intent(Intent.ACTION_VIEW);
-                FTModeIntent.setClassName("com.android.ftmode", "com.android.ftmode.FTModeActivity");
+                FTModeIntent.setClassName("com.android.ftmode", "com.android.ftmode.FTModeMain");
                 context.startActivity(FTModeIntent);
                 return true;
             } catch(ActivityNotFoundException e) {
