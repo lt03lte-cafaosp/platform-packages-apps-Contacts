@@ -248,7 +248,7 @@ public class AccountSelectionUtil {
         }
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
             importIntent.setClassName("com.android.phone", "com.android.phone.MSimContacts");
-			importIntent.putExtra(SUBSCRIPTION_KEY, subscription);
+            importIntent.putExtra(SUBSCRIPTION_KEY, subscription);
         } else {
             importIntent.setClassName("com.android.phone", "com.android.phone.SimContacts");
         }

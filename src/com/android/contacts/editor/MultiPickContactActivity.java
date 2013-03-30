@@ -426,7 +426,7 @@ public class MultiPickContactActivity extends ListActivity implements
             ContactItemCache cache = (ContactItemCache) v.getTag();
             if (isPickContact()) {
                 value = new String[] {
-                        cache.lookupKey
+                        cache.lookupKey, String.valueOf(cache.id)
                 };
             } else if (isPickPhone()) {
                 value = new String[] {cache.name, cache.number, cache.type, cache.label, cache.contact_id};
@@ -1111,7 +1111,7 @@ public class MultiPickContactActivity extends ListActivity implements
             if (isPickContact()) {
                 id = String.valueOf(cursor.getLong(SUMMARY_ID_COLUMN_INDEX));
                 value = new String[] {
-                        cursor.getString(SUMMARY_LOOKUP_KEY_COLUMN_INDEX)
+                        cursor.getString(SUMMARY_LOOKUP_KEY_COLUMN_INDEX), id
                 };
             } else if (isPickPhone()) {
                 id = String.valueOf(cursor.getLong(PHONE_COLUMN_ID));
@@ -1737,7 +1737,7 @@ public class MultiPickContactActivity extends ListActivity implements
             new ArrayList<ContentProviderOperation>();
         ContentProviderOperation.Builder builder =
             ContentProviderOperation.newInsert(RawContacts.CONTENT_URI);
-        builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_SUSPENDED);
+        builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DISABLED);
         if (account != null) {
             builder.withValue(RawContacts.ACCOUNT_NAME, account.name);
             builder.withValue(RawContacts.ACCOUNT_TYPE, account.type);

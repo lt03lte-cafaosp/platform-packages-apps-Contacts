@@ -555,7 +555,7 @@ public class RawContactDelta implements Parcelable {
             // TODO: for now simply disabling aggregation when a new contact is
             // created on the phone.  In the future, will show aggregation suggestions
             // after saving the contact.
-            mValues.put(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_SUSPENDED);
+            mValues.put(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DISABLED);
         }
 
         // Build possible operation at Contact level
@@ -595,7 +595,7 @@ public class RawContactDelta implements Parcelable {
         final boolean addedOperations = buildInto.size() > firstIndex;
         if (addedOperations && isContactUpdate) {
             // Suspend aggregation while persisting updates
-            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_SUSPENDED);
+            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_DISABLED);
             buildInto.add(firstIndex, builder.build());
 
             // Restore aggregation mode as last operation
