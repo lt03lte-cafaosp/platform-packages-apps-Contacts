@@ -636,59 +636,59 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             final int MSG_NO_EMPTY_EMAIL = 3;
             if(mHandler == null){
                 mHandler = new Handler() {
-	              public void handleMessage(Message msg) {
+                    public void handleMessage(Message msg) {
                     switch(msg.what){
-						case MSG_SUCCESS:
+                        case MSG_SUCCESS:
                            Toast.makeText(mContext,R.string.copy_done,Toast.LENGTH_SHORT).show();
                            break;
                         case MSG_ERROR:
                            Toast.makeText(mContext,R.string.copy_failure,Toast.LENGTH_SHORT).show();
                            break;
                         case MSG_CANCEL:
-                             Toast.makeText(mContext, R.string.card_no_space, Toast.LENGTH_SHORT).show();
-                           break;
+                            Toast.makeText(mContext, R.string.card_no_space, Toast.LENGTH_SHORT).show();
+                            break;
                         case MSG_NO_EMPTY_EMAIL:
-                			 Toast.makeText(mContext,R.string.no_empty_email_in_usim, Toast.LENGTH_SHORT).show();
-                           break;
+                            Toast.makeText(mContext,R.string.no_empty_email_in_usim, Toast.LENGTH_SHORT).show();
+                            break;
                     }
-	              }
-	          	};
+                  }
+                };
             }
 
-		    new Thread(new Runnable() {
-				public void run() {
-					synchronized (this) {
-	                    String adn = "1";
-				        String anr = "1";
-	                    int totalEmptyAdn = ContactsUtils.getSimFreeCount(mContext, sub);
-	                    int totalEmptyAnr = 0;
-	                    int totalEmptyEmail = 0;
+            new Thread(new Runnable() {
+                public void run() {
+                    synchronized (this) {
+                        String adn = "1";
+                        String anr = "1";
+                        int totalEmptyAdn = ContactsUtils.getSimFreeCount(mContext, sub);
+                        int totalEmptyAnr = 0;
+                        int totalEmptyEmail = 0;
 
                         Message msg = Message.obtain();
-	                    if (totalEmptyAdn <= 0)
-	                    {
-	                       msg.what = MSG_CANCEL;
+                        if (totalEmptyAdn <= 0)
+                        {
+                           msg.what = MSG_CANCEL;
                            mHandler.sendMessage(msg);
-	                       return;
-	                    }
-	                    
-				        try{
-					        if(true/*getUimLoaderStatus(sub) == 1*/){
-	                            totalEmptyAnr = ContactsUtils.getSpareAnrCount(sub);
-	                            totalEmptyEmail = ContactsUtils.getSpareEmailCount(sub);
-					        }
-				        }catch(Exception e){
-							Log.d(TAG,"e:"+e);
+                           return;
+                        }
+                
+                        try{
+                            if(true/*getUimLoaderStatus(sub) == 1*/){
+                                totalEmptyAnr = ContactsUtils.getSpareAnrCount(sub);
+                                totalEmptyEmail = ContactsUtils.getSpareEmailCount(sub);
+                            }
+                        }catch(Exception e){
+                            Log.d(TAG,"e:"+e);
                             return ;
-					    }
-	                    int numEntity = Integer.parseInt(adn) + Integer.parseInt(anr);
-	                    int EmptyNumTotal = totalEmptyAdn + totalEmptyAnr;
+                        }
+                        int numEntity = Integer.parseInt(adn) + Integer.parseInt(anr);
+                        int EmptyNumTotal = totalEmptyAdn + totalEmptyAnr;
 
-	                    String name = mContactData.getDisplayName();
-						ArrayList<String> arrayNumber = new ArrayList<String>();
-						ArrayList<String> arrayEmail = new ArrayList<String>();
-						
-	                    for (RawContact rawContact: mContactData.getRawContacts()) {
+                        String name = mContactData.getDisplayName();
+                        ArrayList<String> arrayNumber = new ArrayList<String>();
+                        ArrayList<String> arrayEmail = new ArrayList<String>();
+
+                        for (RawContact rawContact: mContactData.getRawContacts()) {
                             for (DataItem dataItem : rawContact.getDataItems()) {
                                 if (dataItem.getMimeType() == null) continue;
 
@@ -708,70 +708,70 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                             }
 
                         }
-	                    int nameCount = (name != null && !name.equals("")) ? 1 : 0;
-						int GroupNumCount = (arrayNumber.size()%numEntity) != 0 ? (arrayNumber.size()/numEntity + 1) : (arrayNumber.size()/numEntity);
-	                    int GroupEmailCount = arrayEmail.size();
-	                    int GroupCount = Math.max(GroupEmailCount, Math.max(nameCount, GroupNumCount));
-	                    ArrayList<UsimEntity> results = new ArrayList<UsimEntity>();
-	                    for(int i = 0 ; i < GroupCount ; i++){
-							results.add(new UsimEntity());
-	                    }
-						UsimEntity values;
-	                    for(int i = 0; i < GroupNumCount; i++)
-						{
-							values = results.get(i);
-							ArrayList<String> numberItem = new ArrayList<String>();
-							for (int j = 0; j < numEntity; j++ )
-							{
-								if((i*numEntity + j) < arrayNumber.size()){
-	                                numberItem.add(arrayNumber.get( i*numEntity + j));
-	                            }
-							}
-							values.putNumberList(numberItem);
-						}
+                        int nameCount = (name != null && !name.equals("")) ? 1 : 0;
+                        int GroupNumCount = (arrayNumber.size()%numEntity) != 0 ? (arrayNumber.size()/numEntity + 1) : (arrayNumber.size()/numEntity);
+                        int GroupEmailCount = arrayEmail.size();
+                        int GroupCount = Math.max(GroupEmailCount, Math.max(nameCount, GroupNumCount));
+                        ArrayList<UsimEntity> results = new ArrayList<UsimEntity>();
+                        for(int i = 0 ; i < GroupCount ; i++){
+                            results.add(new UsimEntity());
+                        }
+                        UsimEntity values;
+                        for(int i = 0; i < GroupNumCount; i++)
+                        {
+                        values = results.get(i);
+                        ArrayList<String> numberItem = new ArrayList<String>();
+                        for (int j = 0; j < numEntity; j++ )
+                        {
+                            if((i*numEntity + j) < arrayNumber.size()){
+                                numberItem.add(arrayNumber.get( i*numEntity + j));
+                            }
+                        }
+                        values.putNumberList(numberItem);
+                        }
 
-						for(int i= 0 ; i < GroupEmailCount; i++)
-						{
-							values = results.get(i);
-							values.putEmail(arrayEmail.get(i));
-						}
-	                    
-	                    String strEmail = null;
-	                    ArrayList<String> EmptyList = new ArrayList<String>();
-	                    Uri itemUri = null;
+                        for(int i= 0 ; i < GroupEmailCount; i++)
+                        {
+                            values = results.get(i);
+                            values.putEmail(arrayEmail.get(i));
+                        }
+                    
+                        String strEmail = null;
+                        ArrayList<String> EmptyList = new ArrayList<String>();
+                        Uri itemUri = null;
                         if(totalEmptyEmail < 0){
                             Message e_msg = Message.obtain();
-							e_msg.what = MSG_NO_EMPTY_EMAIL;
+                            e_msg.what = MSG_NO_EMPTY_EMAIL;
                             mHandler.sendMessage(e_msg);
                         }
-						
-	                    for(int i = 0 ; i < GroupCount ; i++){
-							values = results.get(i);
-	                        if(values.containsNumber()){
-	                            arrayNumber = (ArrayList<String>)values.getNumberList();
-	                        }else{
-								arrayNumber = EmptyList;
-	                        }
 
-	                        if(values.containsEmail()){
-	                            strEmail = (String)values.getEmail();
-	                        }else{
-								strEmail = null;
-	                        }
-	                        String num = arrayNumber.size() > 0 ? arrayNumber.get(0) : null;
-	                        String anrNum = arrayNumber.size() > 1 ? arrayNumber.get(1) : null;
-		                    itemUri = ContactsUtils.insertToCard(mContext, name, num, strEmail, anrNum, sub);
-	                    }
-	                    if(itemUri != null){
+                        for(int i = 0 ; i < GroupCount ; i++){
+                            values = results.get(i);
+                            if(values.containsNumber()){
+                                arrayNumber = (ArrayList<String>)values.getNumberList();
+                            }else{
+                                arrayNumber = EmptyList;
+                            }
+
+                            if(values.containsEmail()){
+                                strEmail = (String)values.getEmail();
+                            }else{
+                                strEmail = null;
+                            }
+                            String num = arrayNumber.size() > 0 ? arrayNumber.get(0) : null;
+                            String anrNum = arrayNumber.size() > 1 ? arrayNumber.get(1) : null;
+                            itemUri = ContactsUtils.insertToCard(mContext, name, num, strEmail, anrNum, sub);
+                        }
+                        if(itemUri != null){
                             msg.what = MSG_SUCCESS;
                             mHandler.sendMessage(msg);
-	                    }else{
-	                    	msg.what = MSG_ERROR;
+                        }else{
+                            msg.what = MSG_ERROR;
                             mHandler.sendMessage(msg);
-	                    }
-						}
-				}
-			}).start(); 
+                        }
+                    }
+                }
+            }).start(); 
         }
         else {
             Cursor cursor = mContext.getContentResolver().query(mLookupUri, 
@@ -783,8 +783,8 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             if(cursor != null){
                 try{
                     if(cursor.moveToFirst()){
-	                    hasphonenumber = cursor.getInt(0);
-	                    name = cursor.getString(1);
+                        hasphonenumber = cursor.getInt(0);
+                        name = cursor.getString(1);
                     }
                 }
                 finally{
@@ -799,7 +799,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                                 Toast.LENGTH_SHORT).show();        
                 return ;
             }
-    		if (hasphonenumber == 0)
+            if (hasphonenumber == 0)
             {
                 Toast.makeText(mContext, R.string.copy_failure, 
                                 Toast.LENGTH_SHORT).show();      
@@ -832,31 +832,31 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
     }
 
     class UsimEntity{
-		private ArrayList<String> mNumberList = new ArrayList<String>();
+        private ArrayList<String> mNumberList = new ArrayList<String>();
         private String mEmail = null;
 
         public String getEmail(){
-			return mEmail;
+            return mEmail;
         }
 
         public ArrayList<String> getNumberList(){
-			return mNumberList;
+            return mNumberList;
         }
 
-         public void putEmail(String email){
-			mEmail = email;
+        public void putEmail(String email){
+            mEmail = email;
         }
 
         public void putNumberList(ArrayList<String> list){
-			mNumberList = list;
+            mNumberList = list;
         }
 
         public boolean containsEmail(){
-			return mEmail != null;
+            return mEmail != null;
         }
 
         public boolean containsNumber(){
-			return !mNumberList.isEmpty();
+            return !mNumberList.isEmpty();
         }
    }
 

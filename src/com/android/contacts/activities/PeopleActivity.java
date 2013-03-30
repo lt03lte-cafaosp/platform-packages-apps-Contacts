@@ -754,6 +754,8 @@ public class PeopleActivity extends ContactsActivity
             unregisterReceiver(mSimStateReceiver);
             mIsSimStateRegistered = false;
         }
+        unregisterReceiver(mConfigureChangeReceiver);
+        unregisterReceiver(mExportToSimCompleteListener);
         super.onDestroy();
     }
 

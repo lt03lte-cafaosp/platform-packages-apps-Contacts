@@ -69,6 +69,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
+import com.android.contacts.ContactsUtils;
 import com.android.contacts.R;
 import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
 import com.android.contacts.editor.SelectAccountDialogFragment;
@@ -129,7 +130,7 @@ public class ImportExportDialogFragment extends DialogFragment
     private static final int SUB_INVALID = -1;
 
     public static final String SUBSCRIPTION = "sub_id";  // subscription column key
-    public static final String ACTION_MULTI_PICK = "com.android.contacts.action.MULTI_PICK";   // multi pick contacts action
+    public static final String ACTION_MULTI_PICK = Intent.ACTION_GET_CONTENT;   // multi pick contacts action
     public static final String ACTION_MULTI_PICK_EMAIL = "com.android.contacts.action.MULTI_PICK_EMAIL";  // multi-pick contacts which contains email address
 
     //TODO: we need to refactor the export code in future release.
@@ -577,7 +578,7 @@ public class ImportExportDialogFragment extends DialogFragment
             ContentProviderOperation.newInsert(RawContacts.CONTENT_URI);
         builder.withValue(RawContacts.ACCOUNT_NAME, accountName);
         builder.withValue(RawContacts.ACCOUNT_TYPE, accountType);
-        builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_SUSPENDED);
+        builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DISABLED);
         operationList.add(builder.build());
 
         builder = ContentProviderOperation.newInsert(Data.CONTENT_URI);
@@ -639,6 +640,7 @@ public class ImportExportDialogFragment extends DialogFragment
         private ProgressDialog mExportProgressDlg;
         private ContentValues mValues = new ContentValues();
         Activity mpeople;
+        private int adnCount = 0;
 
         public ExportToSimThread(int type, int subscription, ArrayList<String[]> contactList, Activity mpactiv) {
             super();
@@ -648,6 +650,7 @@ public class ImportExportDialogFragment extends DialogFragment
             canceled = false;
             mpeople = mpactiv;
             setExportProgress(contactList.size());
+            adnCount = ContactsUtils.getAdnCount(subscription);
         }
 
         public void dismissPopup() {
@@ -706,40 +709,80 @@ public class ImportExportDialogFragment extends DialogFragment
                     Uri result = null;
                     while (iterator.hasNext() && !canceled) {
                         String[] contactInfo = iterator.next();
-                        if (canSaveEmail) {
-                            emails = getEmails(mpeople, contactInfo[4]);
-                            // If email list contains several single email
-                            // address, split them and insert an contact for
-                            // each one.
-                            if (!TextUtils.isEmpty(emails)) {
-                                String[] emailArrays = emails.split(",");
-                                for (String email : emailArrays) {
-                                    result = insert(contactInfo[0], contactInfo[1], email,
-                                            subscription);
+                        String name = "";
+                        ArrayList<String> arrayNumber = new ArrayList<String>();
+                        ArrayList<String> arrayEmail = new ArrayList<String>();
+
+                        Uri dataUri = Uri.withAppendedPath(
+                                ContentUris.withAppendedId(Contacts.CONTENT_URI, Long.parseLong(contactInfo[1])),
+                                Contacts.Data.CONTENT_DIRECTORY);
+                        final String[] projection = new String[] {
+                                Contacts._ID, 
+                                Contacts.Data.MIMETYPE, 
+                                Contacts.Data.DATA1,
+                        };
+
+                        Cursor c = mpeople.getContentResolver().query(dataUri, projection, null, null, null);
+
+                        if (c != null && c.moveToFirst()) {
+                            do {
+                                String mimeType = c.getString(1);
+                                if (Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                                    String number = c.getString(2);
+                                    if(!TextUtils.isEmpty(number)) {
+                                        arrayNumber.add(number);
+                                    }
+                                } else if (StructuredName.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                                    name = c.getString(2);
+                                }
+                                if (canSaveEmail) {
+                                    if (Email.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                                        String email = c.getString(2);
+                                        if(!TextUtils.isEmpty(email)) {
+                                            arrayEmail.add(email);
+                                        }           
+                                    } 
+                                }
+                            } while (c.moveToNext());
+                        }
+                        if (c != null) {
+                            c.close();
+                        }
+
+                        int nameCount = (name != null && !name.equals("")) ? 1 : 0;
+                        int GroupNumCount = (arrayNumber.size()%2) != 0 ? (arrayNumber.size()/2 + 1) : (arrayNumber.size()/2);
+                        int GroupEmailCount = arrayEmail.size();
+                        int GroupCount = Math.max(GroupEmailCount, Math.max(nameCount, GroupNumCount));
+
+                        Uri itemUri = null;
+                        Log.i(TAG, "GroupCount = " + GroupCount);
+                        for(int i = 0 ; i < GroupCount ; i++){
+                            String num = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
+                            String anrNum = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
+                            String email = arrayEmail.size() > 0 ? arrayEmail.remove(0) : null;
+                            Log.i(TAG, "name = " + name);
+                            Log.i(TAG, "num = " + num);
+                            Log.i(TAG, "anrNum = " + anrNum);
+                            Log.i(TAG, "email = " + email);
+                            itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, anrNum, subscription);
+                            Log.i(TAG, "itemUri = " + itemUri);
+                            if (itemUri == null) {
+                                // add toast handler when sim card is full
+                                if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
+                                    mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
+                                    break;
+                                } else {
+                                    mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                    boolean airplane = (System.getInt(mpeople.getContentResolver(),
+                                            System.AIRPLANE_MODE_ON, 0) != 0);
+                                    if (airplane) break;
+                                    else continue;
                                 }
                             } else {
-                                result = insert(contactInfo[0], contactInfo[1], emails,
-                                        subscription);
+                                Log.d(TAG, "Exported contact [" + name + ", " + contactInfo[0] + ", " + contactInfo[1]
+                                    + "] to sub " + subscription + " failed");
+                                insertCount++;
                             }
-                        } else {
-                            result = insert(contactInfo[0], contactInfo[1], emails, subscription);
-                        }
-                        if (result == null) {
-                            // add toast handler when sim card is full
-                            if (isSimCardFull(mpeople.getContentResolver())) {
-                                mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
-                                break;
-                            } else {
-                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
-                                boolean airplane = (System.getInt(mpeople.getContentResolver(),
-                                        System.AIRPLANE_MODE_ON, 0) != 0);
-                                if (airplane) break;
-                                else continue;
-                            }
-                        } else {
-                            Log.d(TAG, "Exported contact [" + contactInfo[0] + ", " + contactInfo[1]
-                                + "] to sub " + subscription);
-                            insertCount++;
                         }
                     }
                 }
@@ -771,9 +814,9 @@ public class ImportExportDialogFragment extends DialogFragment
             } else {
                 mToastHandler.sendEmptyMessage(TOAST_EXPORT_FINISHED);
             }
-	        isExportingToSIM = false;
-	        Intent intent = new Intent(PeopleActivity.INTENT_EXPORT_COMPLETE);
-	        mpeople.sendBroadcast(intent);
+            isExportingToSIM = false;
+            Intent intent = new Intent(PeopleActivity.INTENT_EXPORT_COMPLETE);
+            mpeople.sendBroadcast(intent);
         }
 
         /**
@@ -817,7 +860,7 @@ public class ImportExportDialogFragment extends DialogFragment
          * @param resolver
          * @return
          */
-        private boolean isSimCardFull(ContentResolver resolver) {
+        private boolean isSimCardFull(ContentResolver resolver, int adnCount) {
             int count = 0;
             Cursor c = null;
             Uri iccUri;
@@ -842,10 +885,10 @@ public class ImportExportDialogFragment extends DialogFragment
                 String CardType = TelephonyManager.getDefault().getCardType();
                 if (SimContactsConstants.USIM.equals(CardType)
                         || SimContactsConstants.CSIM.equals(CardType)) {
-                    if (MAX_COUNT_UIM_CARD == count)
+                    if (adnCount == count)
                         return true;
                 } else {
-                    if (MAX_COUNT_SIM_CARD == count)
+                    if (adnCount == count)
                         return true;
                 }
             } else {
@@ -853,10 +896,10 @@ public class ImportExportDialogFragment extends DialogFragment
                         subscription);
                 if (SimContactsConstants.USIM.equals(CardType)
                         || SimContactsConstants.CSIM.equals(CardType)) {
-                    if (MAX_COUNT_UIM_CARD == count)
+                    if (adnCount == count)
                         return true;
                 } else {
-                    if (MAX_COUNT_SIM_CARD == count)
+                    if (adnCount == count)
                         return true;
                 }
             }
