@@ -495,8 +495,8 @@
 			android:label="@string/duration"
 			android:theme="@style/CallDetailActivityTheme"
 			android:screenOrientation="nosensor"
-            android:icon="@mipmap/ic_launcher_calllog"
-            android:taskAffinity="android.task.contacts.phone">            
+            
+                     android:taskAffinity="android.task.contacts.phone">            
 			<intent-filter>                
 				<action android:name="android.intent.action.MAIN" />                
 				<category android:name="com.example.android.supportv4.SUPPORT4_SAMPLE_CODE" />            
