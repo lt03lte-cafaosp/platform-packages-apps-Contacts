@@ -221,6 +221,12 @@ public class DialpadFragment extends ListFragment
 
     private String mCurrentCountryIso;
 
+    private static final int SUB0 = 0;
+    private static final int SUB1 = 1;
+
+    private String sub0Moderm = "";
+    private String sub1Moderm = "";
+
     private PhoneStateListener getPhoneStateListener(final int subscription) {
         PhoneStateListener phoneStateListener = new PhoneStateListener(subscription) {
             /**
@@ -779,6 +785,9 @@ public class DialpadFragment extends ListFragment
             return;
         }
 
+        sub0Moderm = ContactsLib.UsimRecords.getCurModem(SUB0);
+        sub1Moderm = ContactsLib.UsimRecords.getCurModem(SUB1);
+
         final Activity activity = getActivity();
         if (activity != null && ViewConfiguration.get(activity).hasPermanentMenuKey()) {
             // Call settings should be available via its parent Activity.
@@ -811,8 +820,18 @@ public class DialpadFragment extends ListFragment
             sendMessageMenuItem.setVisible(true);
             if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
             {
-                ipSub1CallMenuItem.setVisible(true);
-                ipSub2CallMenuItem.setVisible(true);
+                if(sub0Moderm.equals("")){
+                       ipSub1CallMenuItem.setVisible(false);
+                    }else
+                    {
+                       ipSub1CallMenuItem.setVisible(true);
+                    }
+                if(sub1Moderm.equals("")){
+                       ipSub2CallMenuItem.setVisible(false);
+                    }else
+                    {
+                       ipSub2CallMenuItem.setVisible(true);
+                    }
                 ipSub1CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card1));
                 ipSub2CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card2));
             }else

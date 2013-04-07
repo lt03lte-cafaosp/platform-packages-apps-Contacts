@@ -2019,9 +2019,9 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <!-- add for UX_enhance_dial_button -->
     <string name="callFailure">Call Failure</string> 
     <string name="ipnum_not_set">Not set IP dial number!</string>
-    <string name="recentCalls_IPCall_card1">Slot1 IP dial</string>
-    <string name="recentCalls_IPCall_card2">Slot2 IP dial</string>
-    <string name="recentCalls_IPCall">IP dial</string>
+    <string name="recentCalls_IPCall_card1">Slot1 IP call</string>
+    <string name="recentCalls_IPCall_card2">Slot2 IP call</string>
+    <string name="recentCalls_IPCall">IP call</string>
     <string name="recentCalls_sendMessage">Send message</string>
     <!-- Content description for the expand or collapse name fields button.
          Clicking this button causes the name editor to toggle between showing
