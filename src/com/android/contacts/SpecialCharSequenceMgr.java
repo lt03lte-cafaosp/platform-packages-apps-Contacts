@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
- * Copyright (c) 2011-12, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-13, The Linux Foundation. All rights reserved.
  * Not a Contribution, Apache license notifications and license are retained
  * for attribution purposes only
  *
@@ -64,6 +64,7 @@ public class SpecialCharSequenceMgr {
     private static final String MMI_IMEI_DISPLAY = "*#06#";
     private static final int SUB1 = 0;
     private static final int SUB2 = 1;
+    private static final int SUB3 = 2;
 
     /**
      * Remembers the previous {@link QueryHandler} and cancel the operation when needed, to
@@ -222,6 +223,8 @@ public class SpecialCharSequenceMgr {
                         uri = Uri.parse("content://iccmsim/adn");
                     } else if (subscription == SUB2) {
                         uri = Uri.parse("content://iccmsim/adn_sub2");
+                    } else if (subscription == SUB3) {
+                        uri = Uri.parse("content://iccmsim/adn_sub3");
                     } else {
                         Log.d(TAG, "handleAdnEntry:Invalid Subscription");
                     }
