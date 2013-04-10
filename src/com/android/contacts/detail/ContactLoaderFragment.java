@@ -627,6 +627,8 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
     }
 
     private Handler mHandler = null;
+    private static final int RESULT_EMAIL_FULL_FAILURE = -1;
+    private static final int RESULT_SUCCESS = 1;
     private void copyToCard(final int sub) {
         if (is3GCard(sub))
         {
@@ -709,9 +711,11 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
 
                         }
                         int nameCount = (name != null && !name.equals("")) ? 1 : 0;
+                        Log.i(TAG, "arrayNumber.size() == " + arrayNumber.size() + " numEntity = " + numEntity);
                         int GroupNumCount = (arrayNumber.size()%numEntity) != 0 ? (arrayNumber.size()/numEntity + 1) : (arrayNumber.size()/numEntity);
                         int GroupEmailCount = arrayEmail.size();
                         int GroupCount = Math.max(GroupEmailCount, Math.max(nameCount, GroupNumCount));
+                        Log.i(TAG, "GroupCount= " + GroupCount);
                         ArrayList<UsimEntity> results = new ArrayList<UsimEntity>();
                         for(int i = 0 ; i < GroupCount ; i++){
                             results.add(new UsimEntity());
@@ -719,15 +723,15 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                         UsimEntity values;
                         for(int i = 0; i < GroupNumCount; i++)
                         {
-                        values = results.get(i);
-                        ArrayList<String> numberItem = new ArrayList<String>();
-                        for (int j = 0; j < numEntity; j++ )
-                        {
-                            if((i*numEntity + j) < arrayNumber.size()){
-                                numberItem.add(arrayNumber.get( i*numEntity + j));
+                            values = results.get(i);
+                            ArrayList<String> numberItem = new ArrayList<String>();
+                            for (int j = 0; j < numEntity; j++ )
+                            {
+                                if((i*numEntity + j) < arrayNumber.size()){
+                                    numberItem.add(arrayNumber.get( i*numEntity + j));
+                                }
                             }
-                        }
-                        values.putNumberList(numberItem);
+                            values.putNumberList(numberItem);
                         }
 
                         for(int i= 0 ; i < GroupEmailCount; i++)
@@ -737,6 +741,8 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                         }
                     
                         String strEmail = null;
+                        String num = null;
+                        String anrNum = null;
                         ArrayList<String> EmptyList = new ArrayList<String>();
                         Uri itemUri = null;
                         if(totalEmptyEmail < 0){
@@ -745,6 +751,8 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                             mHandler.sendMessage(e_msg);
                         }
 
+                        int ret = 1;
+                        boolean showToast = true;
                         for(int i = 0 ; i < GroupCount ; i++){
                             values = results.get(i);
                             if(values.containsNumber()){
@@ -758,16 +766,39 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                             }else{
                                 strEmail = null;
                             }
-                            String num = arrayNumber.size() > 0 ? arrayNumber.get(0) : null;
-                            String anrNum = arrayNumber.size() > 1 ? arrayNumber.get(1) : null;
+                            num = arrayNumber.size() > 0 ? arrayNumber.get(0) : null;
+                            anrNum = arrayNumber.size() > 1 ? arrayNumber.get(1) : null;
                             itemUri = ContactsUtils.insertToCard(mContext, name, num, strEmail, anrNum, sub);
+                            Log.i(TAG, "name = " + name + " num=" + num + " strEmail=" + strEmail + " anrNum= " + anrNum);
+                            Log.i(TAG, "itemUri = " + itemUri);
+                            if(itemUri != null) {
+                                ret = Integer.parseInt(itemUri.getLastPathSegment());
+                                if(ret == RESULT_EMAIL_FULL_FAILURE) {
+                                    itemUri = ContactsUtils.insertToCard(mContext, name, num, "", anrNum, sub);
+                                    if(showToast) {
+                                        msg.what = MSG_NO_EMPTY_EMAIL;
+                                        mHandler.sendMessage(msg);
+                                        showToast = false;
+                                    }
+                                }
+                            }
                         }
-                        if(itemUri != null){
-                            msg.what = MSG_SUCCESS;
-                            mHandler.sendMessage(msg);
-                        }else{
-                            msg.what = MSG_ERROR;
-                            mHandler.sendMessage(msg);
+                        // if show toast MSG_NO_EMPTY_EMAIL, don't show succes or other error toast
+                        if(ret != RESULT_EMAIL_FULL_FAILURE) {
+                            if(itemUri != null){
+                                ret = Integer.parseInt(itemUri.getLastPathSegment());
+                                if(ret == RESULT_SUCCESS) {
+                                    msg.what = MSG_SUCCESS;
+                                    mHandler.sendMessage(msg);
+                                }
+                                else {
+                                    msg.what = MSG_ERROR;
+                                    mHandler.sendMessage(msg);
+                                }
+                            }else{
+                                msg.what = MSG_ERROR;
+                                mHandler.sendMessage(msg);
+                            }
                         }
                     }
                 }

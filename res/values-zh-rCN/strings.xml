@@ -112,7 +112,9 @@
     <string name="contactSavedErrorToast" msgid="3207250533172944892">"无法保存联系人更改。"</string>
     <string name="contactSavedToSimCardError" msgid="9189098776225004666">"发生错误，正在载入SIM卡联系人。"</string>
     <string name="airplane_mode_on">"发生错误，当前处于飞行模式。"</string>
+    <string name="number_anr_full">"发生错误，电话号码已满，第二个号码将不会被保存。"</string>
     <string name="number_anr_too_long">"发生错误，电话号码过长。"</string>
+    <string name="email_address_full">"发生错误，邮箱地址已满，邮箱将不会被保存。"</string>
     <string name="email_address_too_long">"发生错误，邮箱地址过长。"</string>
     <string name="sim_card_full">"发生错误，SIM卡已满。"</string>
     <string name="tag_too_long">"发生错误，联系人姓名过长。"</string>

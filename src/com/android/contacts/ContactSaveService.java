@@ -433,7 +433,7 @@ public class ContactSaveService extends IntentService {
         }
         return serviceIntent;
     }
-
+    private static final int RESULT_EMAIL_FULL_FAILURE = -1;
     private static final int RESULT_UNCHANGED = 0;
     private static final int RESULT_SUCCESS = 1;
     private static final int RESULT_FAILURE = 2;
@@ -785,13 +785,48 @@ public class ContactSaveService extends IntentService {
         if (isInsert) {
             Uri resultUri = mSimContactsOperation.insert(values,
                     subscription);
-            if (resultUri != null)
-                result = RESULT_SUCCESS;
+            if (resultUri != null) {
+                int ret = Integer.parseInt(resultUri.getLastPathSegment());
+                if(ret == RESULT_SUCCESS) {
+                    result = RESULT_SUCCESS;
+                }
+                else {
+                    if(ret == RESULT_EMAIL_FULL_FAILURE) {
+                        values.remove(SimContactsConstants.STR_EMAILS);
+                        resultUri = mSimContactsOperation.insert(values,
+                            subscription);
+                        showToast(R.string.email_address_full);
+                        entity.getMimeEntries(Email.CONTENT_ITEM_TYPE).get(0).markDeleted();
+                        
+                        ret = Integer.parseInt(resultUri.getLastPathSegment());
+                        if(ret == RESULT_SUCCESS) {
+                            result = RESULT_SUCCESS;
+                        }
+                    }
+                }
+            }
+            else {
+                
+            }
         } else {
             int resultInt = mSimContactsOperation.update(values,
                     subscription);
-            if (resultInt == 1)
+            if (resultInt == 1) {
                 result = RESULT_SUCCESS;
+            }
+            else {
+                if(resultInt == RESULT_EMAIL_FULL_FAILURE) {
+                    values.remove(SimContactsConstants.STR_NEW_EMAILS);
+                    resultInt = mSimContactsOperation.update(values,
+                        subscription);
+                    showToast(R.string.email_address_full);
+                    entity.getMimeEntries(Email.CONTENT_ITEM_TYPE).get(0).markDeleted();
+
+                    if (resultInt == 1) {
+                        result = RESULT_SUCCESS;
+                    }
+                }
+            }
         }
         return result;
     }

@@ -312,6 +312,8 @@
     <string name="contactSavedToSimCardError">Error, Loading Sim Contacts.</string>
     <string name="airplane_mode_on">Error, Airplane mode is on.</string>
     <string name="number_anr_too_long">Error, Number is too long.</string>
+    <string name="number_anr_full">Error, Number is full, the second number will not be saved.</string>
+    <string name="email_address_full">Error, Email is full, Email will not be saved.</string>
     <string name="email_address_too_long">Error, Email Address is too long.</string>
     <string name="sim_card_full">Error, Sim Card is full.</string>
     <string name="tag_too_long">Error, Contact name is too long.</string>
@@ -2030,6 +2032,9 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
          Middle Name, Last Name, Name Suffix).
          [CHAR LIMIT=NONE] -->
     <string name="expand_collapse_name_fields_description">Expand or collapse name fields</string>
+    
+    <string name="menu_sendViaSMS">Send contact via SMS</string>
+    <string name="menu_copyTo">"Copy to "</string>
 
 	<!--modify for call log   -->
 	<string name="last_call_duration">Last call duration:</string> 

@@ -532,8 +532,7 @@ public class ContactsUtils {
         if (!TextUtils.isEmpty(name)) {
             final int maxLen = hasChinese(name) ? 6 : 14;
             if (name.length() > maxLen) {
-                Toast.makeText(context, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
-                return null;
+                name = name.substring(0, maxLen);
             }
         }
         Uri result;
@@ -555,7 +554,10 @@ public class ContactsUtils {
         if (result != null){
             // we should import the contact to the sim account at the same time.
             String[] value = new String[]{name, number, emails, anrNumber};
-            insertToPhone(value, context.getContentResolver(),subscription);
+            int ret = Integer.parseInt(result.getLastPathSegment()); 
+            if(ret == 1) {
+                insertToPhone(value, context.getContentResolver(),subscription);
+            }
         } else {
             Log.e(TAG, "export contact: [" + name + ", " + number + ", " + emails + "] to slot "
                 + subscription + " failed");

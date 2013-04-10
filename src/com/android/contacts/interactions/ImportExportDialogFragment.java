@@ -149,6 +149,9 @@ public class ImportExportDialogFragment extends DialogFragment
     private static final int TOAST_SIM_CARD_FULL = 2; // only for sim card is full
     private static final int TOAST_CONTACT_NAME_TOO_LONG = 3; // only for contact name too long
     private static final int TOAST_EXPORT_CANCELED = 4; //there is a case export is canceled by user
+    private static final int TOAST_EMAIL_FULL = 5;
+
+    private static final int RESULT_EMAIL_FULL_FAILURE = -1;
 
     // use for log.d or log.i,to disable or enable it.
     private static final boolean DEBUG = false;
@@ -641,6 +644,7 @@ public class ImportExportDialogFragment extends DialogFragment
         private ContentValues mValues = new ContentValues();
         Activity mpeople;
         private int adnCount = 0;
+        boolean showEmailFull = true;
 
         public ExportToSimThread(int type, int subscription, ArrayList<String[]> contactList, Activity mpactiv) {
             super();
@@ -780,7 +784,31 @@ public class ImportExportDialogFragment extends DialogFragment
                                 }
                             } else {
                                 Log.d(TAG, "Exported contact [" + name + ", " + contactInfo[0] + ", " + contactInfo[1]
-                                    + "] to sub " + subscription + " failed");
+                                    + "] to sub " + subscription);
+                                int ret = Integer.parseInt(itemUri.getLastPathSegment()); 
+                                Log.d(TAG, "Exported contact ret = " + ret);
+                                if(ret != 1) {
+                                    if(ret == RESULT_EMAIL_FULL_FAILURE){
+                                        itemUri = ContactsUtils.insertToCard(mpeople, name, num, "", anrNum, subscription);
+                                        Log.d(TAG, "Exported contact showEmailFull = " + showEmailFull);
+                                        if(showEmailFull) {
+                                            mToastHandler.sendEmptyMessage(TOAST_EMAIL_FULL);
+                                        }
+                                        showEmailFull = false;
+                                    }
+                                    else {
+                                        if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
+                                            mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
+                                            break;
+                                        } else {
+                                            mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                            boolean airplane = (System.getInt(mpeople.getContentResolver(),
+                                                    System.AIRPLANE_MODE_ON, 0) != 0);
+                                            if (airplane) break;
+                                            else continue;
+                                        }
+                                    }
+                                }
                                 insertCount++;
                             }
                         }
@@ -957,6 +985,10 @@ public class ImportExportDialogFragment extends DialogFragment
                     case TOAST_CONTACT_NAME_TOO_LONG:
                         Toast.makeText(mpeople, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
                         break;
+
+                    case TOAST_EMAIL_FULL:
+                        Toast.makeText(mpeople, R.string.email_address_full, Toast.LENGTH_SHORT).show();
+                        break;    
 
                      // add toast handler when export is canceled
                     case TOAST_EXPORT_CANCELED:
