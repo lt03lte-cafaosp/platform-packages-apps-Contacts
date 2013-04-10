@@ -624,6 +624,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
 
         String[] value = new String[]{name, phoneNumber, email, anrNumber};
         ContactsUtils.insertToPhone(value, mContext.getContentResolver(), -1 /*PHONE account*/);
+        Toast.makeText(mContext,R.string.copy_done,Toast.LENGTH_SHORT).show();
     }
 
     private Handler mHandler = null;
