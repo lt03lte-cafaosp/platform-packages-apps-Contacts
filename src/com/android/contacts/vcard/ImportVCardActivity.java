@@ -52,11 +52,13 @@ import com.android.contacts.R;
 import com.android.contacts.model.AccountTypeManager;
 import com.android.contacts.model.account.AccountWithDataSet;
 import com.android.contacts.util.AccountSelectionUtil;
+
 import com.android.vcard.VCardEntryCounter;
 import com.android.vcard.VCardParser;
 import com.android.vcard.VCardParser_V21;
 import com.android.vcard.VCardParser_V30;
 import com.android.vcard.VCardSourceDetector;
+import com.android.vcard.VCardUtils;
 import com.android.vcard.exception.VCardException;
 import com.android.vcard.exception.VCardNestedException;
 import com.android.vcard.exception.VCardVersionException;
@@ -479,13 +481,34 @@ public class ImportVCardActivity extends ContactsActivity {
             VCardEntryCounter counter = null;
             VCardSourceDetector detector = null;
             int vcardVersion = VCARD_VERSION_V21;
+            String charset = null;
             try {
                 boolean shouldUseV30 = false;
                 InputStream is;
                 if (data != null) {
                     is = new ByteArrayInputStream(data);
+                    //GB code case
+                    String cs = VCardUtils.getTextcodecFromContent(data, (data.length > 1024) ? 1024 : data.length);
+                    //Log.c(LOG_TAG, "&&&&&&^^^^^^^^^^^cs: "+cs, new Exception());
+                    if (cs.equals(VCardUtils.CODEC_GB2312))
+                    {
+                        charset = VCardUtils.CODEC_GB2312;
+                    }
                 } else {
                     is = resolver.openInputStream(localDataUri);
+                    //GB code case
+                    
+                    try{
+                        String cs = VCardUtils.getTextcodecFromFile(new File(localDataUri.getPath()));
+                        //Log.c(LOG_TAG, "&&&&&&^^^^^^^^^^^cs: "+cs, new Exception());
+                        if (cs.equals(VCardUtils.CODEC_GB2312))
+                        {
+                            charset = VCardUtils.CODEC_GB2312;
+                        }
+                    }catch (Exception e){
+                        Log.e(LOG_TAG, "the exception is :"+e);
+                    }
+                    
                 }
                 mVCardParser = new VCardParser_V21();
                 try {
@@ -493,7 +516,8 @@ public class ImportVCardActivity extends ContactsActivity {
                     detector = new VCardSourceDetector();
                     mVCardParser.addInterpreter(counter);
                     mVCardParser.addInterpreter(detector);
-                    mVCardParser.parse(is);
+                    mVCardParser.parse(is, charset);
+                    //mVCardParser.parse(is);
                 } catch (VCardVersionException e1) {
                     try {
                         is.close();
@@ -512,7 +536,8 @@ public class ImportVCardActivity extends ContactsActivity {
                         detector = new VCardSourceDetector();
                         mVCardParser.addInterpreter(counter);
                         mVCardParser.addInterpreter(detector);
-                        mVCardParser.parse(is);
+                        mVCardParser.parse(is, charset);
+                        //mVCardParser.parse(is);
                     } catch (VCardVersionException e2) {
                         throw new VCardException("vCard with unspported version.");
                     }
@@ -531,10 +556,16 @@ public class ImportVCardActivity extends ContactsActivity {
                 // Go through without throwing the Exception, as we may be able to detect the
                 // version before it
             }
+            
+            if (TextUtils.isEmpty(charset))
+            {
+                charset = detector.getEstimatedCharset();
+            }
+            
             return new ImportRequest(mAccount,
                     data, localDataUri, displayName,
                     detector.getEstimatedType(),
-                    detector.getEstimatedCharset(),
+                    charset,
                     vcardVersion, counter.getCount());
         }
 
