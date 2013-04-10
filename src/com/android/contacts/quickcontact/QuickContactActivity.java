@@ -354,46 +354,46 @@ public class QuickContactActivity extends Activity {
         }
 
         mStopWatch.lap("ph"); // Photo set
-
-        for (RawContact rawContact : data.getRawContacts()) {
-            for (DataItem dataItem : rawContact.getDataItems()) {
-                final String mimeType = dataItem.getMimeType();
-
-                // Skip this data item if MIME-type excluded
-                if (isMimeExcluded(mimeType)) continue;
-
-                final long dataId = dataItem.getId();
-                final boolean isPrimary = dataItem.isPrimary();
-                final boolean isSuperPrimary = dataItem.isSuperPrimary();
-
-                if (dataItem.getDataKind() != null) {
-                    // Build an action for this data entry, find a mapping to a UI
-                    // element, build its summary from the cursor, and collect it
-                    // along with all others of this MIME-type.
-                    final Action action = new DataAction(context, dataItem);
-                    final boolean wasAdded = considerAdd(action, cache, isSuperPrimary);
-                    if (wasAdded) {
-                        // Remember the default
-                        if (isSuperPrimary || (isPrimary && (mDefaultsMap.get(mimeType) == null))) {
-                            mDefaultsMap.put(mimeType, action);
-                        }
-                    }
-                }
-
-                // Handle Email rows with presence data as Im entry
-                final DataStatus status = data.getStatuses().get(dataId);
-                if (status != null && dataItem instanceof EmailDataItem) {
-                    final EmailDataItem email = (EmailDataItem) dataItem;
-                    final ImDataItem im = ImDataItem.createFromEmail(email);
-                    if (im.getDataKind() != null) {
-                        final DataAction action = new DataAction(context, im);
-                        action.setPresence(status.getPresence());
-                        considerAdd(action, cache, isSuperPrimary);
-                    }
-                }
-            }
+        if(data != null){
+          for (RawContact rawContact : data.getRawContacts()) {
+              for (DataItem dataItem : rawContact.getDataItems()) {
+                  final String mimeType = dataItem.getMimeType();
+  
+                  // Skip this data item if MIME-type excluded
+                  if (isMimeExcluded(mimeType)) continue;
+  
+                  final long dataId = dataItem.getId();
+                  final boolean isPrimary = dataItem.isPrimary();
+                  final boolean isSuperPrimary = dataItem.isSuperPrimary();
+  
+                  if (dataItem.getDataKind() != null) {
+                      // Build an action for this data entry, find a mapping to a UI
+                      // element, build its summary from the cursor, and collect it
+                      // along with all others of this MIME-type.
+                      final Action action = new DataAction(context, dataItem);
+                      final boolean wasAdded = considerAdd(action, cache, isSuperPrimary);
+                      if (wasAdded) {
+                          // Remember the default
+                          if (isSuperPrimary || (isPrimary && (mDefaultsMap.get(mimeType) == null))) {
+                              mDefaultsMap.put(mimeType, action);
+                          }
+                      }
+                  }
+  
+                  // Handle Email rows with presence data as Im entry
+                  final DataStatus status = data.getStatuses().get(dataId);
+                  if (status != null && dataItem instanceof EmailDataItem) {
+                      final EmailDataItem email = (EmailDataItem) dataItem;
+                      final ImDataItem im = ImDataItem.createFromEmail(email);
+                      if (im.getDataKind() != null) {
+                          final DataAction action = new DataAction(context, im);
+                          action.setPresence(status.getPresence());
+                          considerAdd(action, cache, isSuperPrimary);
+                      }
+                  }
+              }
+          }
         }
-
         mStopWatch.lap("e"); // Entities inflated
 
         // Collapse Action Lists (remove e.g. duplicate e-mail addresses from different sources)
