@@ -947,7 +947,19 @@ public class MultiPickContactActivity extends ListActivity implements
                 else
                     return PHONES_SELECTION;
             case MODE_DEFAULT_CONTACT:
-                return getSelectionForAccount();
+                String sel = getSelectionForAccount();
+                if(TextUtils.isEmpty(sel)) {
+                    if (isShowSIM())
+                        return null;
+                    else
+                        return PHONES_SELECTION;
+                }
+                else {
+                    if (isShowSIM())
+                        return sel;
+                    else
+                        return sel + " and " + PHONES_SELECTION;
+                }
             case MODE_DEFAULT_SIM:
             case MODE_SEARCH_SIM:
                 return null;
@@ -978,6 +990,7 @@ public class MultiPickContactActivity extends ListActivity implements
         switch (mMode) {
             case MODE_DEFAULT_PHONE:
             case MODE_SEARCH_PHONE:
+            case MODE_DEFAULT_CONTACT:
                 if (isShowSIM())
                     return null;
                 else
