@@ -723,9 +723,9 @@ public class ContactSaveService extends IntentService {
             email = values.getAsString(SimContactsConstants.STR_NEW_EMAILS);
         }
 
-        if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
-            return RESULT_NO_NUMBER;
-        }
+        //if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
+        //    return RESULT_NO_NUMBER;
+        //}
 
         if ((!TextUtils.isEmpty(number) && number.length() > 20)
                 || (!TextUtils.isEmpty(anr) && anr.length() > 20)) {
