@@ -1870,4 +1870,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
          Middle Name, Last Name, Name Suffix).
          [CHAR LIMIT=NONE] -->
     <string name="expand_collapse_name_fields_description">Expand or collapse name fields</string>
+
+    <string name="dial_conference">Dial conference</string>
+    <string name="to_hint">1111:to;sip:abby@example.com:bcc;sip:bill@example.com:cc;</string>
 </resources>
