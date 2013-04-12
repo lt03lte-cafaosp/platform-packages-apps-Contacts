@@ -572,6 +572,9 @@ public class ContactsUtils {
     public static int getAdnCount(int sub) 
     {
         int adnCount = 0;
+        if(sub == -1){
+          return 2000;
+        }
         if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
         {
             try {
@@ -645,7 +648,11 @@ public class ContactsUtils {
         }
         return anrCount;
     }
-
+    
+    public static boolean isCmccTest(){
+      return android.os.SystemProperties.getInt("ro.cmcc.test",0)==1;
+    }
+    
     public static int getSpareEmailCount(int sub) {
         int emailCount = 0;
         if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
@@ -700,16 +707,20 @@ public class ContactsUtils {
                 queryCursor.close();
             }
         }
-
         return getAdnCount(sub) - count;
     }
-    public static boolean checkContactsFull(){
+    public static boolean checkContactsFull(Context context){
      
+        if(!isCmccTest()){
+          return false;
+        }
+        if(getSimFreeCount(context,-1) <= 0){
+          return true;
+        }
         File path = new File("/data/");
         StatFs stat = new StatFs(path.getPath());
         long blockSize = stat.getBlockSize();
         long availableBlocks = stat.getAvailableBlocks();
-        
         long available = availableBlocks*blockSize;
         if (available < 10*1024*1024)
         {

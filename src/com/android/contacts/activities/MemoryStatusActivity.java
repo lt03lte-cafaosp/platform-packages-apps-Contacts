@@ -186,7 +186,9 @@ public class MemoryStatusActivity extends ContactsActivity {
                 {
                     total = ContactsUtils.getAdnCount(ContactsUtils.getSub(account.name, account.type));
                 }
-                
+                if(account.type.equals(SimContactsConstants.ACCOUNT_TYPE_PHONE) && ContactsUtils.isCmccTest()){
+                  total = ContactsUtils.getAdnCount(ContactsUtils.getSub(account.name, account.type));
+                }
                 Cursor queryCursor = cr.query(RawContacts.CONTENT_URI, new String[] { RawContacts._ID },
                         RawContacts.ACCOUNT_NAME + " = '" + account.name + "' AND " + RawContacts.DELETED + " = 0", null, null);
                 if (queryCursor != null) {

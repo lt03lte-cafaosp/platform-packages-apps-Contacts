@@ -151,7 +151,9 @@ public class ImportProcessor extends ProcessorBase implements VCardEntryHandler 
 
         final VCardEntryConstructor constructor =
                 new VCardEntryConstructor(estimatedVCardType, account, estimatedCharset);
-        final VCardEntryCommitter committer = new VCardEntryCommitter(mResolver);
+        //final VCardEntryCommitter committer = new VCardEntryCommitter(mResolver);
+        final VCardEntryCommitterEx committer = new VCardEntryCommitterEx(mService,mResolver, account);
+        
         constructor.addEntryHandler(committer);
         constructor.addEntryHandler(this);
 
@@ -239,7 +241,10 @@ public class ImportProcessor extends ProcessorBase implements VCardEntryHandler 
                         mVCardParser.cancel();
                     }
                 }
-                mVCardParser.parse(is, interpreter);
+                
+                mVCardParser.addInterpreter(interpreter);
+                mVCardParser.parse(is, charset);
+                //mVCardParser.parse(is, interpreter);
 
                 successful = true;
                 break;

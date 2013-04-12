@@ -218,7 +218,7 @@ public class AccountSelectionUtil {
     public static final String ACTION_MULTI_PICK_SIM = "com.android.contacts.action.MULTI_PICK_SIM";   // multi pick sim contacts action
 
     public static void doImportFromSim(Context context, AccountWithDataSet account) {
-        if(ContactsUtils.checkContactsFull()){
+        if(SimContactsConstants.ACCOUNT_TYPE_PHONE.equals(account.type) && ContactsUtils.checkContactsFull(context)){
               Toast.makeText(context, R.string.contacts_full, 
                                 Toast.LENGTH_SHORT).show();
               return;
@@ -256,7 +256,7 @@ public class AccountSelectionUtil {
     }
 
     public static void doImportFromSdCard(Context context, AccountWithDataSet account) {
-        if(ContactsUtils.checkContactsFull()){
+        if(SimContactsConstants.ACCOUNT_TYPE_PHONE.equals(account.type) && ContactsUtils.checkContactsFull(context)){
               Toast.makeText(context, R.string.contacts_full, 
                                 Toast.LENGTH_SHORT).show();
               return;

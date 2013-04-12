@@ -262,7 +262,10 @@ public class ContactSaveService extends IntentService {
         // handled, then notify the fact to in-call screen.
         String action = intent.getAction();
         if (ACTION_NEW_RAW_CONTACT.equals(action)) {
-            if(ContactsUtils.checkContactsFull()){
+            createRawContact(intent);
+            CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
+        } else if (ACTION_SAVE_CONTACT.equals(action)) {
+            if(checkPhoneContactsFull(this,intent)){
               showToast(R.string.contacts_full);
               Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
               if(callbackIntent != null){
@@ -270,9 +273,6 @@ public class ContactSaveService extends IntentService {
               }
               return;
             }
-            createRawContact(intent);
-            CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
-        } else if (ACTION_SAVE_CONTACT.equals(action)) {
             saveContact(intent);
             CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
         } else if (ACTION_CREATE_GROUP.equals(action)) {
@@ -448,7 +448,18 @@ public class ContactSaveService extends IntentService {
     // Only for request accessing SIM card
     // when device is in the "AirPlane" mode.
     private static final int RESULT_AIR_PLANE_MODE = 10;
-
+    
+    private boolean checkPhoneContactsFull(Context context,Intent intent){
+      RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
+      for (int i=0; i < state.size(); i++) {
+            final RawContactDelta entity = state.get(i);
+            final String accountType = entity.getValues().getAsString(RawContacts.ACCOUNT_TYPE);
+            if(SimContactsConstants.ACCOUNT_TYPE_PHONE.equals(accountType) && entity.isContactInsert()){
+              return ContactsUtils.checkContactsFull(context);
+            }
+      }
+      return false;
+    }
     private void saveContact(Intent intent) {
         RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
         boolean isProfile = intent.getBooleanExtra(EXTRA_SAVE_IS_PROFILE, false);
