@@ -362,6 +362,18 @@ public class PeopleActivity extends ContactsActivity
         }
         super.onCreate(savedState);
 
+        // Register receiver
+        final IntentFilter filter = new IntentFilter(INTENT_SIM_DISABLED);
+
+        // If turn on airplane mode, hide the sim contacts.
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mSimStateReceiver, filter);
+        mIsSimStateRegistered = true;
+        final IntentFilter exportCompleteFilter = new IntentFilter(INTENT_EXPORT_COMPLETE);
+        registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
+        IntentFilter configFilter = new IntentFilter("Intent.ACTION_LOCALE_CHANGED");
+        registerReceiver(mConfigureChangeReceiver, configFilter);
+
         if (DialtactsActivity.checkContactStorage(getPackageManager(), getApplicationContext())) {
             finish();
             return;
@@ -385,19 +397,6 @@ public class PeopleActivity extends ContactsActivity
         if (Log.isLoggable(Constants.PERFORMANCE_TAG, Log.DEBUG)) {
             Log.d(Constants.PERFORMANCE_TAG, "PeopleActivity.onCreate finish");
         }
-
-        // Register receiver
-        final IntentFilter filter = new IntentFilter(INTENT_SIM_DISABLED);
-
-        // If turn on airplane mode, hide the sim contacts.
-        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
-        registerReceiver(mSimStateReceiver, filter);
-        mIsSimStateRegistered = true;
-		final IntentFilter exportCompleteFilter = new IntentFilter(INTENT_EXPORT_COMPLETE);
-        registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
-
-        IntentFilter configFilter = new IntentFilter("Intent.ACTION_LOCALE_CHANGED");
-        registerReceiver(mConfigureChangeReceiver, configFilter);
     }
     // If airplane mode is turned on, return true.
     private boolean isAirPlaneModeOn(String action) {
