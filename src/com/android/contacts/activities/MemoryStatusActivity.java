@@ -178,24 +178,40 @@ public class MemoryStatusActivity extends ContactsActivity {
                 continue;
             }
             Drawable icon = accountType != null ? accountType.getDisplayIcon(context) : null;
-            int total = -1;
+            int total = 0;
             int count = 0;
             if (!TextUtils.isEmpty(account.type))
             {
                 if (account.type.equals(SimContactsConstants.ACCOUNT_TYPE_SIM))
                 {
-                    total = ContactsUtils.getAdnCount(ContactsUtils.getSub(account.name, account.type));
+                    int sub = ContactsUtils.getSub(account.name, account.type);
+                    if(ContactsUtils.getUimLoaderStatus(sub) == 1) {
+                        total = ContactsUtils.getAdnCount(ContactsUtils.getSub(account.name, account.type));
+                        
+                        Cursor queryCursor = cr.query(RawContacts.CONTENT_URI, new String[] { RawContacts._ID },
+                                RawContacts.ACCOUNT_NAME + " = '" + account.name + "' AND " + RawContacts.DELETED + " = 0", null, null);
+                        if (queryCursor != null) {
+                            try {
+                                count = queryCursor.getCount();
+                            } finally {
+                                queryCursor.close();
+                            }
+                        }
+                    }
                 }
-                if(account.type.equals(SimContactsConstants.ACCOUNT_TYPE_PHONE) && ContactsUtils.isCmccTest()){
-                  total = ContactsUtils.getAdnCount(ContactsUtils.getSub(account.name, account.type));
-                }
-                Cursor queryCursor = cr.query(RawContacts.CONTENT_URI, new String[] { RawContacts._ID },
-                        RawContacts.ACCOUNT_NAME + " = '" + account.name + "' AND " + RawContacts.DELETED + " = 0", null, null);
-                if (queryCursor != null) {
-                    try {
-                        count = queryCursor.getCount();
-                    } finally {
-                        queryCursor.close();
+                else {
+                    if(account.type.equals(SimContactsConstants.ACCOUNT_TYPE_PHONE) && ContactsUtils.isCmccTest()){
+                      total = ContactsUtils.getAdnCount(ContactsUtils.getSub(account.name, account.type));
+                    }
+                    
+                    Cursor queryCursor = cr.query(RawContacts.CONTENT_URI, new String[] { RawContacts._ID },
+                            RawContacts.ACCOUNT_NAME + " = '" + account.name + "' AND " + RawContacts.DELETED + " = 0", null, null);
+                    if (queryCursor != null) {
+                        try {
+                            count = queryCursor.getCount();
+                        } finally {
+                            queryCursor.close();
+                        }
                     }
                 }
             }

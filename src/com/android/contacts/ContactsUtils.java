@@ -726,6 +726,79 @@ public class ContactsUtils {
         {
             return true;
         }
-    	  return false;
+        return false;
     }
+
+     public static void setUimLoaderStatus(int sub, int state){
+        if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
+        {
+            try {
+                IIccPhoneBookMSim iccIpb = IIccPhoneBookMSim.Stub.asInterface(
+                            ServiceManager.getService("simphonebook_msim"));
+                if (iccIpb != null) {
+                    iccIpb.setUimLoaderStatus(sub, state);
+                }
+            } catch (RemoteException ex) {
+            // ignore it
+            } catch (SecurityException ex) {
+                Log.i(TAG, ex.toString(), (new Exception()));
+            }
+            catch (Exception ex){
+            }
+        }
+        else
+        {
+            try {
+                IIccPhoneBook iccIpb = IIccPhoneBook.Stub.asInterface(
+                            ServiceManager.getService("simphonebook"));
+                if (iccIpb != null) {
+                    iccIpb.setUimLoaderStatus(state);
+                }
+            } catch (RemoteException ex) {
+            // ignore it
+            } catch (SecurityException ex) {
+                Log.i(TAG, ex.toString(), (new Exception()));
+            }
+            catch (Exception ex){
+            }
+        }
+     }
+
+     public static int getUimLoaderStatus(int sub) {
+        int st = -1;
+        if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
+        {
+            try {
+                IIccPhoneBookMSim iccIpb = IIccPhoneBookMSim.Stub.asInterface(
+                            ServiceManager.getService("simphonebook_msim"));
+                if (iccIpb != null) {
+                    st = iccIpb.getUimLoaderStatus(sub);
+                }
+            } catch (RemoteException ex) {
+            // ignore it
+            } catch (SecurityException ex) {
+                Log.i(TAG, ex.toString(), (new Exception()));
+            }
+            catch (Exception ex){
+            }
+        }
+        else
+        {
+            try {
+                IIccPhoneBook iccIpb = IIccPhoneBook.Stub.asInterface(
+                            ServiceManager.getService("simphonebook"));
+                if (iccIpb != null) {
+                    st = iccIpb.getUimLoaderStatus();
+                }
+            } catch (RemoteException ex) {
+            // ignore it
+            } catch (SecurityException ex) {
+                Log.i(TAG, ex.toString(), (new Exception()));
+            }
+            catch (Exception ex){
+            }
+        }
+
+        return st;
+     }
 }
