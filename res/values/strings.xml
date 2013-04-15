@@ -2036,6 +2036,8 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     
     <string name="menu_sendViaSMS">Send contact via SMS</string>
     <string name="menu_copyTo">"Copy to "</string>
+    <string name="title_switch_group_remote">"Remote group"</string>
+    <string name="title_switch_group_local">"Local group"</string>
 
 	<!--modify for call log   -->
 	<string name="last_call_duration">Last call duration:</string> 
