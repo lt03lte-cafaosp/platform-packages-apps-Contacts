@@ -272,7 +272,7 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             if (SimContactsConstants.SIM_NAME_2.equals(accountName)) {
                 sub = 1;
             }
-            if (!is3GCard(sub)) {
+            if (!is3GCard(sub) && mState != null) {
                 for (ValuesDelta entry : mState
                         .getMimeEntries(Phone.CONTENT_ITEM_TYPE)) {
                     if (Phone.TYPE_HOME == entry.getAsLong(Phone.TYPE)) {
