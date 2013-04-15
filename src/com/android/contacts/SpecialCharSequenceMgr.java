@@ -65,6 +65,7 @@ public class SpecialCharSequenceMgr {
     private static final String MMI_IMEI_DISPLAY = "*#06#";
     private static final String PRL_VERSION_DISPLAY = "*#0000#";
     private static final String FTMODE_DISPLAY = "*#0532#";
+    private static final String DM_SETTING = "*#3636#";
     private static final int SUB1 = 0;
     private static final int SUB2 = 1;
 
@@ -107,7 +108,8 @@ public class SpecialCharSequenceMgr {
                 || handlePinEntry(context, dialString)
                 || handleAdnEntry(context, dialString, textField)
                 || handleSecretCode(context, dialString)
-                || handleFTModeDisplay(context, dialString)) {
+                || handleFTModeDisplay(context, dialString)
+                || handleDmCode(context, dialString)) {
             return true;
         }
 
@@ -141,6 +143,24 @@ public class SpecialCharSequenceMgr {
         }
         return false;
     }
+
+    static private boolean handleDmCode(Context context, String input)
+	{
+		if(input.equals(DM_SETTING))
+		{
+			Intent intent = new Intent(Intent.ACTION_VIEW);
+			intent.setClassName("com.android.dm", "com.android.dm.DmDebugMenu");
+			try {
+				context.startActivity(intent);
+			} catch (ActivityNotFoundException e) {
+				Log.i(TAG, "no activity to handle handleDmCode");
+				return false;
+			}
+			return true;
+		}
+
+		return false;
+	}
 
     /**
      * Cleanup everything around this class. Must be run inside the main thread.
