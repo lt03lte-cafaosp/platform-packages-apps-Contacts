@@ -706,9 +706,9 @@ public class PeopleActivity extends ContactsActivity
         dismissDialog(ImportExportDialogFragment.TAG);
         dismissDialog(SelectAccountDialogFragment.TAG);
 
-        if(null != mExportThread) {
-            mExportThread.dismissPopup();
-        }
+        //if(null != mExportThread) {
+            //mExportThread.dismissPopup();
+        //}
     }
 
     @Override
