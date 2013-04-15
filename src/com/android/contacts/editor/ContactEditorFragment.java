@@ -1272,6 +1272,7 @@ public class ContactEditorFragment extends Fragment implements
     private static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
     private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
     private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
+    private static final int RESULT_RECORD_INVALID = 10; // only for sim failure of record is valid
 
     // Only for accessing SIM card
     // when device is in the "AirPlane" mode.
@@ -1307,6 +1308,12 @@ public class ContactEditorFragment extends Fragment implements
                             Toast.LENGTH_LONG).show();
                 } else if( result == RESULT_SIM_FAILURE ){
                     Toast.makeText(mContext, R.string.contactSavedToSimCardError, Toast.LENGTH_LONG).show();
+                }else if ( result == RESULT_RECORD_INVALID ){
+                    Toast.makeText(mContext, R.string.contact_empty, Toast.LENGTH_LONG).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
                 }else if ( result == RESULT_NUMBER_ANR_FAILURE ){
                     Toast.makeText(mContext, R.string.number_anr_too_long, Toast.LENGTH_LONG).show();
                     mStatus = Status.EDITING;

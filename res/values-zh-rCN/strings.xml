@@ -742,11 +742,13 @@
   <string name="str_slot">卡</string>	
   <!--modify for call log  -->
   
-  <string name="contacts_full">存储空间满，联系人操作失败</string>
-    <string name="callFailure">呼叫失败</string> 
-    <string name="ipnum_not_set">没有设置IP号码!</string>
-    <string name="recentCalls_IPCall_card1">卡1 IP呼叫</string>
-    <string name="recentCalls_IPCall_card2">卡2 IP呼叫</string>
-    <string name="recentCalls_IPCall">IP呼叫</string>
-    <string name="recentCalls_sendMessage">发送信息</string>
+	<string name="contacts_full">存储空间满，联系人操作失败</string>
+	<string name="callFailure">呼叫失败</string> 
+	<string name="ipnum_not_set">没有设置IP号码!</string>
+	<string name="recentCalls_IPCall_card1">卡1 IP呼叫</string>
+	<string name="recentCalls_IPCall_card2">卡2 IP呼叫</string>
+	<string name="recentCalls_IPCall">IP呼叫</string>
+	<string name="recentCalls_sendMessage">发送信息</string>
+	
+	<string name="contact_empty">没有输入有效内容，将不会被保存!</string>
 </resources>

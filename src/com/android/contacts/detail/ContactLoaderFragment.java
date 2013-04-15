@@ -629,6 +629,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
 
     private Handler mHandler = null;
     private static final int RESULT_EMAIL_FULL_FAILURE = -1;
+    private static final int RESULT_ANR_FULL_FAILURE = -3;
     private static final int RESULT_SUCCESS = 1;
     private void copyToCard(final int sub) {
         if (is3GCard(sub))
@@ -637,6 +638,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             final int MSG_ERROR = 1;
             final int MSG_CANCEL = 2;
             final int MSG_NO_EMPTY_EMAIL = 3;
+            final int MSG_NO_EMPTY_ANR = 4;
             if(mHandler == null){
                 mHandler = new Handler() {
                     public void handleMessage(Message msg) {
@@ -653,6 +655,9 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                         case MSG_NO_EMPTY_EMAIL:
                             Toast.makeText(mContext,R.string.no_empty_email_in_usim, Toast.LENGTH_SHORT).show();
                             break;
+                        case MSG_NO_EMPTY_ANR:
+                            Toast.makeText(mContext,R.string.number_anr_full, Toast.LENGTH_SHORT).show();
+                            break;    
                     }
                   }
                 };
@@ -782,10 +787,18 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                                         showToast = false;
                                     }
                                 }
+                                else if(ret == RESULT_ANR_FULL_FAILURE) {
+                                    itemUri = ContactsUtils.insertToCard(mContext, name, num, strEmail, "", sub);
+                                    if(showToast) {
+                                        msg.what = MSG_NO_EMPTY_ANR;
+                                        mHandler.sendMessage(msg);
+                                        showToast = false;
+                                    }
+                                }
                             }
                         }
-                        // if show toast MSG_NO_EMPTY_EMAIL, don't show succes or other error toast
-                        if(ret != RESULT_EMAIL_FULL_FAILURE) {
+                        // if show toast MSG_NO_EMPTY_EMAIL or RESULT_ANR_FULL_FAILURE, don't show succes or other error toast
+                        if(ret != RESULT_EMAIL_FULL_FAILURE && ret != RESULT_ANR_FULL_FAILURE) {
                             if(itemUri != null){
                                 ret = Integer.parseInt(itemUri.getLastPathSegment());
                                 if(ret == RESULT_SUCCESS) {

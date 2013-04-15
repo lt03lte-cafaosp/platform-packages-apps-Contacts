@@ -433,6 +433,7 @@ public class ContactSaveService extends IntentService {
         }
         return serviceIntent;
     }
+    private static final int RESULT_ANR_FULL_FAILURE = -3;
     private static final int RESULT_EMAIL_FULL_FAILURE = -1;
     private static final int RESULT_UNCHANGED = 0;
     private static final int RESULT_SUCCESS = 1;
@@ -444,6 +445,7 @@ public class ContactSaveService extends IntentService {
     private static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
     private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
     private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
+    private static final int RESULT_RECORD_INVALID = 10; // only for sim failure of record is valid
 
     // Only for request accessing SIM card
     // when device is in the "AirPlane" mode.
@@ -737,6 +739,10 @@ public class ContactSaveService extends IntentService {
         //if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
         //    return RESULT_NO_NUMBER;
         //}
+        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+            && TextUtils.isEmpty(anr) && TextUtils.isEmpty(email)) {
+            return RESULT_RECORD_INVALID;
+        }
 
         if ((!TextUtils.isEmpty(number) && number.length() > 20)
                 || (!TextUtils.isEmpty(anr) && anr.length() > 20)) {
@@ -804,10 +810,48 @@ public class ContactSaveService extends IntentService {
                 else {
                     if(ret == RESULT_EMAIL_FULL_FAILURE) {
                         values.remove(SimContactsConstants.STR_EMAILS);
+                        showToast(R.string.email_address_full);
+                        
+                        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                            && TextUtils.isEmpty(anr)) {
+                            return RESULT_RECORD_INVALID;
+                        }
+                        
                         resultUri = mSimContactsOperation.insert(values,
                             subscription);
-                        showToast(R.string.email_address_full);
+                        
                         entity.getMimeEntries(Email.CONTENT_ITEM_TYPE).get(0).markDeleted();
+                        
+                        ret = Integer.parseInt(resultUri.getLastPathSegment());
+                        if(ret == RESULT_SUCCESS) {
+                            result = RESULT_SUCCESS;
+                        }
+                    }
+                    else if(ret == RESULT_ANR_FULL_FAILURE){
+                        values.remove(SimContactsConstants.STR_ANRS);
+                        showToast(R.string.number_anr_full);
+                        
+                        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                            && TextUtils.isEmpty(email)) {
+                            return RESULT_RECORD_INVALID;
+                        }
+                        
+                        resultUri = mSimContactsOperation.insert(values,
+                            subscription);
+                        
+                        ArrayList<ValuesDelta> phones = entity.getMimeEntries(Phone.CONTENT_ITEM_TYPE);
+                        if(phones != null) {
+                            for (ValuesDelta valuesDelta : phones) {
+                                if (valuesDelta.getAfter() != null
+                                        && valuesDelta.getAfter().size() != 0) {
+                                    if (Phone.TYPE_MOBILE == valuesDelta.getAfter().getAsLong(Phone.TYPE)) {
+                                        
+                                    } else {
+                                        valuesDelta.markDeleted();
+                                    }
+                                }
+                            }
+                        }
                         
                         ret = Integer.parseInt(resultUri.getLastPathSegment());
                         if(ret == RESULT_SUCCESS) {
@@ -828,12 +872,48 @@ public class ContactSaveService extends IntentService {
             else {
                 if(resultInt == RESULT_EMAIL_FULL_FAILURE) {
                     values.remove(SimContactsConstants.STR_NEW_EMAILS);
+                    showToast(R.string.email_address_full);
+                    if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                        && TextUtils.isEmpty(anr)) {
+                        return RESULT_RECORD_INVALID;
+                    }
+                    
                     resultInt = mSimContactsOperation.update(values,
                         subscription);
-                    showToast(R.string.email_address_full);
+                    
                     entity.getMimeEntries(Email.CONTENT_ITEM_TYPE).get(0).markDeleted();
 
                     if (resultInt == 1) {
+                        result = RESULT_SUCCESS;
+                    }
+                }
+                else if(resultInt == RESULT_ANR_FULL_FAILURE){
+                    values.remove(SimContactsConstants.STR_NEW_ANRS);
+                    showToast(R.string.number_anr_full);
+                    
+                    if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                        && TextUtils.isEmpty(email)) {
+                        return RESULT_RECORD_INVALID;
+                    }
+                    
+                    resultInt = mSimContactsOperation.update(values,
+                        subscription);
+                    
+                    ArrayList<ValuesDelta> phones = entity.getMimeEntries(Phone.CONTENT_ITEM_TYPE);
+                    if(phones != null) {
+                        for (ValuesDelta valuesDelta : phones) {
+                            if (valuesDelta.getAfter() != null
+                                    && valuesDelta.getAfter().size() != 0) {
+                                if (Phone.TYPE_MOBILE == valuesDelta.getAfter().getAsLong(Phone.TYPE)) {
+                                    
+                                } else {
+                                    valuesDelta.markDeleted();
+                                }
+                            }
+                        }
+                    }
+                    
+                    if(resultInt == RESULT_SUCCESS) {
                         result = RESULT_SUCCESS;
                     }
                 }

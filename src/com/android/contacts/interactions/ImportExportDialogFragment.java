@@ -150,8 +150,10 @@ public class ImportExportDialogFragment extends DialogFragment
     private static final int TOAST_CONTACT_NAME_TOO_LONG = 3; // only for contact name too long
     private static final int TOAST_EXPORT_CANCELED = 4; //there is a case export is canceled by user
     private static final int TOAST_EMAIL_FULL = 5;
+    private static final int TOAST_ANR_FULL = 6;
 
     private static final int RESULT_EMAIL_FULL_FAILURE = -1;
+    private static final int RESULT_ANR_FULL_FAILURE = -3;
 
     // use for log.d or log.i,to disable or enable it.
     private static final boolean DEBUG = false;
@@ -645,6 +647,7 @@ public class ImportExportDialogFragment extends DialogFragment
         Activity mpeople;
         private int adnCount = 0;
         boolean showEmailFull = true;
+        boolean showAnrFull = true;
 
         public ExportToSimThread(int type, int subscription, ArrayList<String[]> contactList, Activity mpactiv) {
             super();
@@ -795,6 +798,14 @@ public class ImportExportDialogFragment extends DialogFragment
                                             mToastHandler.sendEmptyMessage(TOAST_EMAIL_FULL);
                                         }
                                         showEmailFull = false;
+                                    }
+                                    else if(ret == RESULT_ANR_FULL_FAILURE){
+                                        itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, "", subscription);
+                                        Log.d(TAG, "Exported contact showEmailFull = " + showEmailFull);
+                                        if(showAnrFull) {
+                                            mToastHandler.sendEmptyMessage(TOAST_ANR_FULL);
+                                        }
+                                        showAnrFull = false;
                                     }
                                     else {
                                         if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
@@ -988,7 +999,11 @@ public class ImportExportDialogFragment extends DialogFragment
 
                     case TOAST_EMAIL_FULL:
                         Toast.makeText(mpeople, R.string.email_address_full, Toast.LENGTH_SHORT).show();
-                        break;    
+                        break;  
+
+                    case TOAST_ANR_FULL:
+                        Toast.makeText(mpeople, R.string.number_anr_full, Toast.LENGTH_SHORT).show();
+                        break;      
 
                      // add toast handler when export is canceled
                     case TOAST_EXPORT_CANCELED:
