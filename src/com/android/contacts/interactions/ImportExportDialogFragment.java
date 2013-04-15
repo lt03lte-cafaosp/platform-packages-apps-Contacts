@@ -714,6 +714,7 @@ public class ImportExportDialogFragment extends DialogFragment
                 if (contactList != null) {
                     Iterator<String[]> iterator = contactList.iterator();
                     Uri result = null;
+                    boolean isSimCardFull = false;
                     while (iterator.hasNext() && !canceled) {
                         String[] contactInfo = iterator.next();
                         String name = "";
@@ -776,6 +777,7 @@ public class ImportExportDialogFragment extends DialogFragment
                             if (itemUri == null) {
                                 // add toast handler when sim card is full
                                 if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
+                                    isSimCardFull = true;
                                     mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
                                     break;
                                 } else {
@@ -801,7 +803,7 @@ public class ImportExportDialogFragment extends DialogFragment
                                     }
                                     else if(ret == RESULT_ANR_FULL_FAILURE){
                                         itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, "", subscription);
-                                        Log.d(TAG, "Exported contact showEmailFull = " + showEmailFull);
+                                        Log.d(TAG, "Exported contact showAnrFull = " + showAnrFull);
                                         if(showAnrFull) {
                                             mToastHandler.sendEmptyMessage(TOAST_ANR_FULL);
                                         }
@@ -809,6 +811,8 @@ public class ImportExportDialogFragment extends DialogFragment
                                     }
                                     else {
                                         if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
+                                            Log.d(TAG, "Exported contact SimCardFull");
+                                            isSimCardFull = true;
                                             mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
                                             break;
                                         } else {
@@ -822,6 +826,9 @@ public class ImportExportDialogFragment extends DialogFragment
                                 }
                                 insertCount++;
                             }
+                        }
+                        if(isSimCardFull) {
+                            break;
                         }
                     }
                 }
