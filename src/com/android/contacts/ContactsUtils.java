@@ -539,12 +539,14 @@ public class ContactsUtils {
         ContentValues mValues = new ContentValues();
         mValues.clear();
         mValues.put("tag", name);
-        mValues.put("number", PhoneNumberUtils.stripSeparators(number));
+        if(!TextUtils.isEmpty(number)) {
+            mValues.put("number", number.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""));
+        }
         if (!TextUtils.isEmpty(emails)) {
             mValues.put("emails", emails);
         }
         if (!TextUtils.isEmpty(anrNumber)) {
-            mValues.put("anrs", anrNumber);
+            mValues.put("anrs", anrNumber.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""));
         }
 
         SimContactsOperation mSimContactsOperation = new SimContactsOperation(context);

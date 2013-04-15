@@ -32,6 +32,7 @@ import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Profile;
 import android.provider.ContactsContract.RawContacts;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.contacts.model.account.AccountType;
@@ -513,6 +514,22 @@ public class RawContactDelta implements Parcelable {
                     newEmail = emailValuesDelta.mAfter.getAsString(Email.DATA);
                 }
             }
+        }
+
+        if(!TextUtils.isEmpty(number)) {
+            number = number.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+        }
+
+        if(!TextUtils.isEmpty(anr)) {
+            anr = anr.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+        }
+
+        if(!TextUtils.isEmpty(newNumber)) {
+            newNumber = newNumber.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+        }
+
+        if(!TextUtils.isEmpty(newAnr)) {
+            newAnr = newAnr.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
         }
 
         if (isContactInsert()) {
