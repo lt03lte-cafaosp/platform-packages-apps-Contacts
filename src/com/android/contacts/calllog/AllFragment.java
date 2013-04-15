@@ -49,7 +49,7 @@ public class AllFragment extends Fragment {
 
     private static final boolean debug = true;
 
-    private static final boolean mIsSingleCard = false; // chenxiang 20110713
+    private static final boolean mIsSingleCard = false; 
 
     private static final String ALL_LAST_CALLS = "all_last_calls";
     private static final String ALL_INCOMING_CALLS = "all_incoming_calls";

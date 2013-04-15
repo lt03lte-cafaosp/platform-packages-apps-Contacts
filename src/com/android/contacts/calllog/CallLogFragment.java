@@ -145,7 +145,11 @@ public class CallLogFragment extends ListFragment
     // Set the filename of save call type information
     private static final String FILE_NAME = "save_calltype";
     private int mCallType = TYPE_INDEX_ALL;
-
+    private String mQueryName = "";
+    private String mQueryNumber = "";
+    private Boolean isInViewByName = false;
+    private Boolean isInViewByNumber = false;
+	 private Boolean isPartSearch = true;
     private OnClickListener callTypeListener = new OnClickListener(){
         @Override
         public void onClick(View v) {
@@ -546,9 +550,12 @@ public class CallLogFragment extends ListFragment
         mAdapter.setLoading(true);
        
         //mCallLogQueryHandler.fetchCalls(mCallTypeFilter);
-        mCallLogQueryHandler.fetchAllCalls();
+       
   
-        if (mShowingVoicemailOnly) {
+    
+	  
+	    mCallLogQueryHandler.fetchAllCalls();
+	         if (mShowingVoicemailOnly) {
             mShowingVoicemailOnly = false;
             getActivity().invalidateOptionsMenu();
         }
@@ -769,7 +776,28 @@ public class CallLogFragment extends ListFragment
             }
         }
     }
+    
+   
+    public boolean isInSearchMode() {
+        if (isInViewByNumber || isInViewByName ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
+    public void exitSearchMode() {          
+           isInViewByNumber = false;
+            isPartSearch = true;
+            mQueryNumber = "";         
+            isInViewByName = false;
+            mQueryName = "";
+            mCallLogQueryHandler.setNumber(mQueryNumber);
+            mCallLogQueryHandler.setName(mQueryName); 
+            refreshData();
+    }
+
+  
     /** Requests updates to the data to be shown. */
     private void refreshData() {
         // Prevent unnecessary refresh.
@@ -833,6 +861,24 @@ public class CallLogFragment extends ListFragment
         getActivity().startService(serviceIntent);
     }
 
+ public void setSearchNumber(String data, boolean partSearch, boolean needRefresh) {
+        Log.d(TAG, "setSearchNumber:" + data + " isPartSearch:" + partSearch);
+         if (data == null) return;
+        
+         isInViewByNumber = true;
+         isInViewByName = true;
+         mQueryNumber = data;
+         mQueryName = data;
+         isPartSearch = partSearch;  
+         mCallLogQueryHandler.setNumber(mQueryNumber);
+         mCallLogQueryHandler.setName(mQueryName); 
+         mCallLogQueryHandler.setPartSearch(isPartSearch);   
+         mRefreshDataRequired = true;        
+         if (needRefresh) {
+            refreshData();
+        }
+        
+    }
     /**
      * Register a phone call filter to reset the call type when a phone call is place.
      */

@@ -2052,10 +2052,19 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 	<string name="all">All calls</string>
 	<string name="duration">Calls duration</string>
 	<string name="str_slot1">Card1 </string>
-        <string name="str_slot2">Card2 </string>
-        <string name="str_slot">Card </string>
+    <string name="str_slot2">Card2 </string>
+    <string name="str_slot">Card </string>
 	 <string name="all_call_log">All call logs</string>
-         <string name="title_slot_change">Multi SIM change</string>
+     <string name="title_slot_change">Multi SIM change</string>
+     <string name="calllogSearchHint">"Search rencent calls"</string>
+     <string name="delete_call_title">"delete call log"</string>
+     <string name="title_del_call">delete</string>   
+   
+  
+    <string name="delete_call_message">"deleting..."</string>
+    <string name="delete_call_alert">"are you sure to delete calllog?"</string>
+   
+    <string name="btn_cancel">"cancel"</string>
          <!--modify for call log  -->
 	<!-- The menu item to filter the list of auto_sync_to_baidu_cloud -->
     <string name="menu_auto_sync_to_baidu_cloud">Auto sync to Baidu Yun</string>

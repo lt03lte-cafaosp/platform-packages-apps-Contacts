@@ -262,6 +262,21 @@ import javax.annotation.concurrent.GuardedBy;
             selection = String.format("(%s) AND (%s = ?)", selection, Calls.SUBSCRIPTION);
             selectionArgs.add(Integer.toString(subscription));
         }
+         if(number!=""||name!=""){
+           
+           
+            if (isPartSearch) {
+                selection = String.format("(%s) AND ((%s LIKE ", selection, Calls.NUMBER);
+                selection += ("'%" + number + "%') OR (" + Calls.CACHED_NAME + " LIKE '%" + name + "%'))");
+                Log.d(TAG, "isPartSearch: " + isPartSearch + " selection: " + selection);
+            } else {
+                selection = String.format("(%s) AND ((%s = ?) OR (%s = ?))", selection, Calls.NUMBER, Calls.CACHED_NAME);
+                selectionArgs.add(number);
+                selectionArgs.add(name);
+                Log.d(TAG, "isPartSearch: " + isPartSearch + " selection: " + selection);
+            }
+        }
+         
         startQuery(token, requestId, Calls.CONTENT_URI_WITH_VOICEMAIL,
                 CallLogQuery._PROJECTION, selection, selectionArgs.toArray(EMPTY_STRING_ARRAY),
                 Calls.DEFAULT_SORT_ORDER);
@@ -428,6 +443,9 @@ import javax.annotation.concurrent.GuardedBy;
     }
     private int callType = 0;
     private int subscription = -1;
+	private String number="";
+	private String name="";
+	private Boolean isPartSearch=false;
 
     public void setCallType(int callType) {
         this.callType = callType;
@@ -436,5 +454,13 @@ import javax.annotation.concurrent.GuardedBy;
     public void setSubscription(int subscription) {
         this.subscription = subscription;
     }
-
+    public void setNumber(String number) {
+        this.number = number;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+	public void setPartSearch(Boolean sPartSearch) {
+        this.isPartSearch = sPartSearch;
+    }
 }
