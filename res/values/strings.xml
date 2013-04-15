@@ -318,6 +318,7 @@
     <string name="sim_card_full">Error, Sim Card is full.</string>
     <string name="tag_too_long">Error, Contact name is too long.</string>
     <string name="no_phone_number">Please insert phone number.</string>
+    <string name="no_name">Please insert name.</string>
     <string name="invalid_phone_number">Error, Number is invalid.</string>
 
     <!-- Toast displayed when a group is saved [CHAR LIMIT=NONE] -->

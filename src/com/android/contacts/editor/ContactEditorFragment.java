@@ -1265,7 +1265,7 @@ public class ContactEditorFragment extends Fragment implements
     private static final int RESULT_UNCHANGED = 0;
     private static final int RESULT_SUCCESS = 1;
     private static final int RESULT_FAILURE = 2;
-    private static final int RESULT_NO_NUMBER = 3;
+    private static final int RESULT_NO_NAME = 3;
     private static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
     private static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
     private static final int RESULT_NUMBER_ANR_FAILURE = 6; // only for sim failure of number or anr is too long
@@ -1282,10 +1282,11 @@ public class ContactEditorFragment extends Fragment implements
             Uri contactLookupUri, int result) {
         Log.d(TAG, "onSaveCompleted(" + saveMode + ", " + contactLookupUri);
         if (hadChanges) {
-            if (result != RESULT_NO_NUMBER && result != RESULT_SIM_FAILURE
+            if (result != RESULT_NO_NAME && result != RESULT_SIM_FAILURE
                     && result != RESULT_NUMBER_ANR_FAILURE && result != RESULT_EMAIL_FAILURE
                     && result != RESULT_SIM_FULL_FAILURE && result != RESULT_TAG_FAILURE
                     && result != RESULT_NUMBER_INVALID && result != RESULT_AIR_PLANE_MODE
+                    && result != RESULT_RECORD_INVALID
                     && saveSucceeded) {
                 if ( saveMode != SaveMode.JOIN ) {
                     if (contactLookupUri != null) {
@@ -1334,8 +1335,8 @@ public class ContactEditorFragment extends Fragment implements
                     setEnabled(true);
                     bindEditors();
                     return;
-                }else if( result == RESULT_NO_NUMBER ){
-                    Toast.makeText(mContext, R.string.no_phone_number, Toast.LENGTH_SHORT).show();
+                }else if( result == RESULT_NO_NAME ){
+                    Toast.makeText(mContext, R.string.no_name, Toast.LENGTH_SHORT).show();
                     mStatus = Status.EDITING;
                     setEnabled(true);
                     // If there is no number when we edit/add a contact, we need

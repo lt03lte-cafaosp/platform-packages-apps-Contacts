@@ -438,7 +438,7 @@ public class ContactSaveService extends IntentService {
     private static final int RESULT_UNCHANGED = 0;
     private static final int RESULT_SUCCESS = 1;
     private static final int RESULT_FAILURE = 2;
-    private static final int RESULT_NO_NUMBER = 3;
+    private static final int RESULT_NO_NAME = 3;
     private static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
     private static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
     private static final int RESULT_NUMBER_ANR_FAILURE = 6; // only for sim failure of number or anr is too long
@@ -736,12 +736,18 @@ public class ContactSaveService extends IntentService {
             email = values.getAsString(SimContactsConstants.STR_NEW_EMAILS);
         }
 
-        if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
-            return RESULT_NO_NUMBER;
-        }
-        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
-            && TextUtils.isEmpty(anr) && TextUtils.isEmpty(email)) {
-            return RESULT_RECORD_INVALID;
+        //if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
+        //    return RESULT_NO_NUMBER;
+        //}
+
+        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)
+            ) {
+            if(!TextUtils.isEmpty(email)) {
+                return RESULT_NO_NAME;
+            }
+            else {
+                return RESULT_RECORD_INVALID;
+            }
         }
 
         if ((!TextUtils.isEmpty(number) && number.length() > 20)
