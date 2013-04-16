@@ -1949,6 +1949,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <string name="contactsLocalGroupsLabel">Local groups</string>
     <string name="select_all">All</string>
     <string name="btn_ok">Ok</string>
+    <string name="btn_cancel">Cancel</string>
     <string name="dialog_voicemail_airplane_mode_message">To call voicemail, first turn off Airplane mode.</string>
 
     <!-- Choose Sim Card to Import -->

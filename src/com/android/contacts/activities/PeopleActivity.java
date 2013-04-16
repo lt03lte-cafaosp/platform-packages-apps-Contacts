@@ -1855,7 +1855,7 @@ public class PeopleActivity extends ContactsActivity
                 startActivity(intent);
                 return true;
             }
-			case R.id.menu_switch_group: {
+            case R.id.menu_switch_group: {
                 isLocalGroupsShown = !isLocalGroupsShown;
                 updateGroupsMenu();
                 mGroupsFragment.updateGroupData();
