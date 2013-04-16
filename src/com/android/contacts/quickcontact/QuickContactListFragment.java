@@ -113,8 +113,11 @@ public class QuickContactListFragment extends Fragment {
                         R.id.secondary_action_button);
                 final ImageView alternateActionButton1 = (ImageView) resultView.findViewById(
                         R.id.third_action_button);
+                final ImageView editCallActionButton = (ImageView) resultView.findViewById(
+                        R.id.editcall_action_button);        
                 final View alternateActionDivider = resultView.findViewById(R.id.vertical_divider);
                 final View alternateActionDividerThird = resultView.findViewById(R.id.vertical_divider_third);
+                final View editCallActionDivider = resultView.findViewById(R.id.vertical_divider_editcall);
                 final ImageView presenceIconView =
                         (ImageView) resultView.findViewById(R.id.presence_icon);
 
@@ -122,6 +125,8 @@ public class QuickContactListFragment extends Fragment {
                 actionsContainer.setTag(action);
                 alternateActionButton.setOnClickListener(mSecondaryActionClickListener);
                 alternateActionButton.setTag(action);
+                editCallActionButton.setOnClickListener(mEditCallActionClickListener);
+                editCallActionButton.setTag(action);
                 if(FeatureQuery.FEATURE_CSVT)
                 {
                     alternateActionButton1.setOnClickListener(mThirdActionClickListener);
@@ -130,16 +135,20 @@ public class QuickContactListFragment extends Fragment {
 
                 final boolean hasAlternateAction = action.getAlternateIntent() != null;
                 final boolean hasAlternateAction1 = action.get2AlternateIntent() != null;
+                final boolean hasEditCallAction = action.getEditCallIntent() != null;
                 alternateActionDivider.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+                editCallActionDivider.setVisibility(hasEditCallAction ? View.VISIBLE : View.GONE);
                 if(FeatureQuery.FEATURE_CSVT)
                     alternateActionDivider.setVisibility(hasAlternateAction1 ? View.VISIBLE : View.GONE);
                 alternateActionButton.setImageDrawable(action.getAlternateIcon());
+                editCallActionButton.setImageDrawable(action.getEditCallIcon());
                 if(FeatureQuery.FEATURE_CSVT)
                     alternateActionButton1.setImageDrawable(action.get2AlternateIcon());
                 alternateActionButton.setContentDescription(action.getAlternateIconDescription());
                 if(FeatureQuery.FEATURE_CSVT)
                     alternateActionButton1.setContentDescription(action.get2AlternateIconDescription());
                 alternateActionButton.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+                editCallActionButton.setVisibility(hasEditCallAction ? View.VISIBLE : View.GONE);
                 if(FeatureQuery.FEATURE_CSVT)
                     alternateActionButton1.setVisibility(hasAlternateAction1 ? View.VISIBLE : View.GONE);
                 else {
@@ -202,6 +211,15 @@ public class QuickContactListFragment extends Fragment {
         }
     };
 
+    /** A secondary action (edit call) was clicked */
+    protected final OnClickListener mEditCallActionClickListener = new OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            final Action action = (Action) v.getTag();
+            if (mListener != null) mListener.on3ItemClicked(action);
+        }
+    };
+
    
     /** A third action (VT) was clicked */
     protected final OnClickListener mThirdActionClickListener = new OnClickListener() {
@@ -224,5 +242,6 @@ public class QuickContactListFragment extends Fragment {
         void onOutsideClick();
         void onItemClicked(Action action, boolean alternate);
         void on2ItemClicked(Action action, boolean alternate);
+        void on3ItemClicked(Action action);
     }
 }

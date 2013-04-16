@@ -2064,8 +2064,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
   
     <string name="delete_call_message">"deleting..."</string>
     <string name="delete_call_alert">"are you sure to delete calllog?"</string>
-   
-    <string name="btn_cancel">"cancel"</string>
+  
          <!--modify for call log  -->
 	<!-- The menu item to filter the list of auto_sync_to_baidu_cloud -->
     <string name="menu_auto_sync_to_baidu_cloud">Auto sync to Baidu Yun</string>

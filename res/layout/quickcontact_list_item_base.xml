@@ -31,7 +31,7 @@
         android:paddingRight="14dip"
         android:background="?android:attr/selectableItemBackground"
         android:duplicateParentState="false"
-        android:nextFocusLeft="@+id/third_action_button"/>
+        android:nextFocusLeft="@+id/editcall_action_button"/>
     <!--View
         android:id="@+id/vertical_divider"
         android:layout_width="1dip"
@@ -39,7 +39,7 @@
         android:layout_gravity="center_vertical"
         android:background="?android:attr/dividerVertical" /-->
     <View
-        android:id="@+id/vertical_divider"
+        android:id="@+id/vertical_divider_editcall"
         android:layout_width="1dip"
         android:layout_height="match_parent"
         android:layout_gravity="center_vertical"
@@ -47,7 +47,7 @@
         android:layout_marginBottom="@dimen/detail_vertical_divider_vertical_margin"
         android:background="?android:attr/dividerVertical" />
     <ImageView
-        android:id="@+id/third_action_button"
+        android:id="@+id/editcall_action_button"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:paddingLeft="8dip"
