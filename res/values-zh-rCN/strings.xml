@@ -754,4 +754,5 @@
 	<string name="recentCalls_sendMessage">发送信息</string>
 	
 	<string name="contact_empty">没有输入有效内容，将不会被保存!</string>
+	<string name="sim_loading">正在读卡，请稍后</string>
 </resources>

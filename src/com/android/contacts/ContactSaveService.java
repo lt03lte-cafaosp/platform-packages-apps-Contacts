@@ -273,6 +273,14 @@ public class ContactSaveService extends IntentService {
               }
               return;
             }
+            if(checkSimContactsInLoading(this,intent)){
+              showToast(R.string.sim_loading);
+              Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+              if(callbackIntent != null){
+                deliverCallback(callbackIntent);
+              }
+              return;
+            }
             saveContact(intent);
             CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
         } else if (ACTION_CREATE_GROUP.equals(action)) {
@@ -458,6 +466,20 @@ public class ContactSaveService extends IntentService {
             final String accountType = entity.getValues().getAsString(RawContacts.ACCOUNT_TYPE);
             if(SimContactsConstants.ACCOUNT_TYPE_PHONE.equals(accountType) && entity.isContactInsert()){
               return ContactsUtils.checkContactsFull(context);
+            }
+      }
+      return false;
+    }
+    private boolean checkSimContactsInLoading(Context context,Intent intent){
+      RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
+      for (int i=0; i < state.size(); i++) {
+            final RawContactDelta entity = state.get(i);
+            final String accountType = entity.getValues().getAsString(RawContacts.ACCOUNT_TYPE);
+            final String accountName = entity.getValues().getAsString(RawContacts.ACCOUNT_NAME);
+            final int subscription = ContactEditorActivity.getSubscription(accountType, accountName);
+            final boolean isCardOperation = (subscription != -1) ? true : false;
+            if(isCardOperation){
+              return ContactsUtils.getUimLoaderStatus(subscription) != 1;
             }
       }
       return false;
