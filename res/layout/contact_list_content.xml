@@ -27,6 +27,18 @@
     android:layout_height="match_parent"
     android:background="?attr/contact_browser_background" >
 
+    <!-- when the search result is empty,show this view for a prompt -->
+    <TextView
+        android:id="@+id/empty_result"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/listFoundAllContactsZero"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="?android:attr/textColorSecondary"
+        android:gravity="center"
+        android:layout_marginTop="15dip"
+        android:visibility="gone"/>
+
     <!-- Shown only when an Account filter is set.
          - paddingTop should be here to show "shade" effect correctly. -->
     <include

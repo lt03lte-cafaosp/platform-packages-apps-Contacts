@@ -32,10 +32,12 @@ import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Profile;
 import android.provider.ContactsContract.RawContacts;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.dataitem.DataItem;
+import com.android.contacts.SimContactsConstants;
 import com.android.contacts.test.NeededForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -423,6 +425,133 @@ public class RawContactDelta implements Parcelable {
         }
     }
 
+    public ContentValues buildSimDiff() {
+        ContentValues values = new ContentValues();
+        ArrayList<ValuesDelta> names = getMimeEntries(StructuredName.CONTENT_ITEM_TYPE);
+        ArrayList<ValuesDelta> phones = getMimeEntries(Phone.CONTENT_ITEM_TYPE);
+        ArrayList<ValuesDelta> emails = getMimeEntries(Email.CONTENT_ITEM_TYPE);
+
+        ValuesDelta nameValuesDelta = null;
+        ValuesDelta emailValuesDelta = null;
+
+        if (names != null && names.size() > 0) {
+            nameValuesDelta = names.get(0);
+            names.get(0).putNull(StructuredName.GIVEN_NAME);
+            names.get(0).putNull(StructuredName.FAMILY_NAME);
+            names.get(0).putNull(StructuredName.PREFIX);
+            names.get(0).putNull(StructuredName.MIDDLE_NAME);
+            names.get(0).putNull(StructuredName.SUFFIX);
+            names.get(0).put(StructuredName.MIMETYPE, StructuredName.CONTENT_ITEM_TYPE);
+        }
+        if (emails != null && emails.size() > 0) {
+            emailValuesDelta = emails.get(0);
+        }
+
+        String name = null;
+        String number = null;
+        String email = null;
+        String anr = null;
+        String newName = null;
+        String newNumber = null;
+        String newEmail = null;
+        String newAnr = null;
+
+        if (nameValuesDelta != null) {
+            if (isContactInsert()) {
+                name = nameValuesDelta.getAsString(StructuredName.DISPLAY_NAME);
+            } else {
+                if (nameValuesDelta.mBefore != null) {
+                    name = nameValuesDelta.mBefore
+                            .getAsString(StructuredName.DISPLAY_NAME);
+                }
+                if (nameValuesDelta.mAfter != null) {
+                    newName = nameValuesDelta.mAfter
+                            .getAsString(StructuredName.DISPLAY_NAME);
+                }
+            }
+        }
+
+        if (isContactInsert() && phones != null) {
+            for (ValuesDelta valuesDelta : phones) {
+                if (valuesDelta.getAfter() != null
+                        && valuesDelta.getAfter().size() != 0) {
+                    if (Phone.TYPE_MOBILE == valuesDelta.getAfter().getAsLong(Phone.TYPE)) {
+                        number = valuesDelta.getAfter().getAsString(Phone.NUMBER);
+                    } else {
+                        anr = valuesDelta.getAfter().getAsString(Phone.NUMBER);
+                    }
+                }
+            }
+        } else if(phones != null) {
+            for (ValuesDelta valuesDelta : phones) {
+                if (valuesDelta.mBefore != null
+                        && valuesDelta.mBefore.size() != 0) {
+                    if (Phone.TYPE_MOBILE == valuesDelta.mBefore.getAsLong(Phone.TYPE)) {
+                        number = valuesDelta.mBefore.getAsString(Phone.NUMBER);
+                    } else {
+                        anr = valuesDelta.mBefore.getAsString(Phone.NUMBER);
+                    }
+                }
+                if (valuesDelta.getAfter() != null
+                        && valuesDelta.getAfter().size() != 0) {
+                    if (Phone.TYPE_MOBILE == valuesDelta.getAsLong(Phone.TYPE)) {
+                        newNumber = valuesDelta.getAfter().getAsString(Phone.NUMBER);
+                    } else {
+                        newAnr = valuesDelta.getAfter().getAsString(Phone.NUMBER);
+                    }
+                }
+            }
+        }
+
+        if (emailValuesDelta != null) {
+            if (isContactInsert()) {
+                email = emailValuesDelta.getAsString(Email.DATA);
+            } else {
+                if (emailValuesDelta.mBefore != null) {
+                    email = emailValuesDelta.mBefore.getAsString(Email.DATA);
+                }
+                if (emailValuesDelta.mAfter != null) {
+                    newEmail = emailValuesDelta.mAfter.getAsString(Email.DATA);
+                }
+            }
+        }
+
+        if(!TextUtils.isEmpty(number)) {
+            number = number.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+        }
+
+        if(!TextUtils.isEmpty(anr)) {
+            anr = anr.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+        }
+
+        if(!TextUtils.isEmpty(newNumber)) {
+            newNumber = newNumber.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+        }
+
+        if(!TextUtils.isEmpty(newAnr)) {
+            newAnr = newAnr.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+        }
+
+        if (isContactInsert()) {
+            if (name != null || number != null || anr != null || email != null) {
+                values.put(SimContactsConstants.STR_TAG, name);
+                values.put(SimContactsConstants.STR_NUMBER, number);
+                values.put(SimContactsConstants.STR_EMAILS, email);
+                values.put(SimContactsConstants.STR_ANRS, anr);
+            }
+        } else {
+            values.put(SimContactsConstants.STR_TAG, name);
+            values.put(SimContactsConstants.STR_NUMBER, number);
+            values.put(SimContactsConstants.STR_EMAILS, email);
+            values.put(SimContactsConstants.STR_ANRS, anr);
+            values.put(SimContactsConstants.STR_NEW_TAG, newName);
+            values.put(SimContactsConstants.STR_NEW_NUMBER, newNumber);
+            values.put(SimContactsConstants.STR_NEW_EMAILS, newEmail);
+            values.put(SimContactsConstants.STR_NEW_ANRS, newAnr);
+        }
+        return values;
+    }
+
     /**
      * Build a list of {@link ContentProviderOperation} that will transform the
      * current "before" {@link Entity} state into the modified state which this
@@ -443,7 +572,7 @@ public class RawContactDelta implements Parcelable {
             // TODO: for now simply disabling aggregation when a new contact is
             // created on the phone.  In the future, will show aggregation suggestions
             // after saving the contact.
-            mValues.put(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_SUSPENDED);
+            mValues.put(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DISABLED);
         }
 
         // Build possible operation at Contact level
@@ -483,16 +612,16 @@ public class RawContactDelta implements Parcelable {
         final boolean addedOperations = buildInto.size() > firstIndex;
         if (addedOperations && isContactUpdate) {
             // Suspend aggregation while persisting updates
-            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_SUSPENDED);
+            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_DISABLED);
             buildInto.add(firstIndex, builder.build());
 
             // Restore aggregation mode as last operation
-            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_DEFAULT);
+            builder = buildSetAggregationMode(beforeId, RawContacts.AGGREGATION_MODE_DISABLED);
             buildInto.add(builder.build());
         } else if (isContactInsert) {
             // Restore aggregation mode as last operation
             builder = ContentProviderOperation.newUpdate(mContactsQueryUri);
-            builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DEFAULT);
+            builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_DISABLED);
             builder.withSelection(RawContacts._ID + "=?", new String[1]);
             builder.withSelectionBackReference(0, firstIndex);
             buildInto.add(builder.build());
@@ -590,6 +719,17 @@ public class RawContactDelta implements Parcelable {
             final ValuesDelta entry = new ValuesDelta();
             entry.mBefore = before;
             entry.mAfter = new ContentValues();
+
+            // init data1 to mAfter map,when no operation in the UI edittext of
+            // sim name the mAfter init have no data1 value,it will cause the
+            // builddiff data not right.
+            if (before.containsKey("data1")) {
+                String data1 = before.getAsString("data1");
+                if (null != data1 && !"".equals(data1)) {
+                    entry.mAfter.put("data1", data1);
+                }
+            }
+
             return entry;
         }
 

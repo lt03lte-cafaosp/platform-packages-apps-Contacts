@@ -15,6 +15,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
     android-support-v4 \
     android-ex-variablespeed \
 
+LOCAL_JAVA_LIBRARIES += com.qrd.plugin.feature_query
+
 LOCAL_REQUIRED_MODULES := libvariablespeed
 
 LOCAL_PACKAGE_NAME := Contacts

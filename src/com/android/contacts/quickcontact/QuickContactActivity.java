@@ -57,6 +57,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.Collapser;
+import com.android.contacts.ContactPhotoManager;
 import com.android.contacts.R;
 import com.android.contacts.model.Contact;
 import com.android.contacts.model.ContactLoader;
@@ -296,6 +297,12 @@ public class QuickContactActivity extends Activity {
         close(true);
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        close(true);
+    }
+
     /** Assign this string to the view if it is not empty. */
     private void setHeaderNameText(int id, int resId) {
         setHeaderNameText(id, getText(resId));
@@ -340,49 +347,53 @@ public class QuickContactActivity extends Activity {
         mStopWatch.lap("sph"); // Start photo setting
 
         final ImageView photoView = (ImageView) mPhotoContainer.findViewById(R.id.photo);
-        mPhotoSetter.setupContactPhoto(data, photoView);
-
-        mStopWatch.lap("ph"); // Photo set
-
-        for (RawContact rawContact : data.getRawContacts()) {
-            for (DataItem dataItem : rawContact.getDataItems()) {
-                final String mimeType = dataItem.getMimeType();
-
-                // Skip this data item if MIME-type excluded
-                if (isMimeExcluded(mimeType)) continue;
-
-                final long dataId = dataItem.getId();
-                final boolean isPrimary = dataItem.isPrimary();
-                final boolean isSuperPrimary = dataItem.isSuperPrimary();
-
-                if (dataItem.getDataKind() != null) {
-                    // Build an action for this data entry, find a mapping to a UI
-                    // element, build its summary from the cursor, and collect it
-                    // along with all others of this MIME-type.
-                    final Action action = new DataAction(context, dataItem);
-                    final boolean wasAdded = considerAdd(action, cache, isSuperPrimary);
-                    if (wasAdded) {
-                        // Remember the default
-                        if (isSuperPrimary || (isPrimary && (mDefaultsMap.get(mimeType) == null))) {
-                            mDefaultsMap.put(mimeType, action);
-                        }
-                    }
-                }
-
-                // Handle Email rows with presence data as Im entry
-                final DataStatus status = data.getStatuses().get(dataId);
-                if (status != null && dataItem instanceof EmailDataItem) {
-                    final EmailDataItem email = (EmailDataItem) dataItem;
-                    final ImDataItem im = ImDataItem.createFromEmail(email);
-                    if (im.getDataKind() != null) {
-                        final DataAction action = new DataAction(context, im);
-                        action.setPresence(status.getPresence());
-                        considerAdd(action, cache, isSuperPrimary);
-                    }
-                }
-            }
+        if(data != null) {
+            mPhotoSetter.setupContactPhoto(data, photoView);
+        } else {
+            photoView.setImageResource(ContactPhotoManager.getDefaultAvatarResId(true, false));
         }
 
+        mStopWatch.lap("ph"); // Photo set
+        if(data != null){
+          for (RawContact rawContact : data.getRawContacts()) {
+              for (DataItem dataItem : rawContact.getDataItems()) {
+                  final String mimeType = dataItem.getMimeType();
+  
+                  // Skip this data item if MIME-type excluded
+                  if (isMimeExcluded(mimeType)) continue;
+  
+                  final long dataId = dataItem.getId();
+                  final boolean isPrimary = dataItem.isPrimary();
+                  final boolean isSuperPrimary = dataItem.isSuperPrimary();
+  
+                  if (dataItem.getDataKind() != null) {
+                      // Build an action for this data entry, find a mapping to a UI
+                      // element, build its summary from the cursor, and collect it
+                      // along with all others of this MIME-type.
+                      final Action action = new DataAction(context, dataItem);
+                      final boolean wasAdded = considerAdd(action, cache, isSuperPrimary);
+                      if (wasAdded) {
+                          // Remember the default
+                          if (isSuperPrimary || (isPrimary && (mDefaultsMap.get(mimeType) == null))) {
+                              mDefaultsMap.put(mimeType, action);
+                          }
+                      }
+                  }
+  
+                  // Handle Email rows with presence data as Im entry
+                  final DataStatus status = data.getStatuses().get(dataId);
+                  if (status != null && dataItem instanceof EmailDataItem) {
+                      final EmailDataItem email = (EmailDataItem) dataItem;
+                      final ImDataItem im = ImDataItem.createFromEmail(email);
+                      if (im.getDataKind() != null) {
+                          final DataAction action = new DataAction(context, im);
+                          action.setPresence(status.getPresence());
+                          considerAdd(action, cache, isSuperPrimary);
+                      }
+                  }
+              }
+          }
+        }
         mStopWatch.lap("e"); // Entities inflated
 
         // Collapse Action Lists (remove e.g. duplicate e-mail addresses from different sources)
@@ -392,7 +403,9 @@ public class QuickContactActivity extends Activity {
 
         mStopWatch.lap("c"); // List collapsed
 
-        setHeaderNameText(R.id.name, data.getDisplayName());
+        if(data != null) {
+            setHeaderNameText(R.id.name, data.getDisplayName());
+        }
 
         // All the mime-types to add.
         final Set<String> containedTypes = new HashSet<String>(mActions.keySet());
@@ -509,10 +522,8 @@ public class QuickContactActivity extends Activity {
             }
             if (data.isNotFound()) {
                 Log.i(TAG, "No contact found: " + ((ContactLoader)loader).getLookupUri());
-                Toast.makeText(QuickContactActivity.this, R.string.invalidContactMessage,
-                        Toast.LENGTH_LONG).show();
-                close(false);
-                return;
+                mOpenDetailsPushLayerButton.setEnabled(false);
+                data = null;
             }
 
             bindData(data);
@@ -636,5 +647,44 @@ public class QuickContactActivity extends Activity {
             // Defer the action to make the window properly repaint
             new Handler().post(startAppRunnable);
         }
+    
+     @Override
+     public void on2ItemClicked(final Action action, final boolean alternate) {
+            final Runnable startAppRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        startActivity(alternate ? action.get2AlternateIntent() : action.getIntent());
+                    } catch (ActivityNotFoundException e) {
+                        Toast.makeText(QuickContactActivity.this, R.string.quickcontact_missing_app,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    close(false);
+                }
+            };
+            // Defer the action to make the window properly repaint
+            new Handler().post(startAppRunnable);
+        }
+
+    @Override
+     public void on3ItemClicked(final Action action) {
+            final Runnable startAppRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        startActivity(action.getEditCallIntent());
+                    } catch (ActivityNotFoundException e) {
+                        Toast.makeText(QuickContactActivity.this, R.string.quickcontact_missing_app,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    close(false);
+                }
+            };
+            // Defer the action to make the window properly repaint
+            new Handler().post(startAppRunnable);
+        }    
+    
     };
 }

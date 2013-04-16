@@ -34,6 +34,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.AggregationExceptions;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
@@ -43,6 +44,7 @@ import android.provider.ContactsContract.Groups;
 import android.provider.ContactsContract.Profile;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract.RawContactsEntity;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -63,6 +65,35 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import android.content.ContentResolver;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import com.android.contacts.SimContactsConstants;
+import com.android.contacts.SimContactsOperation;
+import android.content.ContentValues;
+import com.android.contacts.activities.ContactEditorActivity;
+import com.android.contacts.activities.GroupEditorActivity;
+import com.android.contacts.ContactsUtils;
+import com.android.contacts.editor.ContactEditorFragment.SaveMode;
+import com.android.contacts.model.RawContactDelta.ValuesDelta;
+import com.android.internal.telephony.IIccPhoneBook;
+import com.android.internal.telephony.msim.IIccPhoneBookMSim;
+import com.android.internal.telephony.uicc.AdnRecord;
+import com.android.internal.telephony.uicc.IccConstants;
+
+import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
+
+import android.provider.ContactsContract.CommonDataKinds.Email;
+import android.provider.ContactsContract.CommonDataKinds.Nickname;
+import android.provider.ContactsContract.CommonDataKinds.Organization;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.Photo;
+import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.text.TextUtils;
 
 /**
  * A service responsible for saving changes to the content provider.
@@ -87,6 +118,7 @@ public class ContactSaveService extends IntentService {
     public static final String EXTRA_SAVE_IS_PROFILE = "saveIsProfile";
     public static final String EXTRA_SAVE_SUCCEEDED = "saveSucceeded";
     public static final String EXTRA_UPDATED_PHOTOS = "updatedPhotos";
+    public static final String SAVE_CONTACT_RESULT = "saveResult";
 
     public static final String ACTION_CREATE_GROUP = "createGroup";
     public static final String ACTION_RENAME_GROUP = "renameGroup";
@@ -138,6 +170,7 @@ public class ContactSaveService extends IntentService {
     );
 
     private static final int PERSIST_TRIES = 3;
+    private static int[] mSimMaxCount = new int[2];
 
     public interface Listener {
         public void onServiceCompleted(Intent callbackIntent);
@@ -145,6 +178,7 @@ public class ContactSaveService extends IntentService {
 
     private static final CopyOnWriteArrayList<Listener> sListeners =
             new CopyOnWriteArrayList<Listener>();
+    public static Uri mDeleteContactUri = null;
 
     private Handler mMainHandler;
 
@@ -176,6 +210,52 @@ public class ContactSaveService extends IntentService {
         return getApplicationContext().getSystemService(name);
     }
 
+    /**
+     * when isMultiSimEnabled is true,get the maximum how many contacts can save to sim card
+     */
+    private int getMSimCardMaxCount(int subscription){
+        if (0 != mSimMaxCount[subscription]) {
+            return mSimMaxCount[subscription];
+        }
+
+        try {
+            IIccPhoneBookMSim iccIpb = IIccPhoneBookMSim.Stub.asInterface(
+                    ServiceManager.getService("simphonebook_msim"));
+            if (iccIpb != null) {
+                List<AdnRecord> list = iccIpb.getAdnRecordsInEf(IccConstants.EF_ADN, subscription);
+                if (null != list) {
+                    mSimMaxCount[subscription] = list.size();
+                }
+            }
+        } catch (RemoteException ex) {
+            Log.e(TAG, "Failed to IIccPhoneBookMSim", ex);
+        }
+        return mSimMaxCount[subscription];
+    }
+
+    /**
+     * when isMultiSimEnabled is false,get the maximum how many contacts can save to sim card
+     */
+    private int getSimCardMaxCount(){
+        if (0 != mSimMaxCount[0]) {
+            return mSimMaxCount[0];
+        }
+
+        try {
+            IIccPhoneBook iccIpb = IIccPhoneBook.Stub.asInterface(
+                    ServiceManager.getService("simphonebook"));
+            if (iccIpb != null) {
+                List<AdnRecord> list = iccIpb.getAdnRecordsInEf(IccConstants.EF_ADN);
+                if (null != list) {
+                    mSimMaxCount[0] = list.size();
+                }
+            }
+        } catch (RemoteException ex) {
+            Log.e(TAG, "Failed to IIccPhoneBook", ex);
+        }
+        return mSimMaxCount[0];
+    }
+
     @Override
     protected void onHandleIntent(Intent intent) {
         // Call an appropriate method. If we're sure it affects how incoming phone calls are
@@ -185,16 +265,39 @@ public class ContactSaveService extends IntentService {
             createRawContact(intent);
             CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
         } else if (ACTION_SAVE_CONTACT.equals(action)) {
+            if(checkPhoneContactsFull(this,intent)){
+              showToast(R.string.contacts_full);
+              Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+              if(callbackIntent != null){
+                deliverCallback(callbackIntent);
+              }
+              return;
+            }
             saveContact(intent);
             CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
         } else if (ACTION_CREATE_GROUP.equals(action)) {
-            createGroup(intent);
+            if(checkGroupTitleExist(intent)){
+                showToast(R.string.error_group_exist);
+                callbackError(intent);
+            }else{
+                createGroup(intent);
+            }
         } else if (ACTION_RENAME_GROUP.equals(action)) {
-            renameGroup(intent);
+            if(checkGroupTitleExist(intent)){
+                showToast(R.string.error_group_exist);
+                callbackError(intent);
+            }else{
+                renameGroup(intent);
+            }
         } else if (ACTION_DELETE_GROUP.equals(action)) {
             deleteGroup(intent);
         } else if (ACTION_UPDATE_GROUP.equals(action)) {
-            updateGroup(intent);
+            if(checkGroupTitleExist(intent)){
+                showToast(R.string.error_group_exist);
+                callbackError(intent);
+            }else{
+                updateGroup(intent);
+            }
         } else if (ACTION_SET_STARRED.equals(action)) {
             setStarred(intent);
         } else if (ACTION_SET_SUPER_PRIMARY.equals(action)) {
@@ -330,7 +433,35 @@ public class ContactSaveService extends IntentService {
         }
         return serviceIntent;
     }
+    private static final int RESULT_ANR_FULL_FAILURE = -3;
+    private static final int RESULT_EMAIL_FULL_FAILURE = -1;
+    private static final int RESULT_UNCHANGED = 0;
+    private static final int RESULT_SUCCESS = 1;
+    private static final int RESULT_FAILURE = 2;
+    private static final int RESULT_NO_NAME = 3;
+    private static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
+    private static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
+    private static final int RESULT_NUMBER_ANR_FAILURE = 6; // only for sim failure of number or anr is too long
+    private static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
+    private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
+    private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
+    private static final int RESULT_RECORD_INVALID = 10; // only for sim failure of record is valid
 
+    // Only for request accessing SIM card
+    // when device is in the "AirPlane" mode.
+    private static final int RESULT_AIR_PLANE_MODE = 10;
+    
+    private boolean checkPhoneContactsFull(Context context,Intent intent){
+      RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
+      for (int i=0; i < state.size(); i++) {
+            final RawContactDelta entity = state.get(i);
+            final String accountType = entity.getValues().getAsString(RawContacts.ACCOUNT_TYPE);
+            if(SimContactsConstants.ACCOUNT_TYPE_PHONE.equals(accountType) && entity.isContactInsert()){
+              return ContactsUtils.checkContactsFull(context);
+            }
+      }
+      return false;
+    }
     private void saveContact(Intent intent) {
         RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
         boolean isProfile = intent.getBooleanExtra(EXTRA_SAVE_IS_PROFILE, false);
@@ -349,95 +480,130 @@ public class ContactSaveService extends IntentService {
         long insertedRawContactId = -1;
 
         // Attempt to persist changes
+        Integer result = RESULT_FAILURE;
+
+        boolean isCardOperation = false;
+        for (int i=0; i < state.size(); i++) {
+            final RawContactDelta entity = state.get(i);
+            final String accountType = entity.getValues().getAsString(RawContacts.ACCOUNT_TYPE);
+            final String accountName = entity.getValues().getAsString(RawContacts.ACCOUNT_NAME);
+            final int subscription = ContactEditorActivity.getSubscription(accountType, accountName);
+            isCardOperation = (subscription != -1) ? true : false;
+            if (isCardOperation) {
+                result = doSaveToSimCard(entity, resolver, subscription);
+                Log.d(TAG, "doSaveToSimCard result is  " + result);
+                switch (result) {
+                    case RESULT_SUCCESS:
+                        result = RESULT_FAILURE;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        // Attempt to persist changes
         int tries = 0;
         while (tries++ < PERSIST_TRIES) {
-            try {
-                // Build operations and try applying
-                final ArrayList<ContentProviderOperation> diff = state.buildDiff();
-                if (DEBUG) {
-                    Log.v(TAG, "Content Provider Operations:");
-                    for (ContentProviderOperation operation : diff) {
-                        Log.v(TAG, operation.toString());
-                    }
-                }
-
-                ContentProviderResult[] results = null;
-                if (!diff.isEmpty()) {
-                    results = resolver.applyBatch(ContactsContract.AUTHORITY, diff);
-                }
-
-                final long rawContactId = getRawContactId(state, diff, results);
-                if (rawContactId == -1) {
-                    throw new IllegalStateException("Could not determine RawContact ID after save");
-                }
-                // We don't have to check to see if the value is still -1.  If we reach here,
-                // the previous loop iteration didn't succeed, so any ID that we obtained is bogus.
-                insertedRawContactId = getInsertedRawContactId(diff, results);
-                if (isProfile) {
-                    // Since the profile supports local raw contacts, which may have been completely
-                    // removed if all information was removed, we need to do a special query to
-                    // get the lookup URI for the profile contact (if it still exists).
-                    Cursor c = resolver.query(Profile.CONTENT_URI,
-                            new String[] {Contacts._ID, Contacts.LOOKUP_KEY},
-                            null, null, null);
-                    try {
-                        if (c.moveToFirst()) {
-                            final long contactId = c.getLong(0);
-                            final String lookupKey = c.getString(1);
-                            lookupUri = Contacts.getLookupUri(contactId, lookupKey);
+            if (result == RESULT_FAILURE) {
+                try {
+                    // Build operations and try applying
+                    final ArrayList<ContentProviderOperation> diff = state.buildDiff();
+                    if (DEBUG) {
+                        Log.v(TAG, "Content Provider Operations:");
+                        for (ContentProviderOperation operation : diff) {
+                            Log.v(TAG, operation.toString());
                         }
-                    } finally {
-                        c.close();
                     }
-                } else {
-                    final Uri rawContactUri = ContentUris.withAppendedId(RawContacts.CONTENT_URI,
-                                    rawContactId);
-                    lookupUri = RawContacts.getContactLookupUri(resolver, rawContactUri);
-                }
-                Log.v(TAG, "Saved contact. New URI: " + lookupUri);
 
-                // We can change this back to false later, if we fail to save the contact photo.
-                succeeded = true;
-                break;
+                    ContentProviderResult[] results = null;
+                    if (!diff.isEmpty()) {
+                        results = resolver.applyBatch(ContactsContract.AUTHORITY, diff);
+                    }
 
-            } catch (RemoteException e) {
-                // Something went wrong, bail without success
-                Log.e(TAG, "Problem persisting user edits", e);
-                break;
-
-            } catch (OperationApplicationException e) {
-                // Version consistency failed, re-parent change and try again
-                Log.w(TAG, "Version consistency failed, re-parenting: " + e.toString());
-                final StringBuilder sb = new StringBuilder(RawContacts._ID + " IN(");
-                boolean first = true;
-                final int count = state.size();
-                for (int i = 0; i < count; i++) {
-                    Long rawContactId = state.getRawContactId(i);
-                    if (rawContactId != null && rawContactId != -1) {
-                        if (!first) {
-                            sb.append(',');
+                    final long rawContactId = getRawContactId(state, diff, results);
+                    if (rawContactId == -1) {
+                        throw new IllegalStateException("Could not determine RawContact ID after save");
+                    }
+                    // We don't have to check to see if the value is still -1.  If we reach here,
+                    // the previous loop iteration didn't succeed, so any ID that we obtained is bogus.
+                    insertedRawContactId = getInsertedRawContactId(diff, results);
+                    if (isProfile) {
+                        // Since the profile supports local raw contacts, which may have been completely
+                        // removed if all information was removed, we need to do a special query to
+                        // get the lookup URI for the profile contact (if it still exists).
+                        Cursor c = resolver.query(Profile.CONTENT_URI,
+                                new String[] {Contacts._ID, Contacts.LOOKUP_KEY},
+                                null, null, null);
+                        try {
+                            if (c.moveToFirst()) {
+                                final long contactId = c.getLong(0);
+                                final String lookupKey = c.getString(1);
+                                lookupUri = Contacts.getLookupUri(contactId, lookupKey);
+                            }
+                        } finally {
+                            c.close();
                         }
-                        sb.append(rawContactId);
-                        first = false;
+                    } else {
+                        final Uri rawContactUri = ContentUris.withAppendedId(RawContacts.CONTENT_URI,
+                                        rawContactId);
+                        lookupUri = RawContacts.getContactLookupUri(resolver, rawContactUri);
                     }
-                }
-                sb.append(")");
+                    Log.v(TAG, "Saved contact. New URI: " + lookupUri);
+                        if (lookupUri == null) {
+                            resolver.delete(RawContacts.CONTENT_URI,
+                                    RawContacts._ID + "=?",
+                                    new String[] {
+                                        String.valueOf(rawContactId)
+                                    });
+                        }
+                    // We can change this back to false later, if we fail to save the contact photo.
+                    succeeded = true;
+                    if (mDeleteContactUri != null) {
+                        resolver.delete(mDeleteContactUri, null, null);
+                        mDeleteContactUri = null;
+                    }
+                    break;
 
-                if (first) {
-                    throw new IllegalStateException("Version consistency failed for a new contact");
-                }
+                } catch (RemoteException e) {
+                    // Something went wrong, bail without success
+                    Log.e(TAG, "Problem persisting user edits", e);
+                    break;
 
-                final RawContactDeltaList newState = RawContactDeltaList.fromQuery(
-                        isProfile
-                                ? RawContactsEntity.PROFILE_CONTENT_URI
-                                : RawContactsEntity.CONTENT_URI,
-                        resolver, sb.toString(), null, null);
-                state = RawContactDeltaList.mergeAfter(newState, state);
+                } catch (OperationApplicationException e) {
+                    // Version consistency failed, re-parent change and try again
+                    Log.w(TAG, "Version consistency failed, re-parenting: " + e.toString());
+                    final StringBuilder sb = new StringBuilder(RawContacts._ID + " IN(");
+                    boolean first = true;
+                    final int count = state.size();
+                    for (int i = 0; i < count; i++) {
+                        Long rawContactId = state.getRawContactId(i);
+                        if (rawContactId != null && rawContactId != -1) {
+                            if (!first) {
+                                sb.append(',');
+                            }
+                            sb.append(rawContactId);
+                            first = false;
+                        }
+                    }
+                    sb.append(")");
 
-                // Update the new state to use profile URIs if appropriate.
-                if (isProfile) {
-                    for (RawContactDelta delta : state) {
-                        delta.setProfileQueryUri();
+                    if (first) {
+                        throw new IllegalStateException("Version consistency failed for a new contact");
+                    }
+
+                    final RawContactDeltaList newState = RawContactDeltaList.fromQuery(
+                            isProfile
+                                    ? RawContactsEntity.PROFILE_CONTENT_URI
+                                    : RawContactsEntity.CONTENT_URI,
+                            resolver, sb.toString(), null, null);
+                    state = RawContactDeltaList.mergeAfter(newState, state);
+
+                    // Update the new state to use profile URIs if appropriate.
+                    if (isProfile) {
+                        for (RawContactDelta delta : state) {
+                            delta.setProfileQueryUri();
+                        }
                     }
                 }
             }
@@ -445,7 +611,8 @@ public class ContactSaveService extends IntentService {
 
         // Now save any updated photos.  We do this at the end to ensure that
         // the ContactProvider already knows about newly-created contacts.
-        if (updatedPhotos != null) {
+        // If contact is to save to card, there's no need to update photo.
+        if (updatedPhotos != null && !isCardOperation) {
             for (String key : updatedPhotos.keySet()) {
                 String photoFilePath = updatedPhotos.getString(key);
                 long rawContactId = Long.parseLong(key);
@@ -472,8 +639,24 @@ public class ContactSaveService extends IntentService {
                 // is now null).  For local contacts or the local profile, it's possible that the
                 // save triggered removal of the contact, so no lookup URI would exist..
                 callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, true);
+
+                // If the save mode is SPLIT, we should check the primary
+                // number.
+                int savemode = callbackIntent.getIntExtra(EXTRA_SAVE_MODE, -1);
+                if (SaveMode.SPLIT == savemode) {
+                    for (RawContactDelta delta : state) {
+                        if (delta != null) {
+                            Long rawContactId = delta.getRawContactId();
+                            if (rawContactId != null && rawContactId > -1) {
+                                resetPrimaryPhone(rawContactId);
+                            }
+                        }
+                    }
+                }
             }
             callbackIntent.setData(lookupUri);
+            callbackIntent.putExtra(SAVE_CONTACT_RESULT, result);
+
             deliverCallback(callbackIntent);
         }
     }
@@ -513,6 +696,240 @@ public class ContactSaveService extends IntentService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Get device's current "AirPlane" mode status.
+     */
+    private boolean isCurrentInAirPlaneMode() {
+        return Settings.System.getInt(getApplicationContext().
+                getContentResolver(), Settings.System.AIRPLANE_MODE_ON
+                , 0) == 1;
+    }
+
+    private Integer doSaveToSimCard(RawContactDelta entity, ContentResolver resolver, int subscription) {
+        // Return Error code to indicate caller that device is in
+        // the "AirPlane" mode and application can't access SIM card.
+        if (isCurrentInAirPlaneMode()) {
+            return RESULT_AIR_PLANE_MODE;
+        }
+
+        boolean isInsert = entity.isContactInsert();
+        Integer result = RESULT_SIM_FAILURE;
+        mSimContactsOperation = new SimContactsOperation(this);
+
+        ContentValues values = entity.buildSimDiff();
+        String tag = null;
+        String number = null;
+        String anr = null;
+        String email = null;
+
+        if(entity.isContactInsert()){
+            tag = values.getAsString(SimContactsConstants.STR_TAG);
+            number = values.getAsString(SimContactsConstants.STR_NUMBER);
+            anr = values.getAsString(SimContactsConstants.STR_ANRS);
+            email = values.getAsString(SimContactsConstants.STR_EMAILS);
+        } else {
+            tag = values.getAsString(SimContactsConstants.STR_NEW_TAG);
+            number = values.getAsString(SimContactsConstants.STR_NEW_NUMBER);
+            anr = values.getAsString(SimContactsConstants.STR_NEW_ANRS);
+            email = values.getAsString(SimContactsConstants.STR_NEW_EMAILS);
+        }
+
+        //if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
+        //    return RESULT_NO_NUMBER;
+        //}
+
+        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)
+            ) {
+            if(!TextUtils.isEmpty(email)) {
+                return RESULT_NO_NAME;
+            }
+            else {
+                return RESULT_RECORD_INVALID;
+            }
+        }
+
+        if ((!TextUtils.isEmpty(number) && number.length() > 20)
+                || (!TextUtils.isEmpty(anr) && anr.length() > 20)) {
+            return RESULT_NUMBER_ANR_FAILURE;
+        }
+
+        if (!TextUtils.isEmpty(number) && TextUtils.isEmpty(PhoneNumberUtils.stripSeparators(number))) {
+            return RESULT_NUMBER_INVALID;
+        }
+
+        if (!TextUtils.isEmpty(email) && email.length() >= 40) {
+            return RESULT_EMAIL_FAILURE;
+        }
+
+        if (!TextUtils.isEmpty(tag)) {
+            if (!hasChinese(tag)) {
+                if (tag.length() > 14) {
+                    return RESULT_TAG_FAILURE;
+                }
+            } else {
+                if (tag.length() > 6) {
+                    return RESULT_TAG_FAILURE;
+                }
+            }
+        }
+
+        if (entity.isContactInsert()) {
+            int count = 0;
+            Cursor c = null;
+            Uri iccUri;
+            if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                iccUri = Uri.parse("content://icc/adn");
+            } else {
+                iccUri = Uri.parse(subscription == 0 ? "content://iccmsim/adn"
+                        : "content://iccmsim/adn_sub2");
+            }
+            try {
+                c = resolver.query(iccUri, null, null, null, null);
+                if (c != null) {
+                    count = c.getCount();
+                }
+            } finally {
+                if (c != null) {
+                    c.close();
+                }
+            }
+
+            if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                if (count == getSimCardMaxCount())
+                    return RESULT_SIM_FULL_FAILURE;
+            } else {
+                if (count == getMSimCardMaxCount(subscription))
+                    return RESULT_SIM_FULL_FAILURE;
+            }
+        }
+
+        if (isInsert) {
+            Uri resultUri = mSimContactsOperation.insert(values,
+                    subscription);
+            if (resultUri != null) {
+                int ret = Integer.parseInt(resultUri.getLastPathSegment());
+                if(ret == RESULT_SUCCESS) {
+                    result = RESULT_SUCCESS;
+                }
+                else {
+                    if(ret == RESULT_EMAIL_FULL_FAILURE) {
+                        values.remove(SimContactsConstants.STR_EMAILS);
+                        showToast(R.string.email_address_full);
+                        
+                        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                            && TextUtils.isEmpty(anr)) {
+                            return RESULT_RECORD_INVALID;
+                        }
+                        
+                        resultUri = mSimContactsOperation.insert(values,
+                            subscription);
+                        
+                        entity.getMimeEntries(Email.CONTENT_ITEM_TYPE).get(0).markDeleted();
+                        
+                        ret = Integer.parseInt(resultUri.getLastPathSegment());
+                        if(ret == RESULT_SUCCESS) {
+                            result = RESULT_SUCCESS;
+                        }
+                    }
+                    else if(ret == RESULT_ANR_FULL_FAILURE){
+                        values.remove(SimContactsConstants.STR_ANRS);
+                        showToast(R.string.number_anr_full);
+                        
+                        if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                            && TextUtils.isEmpty(email)) {
+                            return RESULT_RECORD_INVALID;
+                        }
+                        
+                        resultUri = mSimContactsOperation.insert(values,
+                            subscription);
+                        
+                        ArrayList<ValuesDelta> phones = entity.getMimeEntries(Phone.CONTENT_ITEM_TYPE);
+                        if(phones != null) {
+                            for (ValuesDelta valuesDelta : phones) {
+                                if (valuesDelta.getAfter() != null
+                                        && valuesDelta.getAfter().size() != 0) {
+                                    if (Phone.TYPE_MOBILE == valuesDelta.getAfter().getAsLong(Phone.TYPE)) {
+                                        
+                                    } else {
+                                        valuesDelta.markDeleted();
+                                    }
+                                }
+                            }
+                        }
+                        
+                        ret = Integer.parseInt(resultUri.getLastPathSegment());
+                        if(ret == RESULT_SUCCESS) {
+                            result = RESULT_SUCCESS;
+                        }
+                    }
+                }
+            }
+            else {
+                
+            }
+        } else {
+            int resultInt = mSimContactsOperation.update(values,
+                    subscription);
+            if (resultInt == 1) {
+                result = RESULT_SUCCESS;
+            }
+            else {
+                if(resultInt == RESULT_EMAIL_FULL_FAILURE) {
+                    values.remove(SimContactsConstants.STR_NEW_EMAILS);
+                    showToast(R.string.email_address_full);
+                    if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                        && TextUtils.isEmpty(anr)) {
+                        return RESULT_RECORD_INVALID;
+                    }
+                    
+                    resultInt = mSimContactsOperation.update(values,
+                        subscription);
+                    
+                    entity.getMimeEntries(Email.CONTENT_ITEM_TYPE).get(0).markDeleted();
+
+                    if (resultInt == 1) {
+                        result = RESULT_SUCCESS;
+                    }
+                }
+                else if(resultInt == RESULT_ANR_FULL_FAILURE){
+                    values.remove(SimContactsConstants.STR_NEW_ANRS);
+                    showToast(R.string.number_anr_full);
+                    
+                    if(TextUtils.isEmpty(tag) && TextUtils.isEmpty(number)
+                        && TextUtils.isEmpty(email)) {
+                        return RESULT_RECORD_INVALID;
+                    }
+                    
+                    resultInt = mSimContactsOperation.update(values,
+                        subscription);
+                    
+                    ArrayList<ValuesDelta> phones = entity.getMimeEntries(Phone.CONTENT_ITEM_TYPE);
+                    if(phones != null) {
+                        for (ValuesDelta valuesDelta : phones) {
+                            if (valuesDelta.getAfter() != null
+                                    && valuesDelta.getAfter().size() != 0) {
+                                if (Phone.TYPE_MOBILE == valuesDelta.getAfter().getAsLong(Phone.TYPE)) {
+                                    
+                                } else {
+                                    valuesDelta.markDeleted();
+                                }
+                            }
+                        }
+                    }
+                    
+                    if(resultInt == RESULT_SUCCESS) {
+                        result = RESULT_SUCCESS;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean hasChinese(String tag) {
+        return tag != null && tag.getBytes().length > tag.length();
     }
 
     /**
@@ -577,6 +994,56 @@ public class ContactSaveService extends IntentService {
         serviceIntent.putExtra(ContactSaveService.EXTRA_CALLBACK_INTENT, callbackIntent);
 
         return serviceIntent;
+    }
+
+    private void callbackError(Intent intent){
+        Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+        callbackIntent.setAction(GroupEditorActivity.ACTION_SAVE_ERROR);
+        deliverCallback(callbackIntent);
+    }
+
+    private boolean checkGroupTitleExist(Intent intent) {
+        String accountType = intent.getStringExtra(EXTRA_ACCOUNT_TYPE);
+        String accountName = intent.getStringExtra(EXTRA_ACCOUNT_NAME);
+        String label = intent.getStringExtra(EXTRA_GROUP_LABEL);
+        if (label == null) {
+            return false;
+        }
+        StringBuffer selection = new StringBuffer();
+        selection.append(Groups.TITLE + "=? ");
+
+        List<String> selectionArgs = new ArrayList<String>();
+        selectionArgs.add(label);
+
+        if (accountType != null) {
+            selection.append("and " + Groups.ACCOUNT_TYPE + "=? ");
+            selectionArgs.add(accountType);
+        }
+
+        if (accountName != null) {
+            selection.append("and " + Groups.ACCOUNT_NAME + "=? ");
+            selectionArgs.add(accountName);
+        }
+
+        // Only the group that it hasn't been deleted can be matched successfully.
+        selection.append("and " + Groups.DELETED + "=? ");
+        selectionArgs.add("0");
+
+        Cursor c = null;
+        try {
+            c = getContentResolver().query(Groups.CONTENT_SUMMARY_URI, null, selection.toString(),
+                    selectionArgs.toArray(new String[] {}),
+                    null);
+            if (c != null)
+                return c.getCount() > 0;
+            else {
+                return false;
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
     }
 
     private void createGroup(Intent intent) {
@@ -950,14 +1417,30 @@ public class ContactSaveService extends IntentService {
         return serviceIntent;
     }
 
+    private static SimContactsOperation mSimContactsOperation;
+
     private void deleteContact(Intent intent) {
         Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
+        mSimContactsOperation = new SimContactsOperation(this);
         if (contactUri == null) {
             Log.e(TAG, "Invalid arguments for deleteContact request");
             return;
         }
 
-        getContentResolver().delete(contactUri, null, null);
+        final List<String> segments = contactUri.getPathSegments();
+        // Contains an Id.
+        final long uriContactId = Long.parseLong(segments.get(3));
+        int subscription = mSimContactsOperation.getSimSubscription(uriContactId);
+        if (subscription != -1 ) {
+            ContentValues values =
+                mSimContactsOperation.getSimAccountValues(uriContactId);
+
+            int result = mSimContactsOperation.delete(values,subscription);
+            if (result == 1)
+                getContentResolver().delete(contactUri, null, null);
+        } else {
+            getContentResolver().delete(contactUri, null, null);
+        }
     }
 
     /**
@@ -1140,4 +1623,49 @@ public class ContactSaveService extends IntentService {
             }
         }
     }
+
+    /**
+     * After separate contact, if the contact only have one phone number, and
+     * the number is primary, set it no primary.
+     *
+     * @param rawId
+     *            Data.RAW_CONTACT_ID
+     */
+    private void resetPrimaryPhone(long rawId) {
+        String[] projection = new String[] { Data._ID, Data.IS_PRIMARY };
+        String selection = Data.MIMETYPE + "=? and " + Data.RAW_CONTACT_ID
+                + "=?";
+        String[] selectionArgs = new String[] { Phone.CONTENT_ITEM_TYPE,
+                String.valueOf(rawId) };
+
+        Cursor cursor = getContentResolver().query(Data.CONTENT_URI,
+                projection, selection, selectionArgs, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            try {
+                long id = cursor.getLong(cursor.getColumnIndex(Data._ID));
+                String primary = cursor.getString(cursor
+                        .getColumnIndex(Data.IS_PRIMARY));
+
+                // If 'primary' is not '0' it means it's a primary number and if
+                // cursor.getCount() return 1, it means this contact only have one
+                // phone number. Only one number it's no need to be primary.
+                if (id > -1 && 1 == cursor.getCount() && !"0".equals(primary)) {
+                    ContentValues values = new ContentValues(1);
+
+                    // '0' means not a primary number.
+                    values.put(Data.IS_SUPER_PRIMARY, 0);
+                    values.put(Data.IS_PRIMARY, 0);
+                    getContentResolver().update(
+                            ContentUris.withAppendedId(Data.CONTENT_URI, id),
+                            values, null, null);
+                }
+            } catch (Exception e) {
+                // ignore this exception.
+                Log.e(TAG, "resetPrimaryPhone error:" + e.toString());
+            } finally {
+                cursor.close();
+            }
+        }
+    }
+
 }

@@ -17,14 +17,20 @@
 package com.android.contacts.editor;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
+import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.CommonDataKinds.Organization;
 import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.text.TextUtils;
+import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -44,6 +50,7 @@ import com.android.contacts.model.RawContactModifier;
 import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.account.AccountType.EditType;
 import com.android.contacts.model.dataitem.DataKind;
+import com.android.contacts.SimContactsConstants;
 import com.android.internal.util.Objects;
 
 import java.util.ArrayList;
@@ -60,7 +67,16 @@ import java.util.ArrayList;
  * {@link RawContactModifier} to ensure that {@link AccountType} are enforced.
  */
 public class RawContactEditorView extends BaseRawContactEditorView {
+    private PopupMenu mPopupMenu;
     private LayoutInflater mInflater;
+
+    // Used to limit length of name to avoid OutOfMemory.
+    // Refer to commit dec2d61c147ad499c7a1d0d03481f45703e1a75f.
+    private static final int NAME_LENGTH_LIMIT = 512;
+
+    private static final int NUMBER_LENGTH_LIMIT = 32; // for CMCC
+
+    private static Context mContext;
 
     private StructuredNameEditorView mName;
     private PhoneticNameEditorView mPhoneticName;
@@ -84,11 +100,34 @@ public class RawContactEditorView extends BaseRawContactEditorView {
 
     public RawContactEditorView(Context context) {
         super(context);
+        mContext = context;
     }
 
     public RawContactEditorView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mContext = context;
     }
+
+    public static String getCardType(int subscription) {
+        TelephonyManager tm = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        MSimTelephonyManager msimtm = (MSimTelephonyManager)mContext.getSystemService(Context.MSIM_TELEPHONY_SERVICE);
+        if (msimtm != null && msimtm.isMultiSimEnabled()) {
+            return msimtm.getCardType(subscription);
+        }
+        if (tm != null && !tm.isMultiSimEnabled()) {
+            return tm.getCardType();
+        }
+        return null;
+    }
+
+    public static boolean is3GCard(int subscription) {
+        String type = getCardType(subscription);
+        if ( SimContactsConstants.USIM.equals(type) || SimContactsConstants.CSIM.equals(type) ) {
+            return true;
+        }
+        return false;
+    }
+
 
     @Override
     public void setEnabled(boolean enabled) {
@@ -148,6 +187,7 @@ public class RawContactEditorView extends BaseRawContactEditorView {
         });
     }
 
+    private static boolean isMyLocalProfile = false;
     /**
      * Set the internal state for this view, given a current
      * {@link RawContactDelta} state and the {@link AccountType} that
@@ -158,6 +198,7 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             boolean isProfile) {
 
         mState = state;
+        isMyLocalProfile = isProfile;
 
         // Remove any existing sections
         mFields.removeAllViews();
@@ -225,6 +266,32 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             mGroupMembershipView.setEnabled(isEnabled());
         }
 
+        if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(type.accountType)) {
+            String accountName = state.getAccountName();
+            int sub = 0;
+            if (SimContactsConstants.SIM_NAME_2.equals(accountName)) {
+                sub = 1;
+            }
+            if (!is3GCard(sub) && mState != null) {
+                for (ValuesDelta entry : mState
+                        .getMimeEntries(Phone.CONTENT_ITEM_TYPE)) {
+                    if (Phone.TYPE_HOME == entry.getAsLong(Phone.TYPE)) {
+                        mState.getMimeEntries(Phone.CONTENT_ITEM_TYPE).remove(
+                                entry);
+                        break;
+                    }
+                }
+                ArrayList<ValuesDelta> temp = mState
+                        .getMimeEntries(Email.CONTENT_ITEM_TYPE);
+                if (temp != null) {
+                    mState.getMimeEntries(Email.CONTENT_ITEM_TYPE).clear();
+                }
+            }
+
+            //sim card can't store expand fields,so set it disabled.
+            mName.setExpansionViewContainerDisabled();
+        }
+
         // Create editor sections for each possible data kind
         for (DataKind kind : type.getSortedDataKinds()) {
             // Skip kind of not editable
@@ -234,12 +301,18 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             if (StructuredName.CONTENT_ITEM_TYPE.equals(mimeType)) {
                 // Handle special case editor for structured name
                 final ValuesDelta primary = state.getPrimaryEntry(mimeType);
-                mName.setValues(
-                        type.getKindForMimetype(DataKind.PSEUDO_MIME_TYPE_DISPLAY_NAME),
-                        primary, state, false, vig);
-                mPhoneticName.setValues(
+                DataKind dataKind = type.getKindForMimetype(DataKind.PSEUDO_MIME_TYPE_DISPLAY_NAME);
+                // Limit the length of EditText to avoid OOM.
+                dataKind.maxLength = NAME_LENGTH_LIMIT;
+                mName.setValues(dataKind, primary, state, false, vig);
+                if(!"com.android.sim".equals(type.accountType)){
+                	mPhoneticName.setValues(
                         type.getKindForMimetype(DataKind.PSEUDO_MIME_TYPE_PHONETIC_NAME),
                         primary, state, false, vig);
+                }
+                else{
+                    mPhoneticName.setVisibility(View.GONE);
+                }
             } else if (Photo.CONTENT_ITEM_TYPE.equals(mimeType)) {
                 // Handle special case editor for photos
                 final ValuesDelta primary = state.getPrimaryEntry(mimeType);
@@ -248,6 +321,55 @@ public class RawContactEditorView extends BaseRawContactEditorView {
                 if (mGroupMembershipView != null) {
                     mGroupMembershipView.setState(state);
                 }
+            } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType) && kind.fieldList != null) {
+                final KindSectionView section = (KindSectionView)mInflater.inflate(
+                        R.layout.item_kind_section, mFields, false);
+                section.setEnabled(isEnabled());
+                section.setState(kind, state, false, vig);
+                mFields.addView(section);
+                if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(type.accountType) ) {
+                    String accountName = state.getAccountName();
+                    int sub = 0;
+                    if (SimContactsConstants.SIM_NAME_2.equals(accountName)) {
+                        sub = 1;
+                    }
+                    if (!is3GCard(sub)) {
+                       mFields.removeView(section);
+                    }
+                }
+            } else if (Phone.CONTENT_ITEM_TYPE.equals(mimeType) && kind.fieldList != null) {
+                final KindSectionView section = (KindSectionView)mInflater.inflate(
+                        R.layout.item_kind_section, mFields, false);
+                if (SimContactsConstants.ACCOUNT_TYPE_SIM
+                        .equals(type.accountType)) {
+                    String accountName = state.getAccountName();
+                    int sub = 0;
+                    if (SimContactsConstants.SIM_NAME_2.equals(accountName)) {
+                        sub = 1;
+                    }
+                    EditType typeHome = new EditType(Phone.TYPE_HOME,
+                            Phone.getTypeLabelResource(Phone.TYPE_HOME));
+                    if (!is3GCard(sub)) {
+                        kind.typeOverallMax = 1;
+                        if (null != kind.typeList) {
+                            // When the sim card is not 3g the interface should
+                            // remove the TYPE_HOME number view.
+                            kind.typeList.remove(typeHome);
+                        }
+                    } else {
+                        kind.typeOverallMax = 2;
+                        if (null != kind.typeList && !kind.typeList.contains(typeHome)) {
+                            // When the sim card is 3g the interface should
+                            // add the TYPE_HOME number view.
+                            kind.typeList.add(typeHome);
+                        }
+                        section.setLabelReadOnly(true);
+                    }
+                }
+                kind.maxLength = NUMBER_LENGTH_LIMIT;
+                section.setEnabled(isEnabled());
+                section.setState(kind, state, false, vig);
+                mFields.addView(section);
             } else if (Organization.CONTENT_ITEM_TYPE.equals(mimeType)) {
                 // Create the organization section
                 final KindSectionView section = (KindSectionView) mInflater.inflate(
@@ -299,7 +421,7 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             mFields.addView(mGroupMembershipView);
         }
 
-        updatePhoneticNameVisibility();
+        //updatePhoneticNameVisibility();
 
         addToDefaultGroupIfNeeded();
 
@@ -435,6 +557,10 @@ public class RawContactEditorView extends BaseRawContactEditorView {
                     continue;
                 }
 
+                if (isMyLocalProfile && LocalGroup.CONTENT_ITEM_TYPE.equals(kind.mimeType)) {
+                    continue;
+                }
+
                 fields.add(sectionView);
             }
         }
@@ -443,13 +569,13 @@ public class RawContactEditorView extends BaseRawContactEditorView {
 
     private void showAddInformationPopupWindow() {
         final ArrayList<KindSectionView> fields = getSectionViewsWithoutFields();
-        final PopupMenu popupMenu = new PopupMenu(getContext(), mAddFieldButton);
-        final Menu menu = popupMenu.getMenu();
+        mPopupMenu = new PopupMenu(getContext(), mAddFieldButton);
+        final Menu menu = mPopupMenu.getMenu();
         for (int i = 0; i < fields.size(); i++) {
             menu.add(Menu.NONE, i, Menu.NONE, fields.get(i).getTitle());
         }
 
-        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+        mPopupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 final KindSectionView view = fields.get(item.getItemId());
@@ -470,6 +596,32 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             }
         });
 
-        popupMenu.show();
+        mPopupMenu.show();
+    }
+
+    // When the activity goes to background, it will save the editing contact
+    // data. When it comes into the foreground, it will reload the saved contact
+    // data and reload interface, the previous editing view is detached from
+    // window, this moment, we should dismiss pop menu which attached to the
+    // view.
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (mPopupMenu != null) {
+            mPopupMenu.dismiss();
+            mPopupMenu = null;
+        }
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // When rotate the screen,dissmiss the popup menu.
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
+                || newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            if (mPopupMenu != null) {
+                mPopupMenu.dismiss();
+                mPopupMenu = null;
+            }
+        }
     }
 }

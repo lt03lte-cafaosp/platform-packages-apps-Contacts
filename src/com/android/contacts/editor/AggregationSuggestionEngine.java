@@ -38,6 +38,7 @@ import android.provider.ContactsContract.RawContacts;
 import android.text.TextUtils;
 
 import com.android.contacts.model.RawContactDelta.ValuesDelta;
+import com.android.contacts.model.account.SimAccountType;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -395,6 +396,15 @@ public class AggregationSuggestionEngine extends HandlerThread {
                     rawContact.accountName = mDataCursor.getString(DataQuery.ACCOUNT_NAME);
                     rawContact.accountType = mDataCursor.getString(DataQuery.ACCOUNT_TYPE);
                     rawContact.dataSet = mDataCursor.getString(DataQuery.DATA_SET);
+
+                    // Don't display SIM Card Contacts aggregation suggestion when local contacts is edited
+                    if (rawContact.accountType.equals(SimAccountType.ACCOUNT_TYPE)) {
+                        list.remove(suggestion);
+                        suggestion = null;
+                        currentContactId = -1;
+                        continue;
+                    }
+
                     suggestion.rawContacts.add(rawContact);
                 }
 

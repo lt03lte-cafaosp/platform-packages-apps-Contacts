@@ -220,7 +220,7 @@ public class ContactSelectionActivity extends ContactsActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         // If we want "Create New Contact" button but there's no such a button in the layout,
         // try showing a menu for it.
-        if (shouldShowCreateNewContactButton() && mCreateNewContactButton == null) {
+        if (shouldShowCreateNewContactButton() && mCreateNewContactButton == null && !getIntent().hasExtra("withoutCreate")) {
             MenuInflater inflater = getMenuInflater();
             inflater.inflate(R.menu.contact_picker_options, menu);
         }

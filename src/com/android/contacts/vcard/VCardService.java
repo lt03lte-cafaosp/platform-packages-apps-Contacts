@@ -23,6 +23,7 @@ import android.media.MediaScannerConnection.MediaScannerConnectionClient;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
@@ -30,9 +31,10 @@ import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
+import android.widget.Toast;
 
 import com.android.contacts.R;
-
+import com.android.contacts.vcard.VCardEntryCommitterEx;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -51,7 +53,7 @@ import java.util.concurrent.RejectedExecutionException;
  */
 // TODO: Using IntentService looks simpler than using Service + ServiceConnection though this
 // works fine enough. Investigate the feasibility.
-public class VCardService extends Service {
+public class VCardService extends Service implements VCardEntryCommitterEx.Listener{
     private final static String LOG_TAG = "VCardService";
 
     /* package */ final static boolean DEBUG = false;
@@ -68,8 +70,10 @@ public class VCardService extends Service {
      */
     /* package */ static final int TYPE_IMPORT = 1;
     /* package */ static final int TYPE_EXPORT = 2;
-
+	private Handler mHandler = new Handler();
     /* package */ static final String CACHE_FILE_PREFIX = "import_tmp_";
+
+    private String selExport = "";
 
 
     private class CustomMediaScannerConnectionClient implements MediaScannerConnectionClient {
@@ -223,7 +227,9 @@ public class VCardService extends Service {
 
     public synchronized void handleExportRequest(ExportRequest request,
             VCardImportExportListener listener) {
-        if (tryExecute(new ExportProcessor(this, request, mCurrentJobId))) {
+        ExportProcessor processor = new ExportProcessor(this, request, mCurrentJobId);
+        processor.setSelExport(selExport);
+        if (tryExecute(processor)) {
             final String path = request.destUri.getEncodedPath();
             if (DEBUG) Log.d(LOG_TAG, "Reserve the path " + path);
             if (!mReservedDestination.add(path)) {
@@ -245,6 +251,10 @@ public class VCardService extends Service {
                 listener.onExportFailed(request);
             }
         }
+    }
+
+    public void setSelExport(String sel) {
+        selExport = sel;
     }
 
     /**
@@ -530,4 +540,17 @@ public class VCardService extends Service {
         mErrorReason = getString(R.string.fail_reason_too_many_vcard);
         return null;
     }
+    
+	@Override
+    public void onImportReachMax() {
+    	mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(VCardService.this,R.string.contacts_full, Toast.LENGTH_LONG).show();
+            }
+        });
+		cancelAllRequestsAndShutdown();
+        stopSelf();
+    }
+        
 }
