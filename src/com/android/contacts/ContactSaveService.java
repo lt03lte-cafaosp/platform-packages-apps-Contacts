@@ -457,7 +457,7 @@ public class ContactSaveService extends IntentService {
 
     // Only for request accessing SIM card
     // when device is in the "AirPlane" mode.
-    private static final int RESULT_AIR_PLANE_MODE = 10;
+    private static final int RESULT_AIR_PLANE_MODE = 11;
     
     private boolean checkPhoneContactsFull(Context context,Intent intent){
       RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);

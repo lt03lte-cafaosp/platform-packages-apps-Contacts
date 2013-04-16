@@ -1276,7 +1276,7 @@ public class ContactEditorFragment extends Fragment implements
 
     // Only for accessing SIM card
     // when device is in the "AirPlane" mode.
-    private static final int RESULT_AIR_PLANE_MODE = 10;
+    private static final int RESULT_AIR_PLANE_MODE = 11;
 
     public void onSaveCompleted(boolean hadChanges, int saveMode, boolean saveSucceeded,
             Uri contactLookupUri, int result) {
