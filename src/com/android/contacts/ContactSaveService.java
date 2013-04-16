@@ -1441,6 +1441,8 @@ public class ContactSaveService extends IntentService {
         } else {
             getContentResolver().delete(contactUri, null, null);
         }
+
+        showToast(R.string.operate_done);
     }
 
     /**

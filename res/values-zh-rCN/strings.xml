@@ -652,6 +652,7 @@
     <string name="delete_contacts_title">"删除联系人"</string>
     <string name="delete_contacts_message">"正在删除..."</string>
     <string name="delete_termination">"删除结束"</string>
+    <string name="operate_done">"操作成功"</string>
     <string name="ContactMultiImportConfirmation">"将会导入这些联系人。"</string>
     <string name="dialog_title">提示</string>
     <string name="error_group_exist">不能添加重名的群组</string>

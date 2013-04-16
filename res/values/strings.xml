@@ -1980,6 +1980,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <string name="delete_contacts_title">Delete Contacts</string>
     <string name="delete_contacts_message">Deleting Contacts ...</string>
     <string name="delete_termination">"Delete is termination"</string>
+    <string name="operate_done">"Done!"</string>
 
     <!-- Message while reading multiple vCard files "(current number) of (total number) files" The order of "current number" and "total number" cannot be changed (like "total: (total number), current: (current number)")-->
     <string name="reading_vcard_files"><xliff:g id="current_number">%1$s</xliff:g> of <xliff:g id="total_number">%2$s</xliff:g> files</string>
