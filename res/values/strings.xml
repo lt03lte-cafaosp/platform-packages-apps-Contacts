@@ -1999,6 +1999,20 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <string name="fail_reason_import_vcard">I/O error,couldn\'t import vCard <xliff:g id="name">%1$s</xliff:g></string>
     <!-- for contact module of local group -->
     <string name="add_member_task_canceled">Adding members to group is canceled.</string>
+    <!-- add for UX_enhance_dial_button -->
+    <string name="description_target_slot1">Slot1</string>
+    <string name="description_target_slot2">Slot2</string>
+
+    <string name="description_direction_left">"Slide left for <xliff:g id="target_description" example="slot1">%s</xliff:g>.</string>
+    <string name="description_direction_right">Slide right for <xliff:g id="target_description" example="slot2">%s</xliff:g>.</string>
+    <string name="dialpad_cling_multi_sim_call">Slide dial button to call via slot1 or slot2.</string>
+    <!-- add for UX_enhance_dial_button -->
+    <string name="callFailure">Call Failure</string> 
+    <string name="ipnum_not_set">Not set IP dial number!</string>
+    <string name="recentCalls_IPCall_card1">Slot1 IP call</string>
+    <string name="recentCalls_IPCall_card2">Slot2 IP call</string>
+    <string name="recentCalls_IPCall">IP call</string>
+    <string name="recentCalls_sendMessage">Send message</string>
     <!-- Content description for the expand or collapse name fields button.
          Clicking this button causes the name editor to toggle between showing
          a single field where the entire name is edited at once, or multiple
