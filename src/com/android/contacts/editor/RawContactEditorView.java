@@ -324,9 +324,7 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType) && kind.fieldList != null) {
                 final KindSectionView section = (KindSectionView)mInflater.inflate(
                         R.layout.item_kind_section, mFields, false);
-                section.setEnabled(isEnabled());
-                section.setState(kind, state, false, vig);
-                mFields.addView(section);
+                
                 if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(type.accountType) ) {
                     String accountName = state.getAccountName();
                     int sub = 0;
@@ -334,8 +332,19 @@ public class RawContactEditorView extends BaseRawContactEditorView {
                         sub = 1;
                     }
                     if (!is3GCard(sub)) {
-                       mFields.removeView(section);
+                       //mFields.removeView(section);
                     }
+                    else {
+                        section.setLabelReadOnly(true);
+                        section.setEnabled(isEnabled());
+                        section.setState(kind, state, false, vig);
+                        mFields.addView(section);
+                    }
+                }
+                else {
+                    section.setEnabled(isEnabled());
+                    section.setState(kind, state, false, vig);
+                    mFields.addView(section);
                 }
             } else if (Phone.CONTENT_ITEM_TYPE.equals(mimeType) && kind.fieldList != null) {
                 final KindSectionView section = (KindSectionView)mInflater.inflate(
