@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2008, 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1127,6 +1127,13 @@ public class DialtactsActivity extends TransactionSafeActivity
         final FragmentTransaction transaction = getFragmentManager().beginTransaction();
         transaction.show(mSearchFragment);
         transaction.commitAllowingStateLoss();
+        // When show the search fragment, current design does not hide the call log fragment
+        // in the view pager. So it will invoke the onPrepareOptionsMenu() of the CallLogFragment
+        // when the activity resumed from the background. For example,
+        // resume from the "Contacts to display" view or resume from the screen lock. In this
+        // way, the menu of search fragment is wrong. So hide the call log fragment when show
+        // the search fragment.
+        transaction.hide(getFragmentAt(mViewPager.getCurrentItem()));
         mViewPager.setVisibility(View.GONE);
 
         // We need to call this and onActionViewCollapsed() manually, since we are using a custom
@@ -1158,11 +1165,11 @@ public class DialtactsActivity extends TransactionSafeActivity
     private void exitSearchUi() {
         final ActionBar actionBar = getActionBar();
 
+        final FragmentTransaction transaction = getFragmentManager().beginTransaction();
         // Hide the search fragment, if exists.
         if (mSearchFragment != null) {
             mSearchFragment.setUserVisibleHint(false);
 
-            final FragmentTransaction transaction = getFragmentManager().beginTransaction();
             transaction.hide(mSearchFragment);
             transaction.commitAllowingStateLoss();
         }
@@ -1180,6 +1187,8 @@ public class DialtactsActivity extends TransactionSafeActivity
         mDuringSwipe = false;
         mUserTabClick = false;
 
+        // When user exits from the search fragment, show the call log fragment again.
+        transaction.show(getFragmentAt(mViewPager.getCurrentItem()));
         mViewPager.setVisibility(View.VISIBLE);
 
         hideInputMethod(getCurrentFocus());
