@@ -236,7 +236,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
                 if (field.titleRes > 0) {
                     fieldView.setHint(field.titleRes);
                 }
-                int inputType = field.inputType;
+                final int inputType = field.inputType;
                 fieldView.setInputType(inputType);
                 if (inputType == InputType.TYPE_CLASS_PHONE) {
                     PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(mContext, fieldView);
@@ -260,7 +260,13 @@ public class TextFieldsEditorView extends LabeledEditorView {
                     @Override
                     public void afterTextChanged(Editable s) {
                         // Trigger event for newly changed value
-                        onFieldChanged(column, s.toString());
+                        String str = s.toString();
+                        if(inputType == InputType.TYPE_CLASS_PHONE){
+                            str = str.replace(';','W');
+                            str = str.replace(',','P');
+                            str = str.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+                        }
+                        onFieldChanged(column, str);
                     }
 
                     @Override
@@ -269,6 +275,17 @@ public class TextFieldsEditorView extends LabeledEditorView {
 
                     @Override
                     public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        String str = s.toString();
+                        if(inputType == InputType.TYPE_CLASS_PHONE){
+                            String newString = str.replace(';','W');
+                            newString = newString.replace(',','P');
+                            newString = newString.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+                            if(newString.length() != str.length() || (str.contains(";") || str.contains(","))){
+                              fieldView.setText(newString);
+                              fieldView.setSelection(start+count-(str.length()-newString.length()));
+                            }
+                            
+                        }
                     }
                 });
 
