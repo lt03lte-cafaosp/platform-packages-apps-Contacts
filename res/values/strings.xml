@@ -2024,13 +2024,33 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <string name="menu_copyTo">"Copy to "</string>
     <string name="title_switch_group_remote">"Remote group"</string>
     <string name="title_switch_group_local">"Local group"</string>
+
+	<!--modify for call log   -->
+	<string name="last_call_duration">Last call duration:</string> 
+	<string name="incoming_calls_duration">Incoming calls duration:</string> 
+	<string name="outgoing_calls_duration">Outgoing calls duration:</string> 
+	<string name="all_calls_duration">All calls duration:</string> 
+	<string name="clear">clear</string>
+	<string name="sub1">Card 1</string> 
+	<string name="sub2">Card 2</string>
+	<string name="cdma">CDMA</string> 
+	<string name="gsm">GSM</string>
+	<string name="all">All calls</string>
+	<string name="duration">Calls duration</string>
+	<string name="str_slot1">Card1 </string>
+    <string name="str_slot2">Card2 </string>
+    <string name="str_slot">Card </string>
+	 <string name="all_call_log">All call logs</string>
+     <string name="title_slot_change">Multi SIM change</string>
+     <string name="calllogSearchHint">"Search rencent calls"</string>
      <string name="delete_call_title">"delete call log"</string>
      <string name="title_del_call">delete</string>   
    
   
     <string name="delete_call_message">"deleting..."</string>
     <string name="delete_call_alert">"are you sure to delete calllog?"</string>
-  
+   
+   
          <!--modify for call log  -->
 	<!-- The menu item to filter the list of auto_sync_to_baidu_cloud -->
     <string name="menu_auto_sync_to_baidu_cloud">Auto sync to Baidu Yun</string>

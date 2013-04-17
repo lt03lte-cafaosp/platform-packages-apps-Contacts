@@ -184,8 +184,28 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.TAB" />
             </intent-filter>
+            
         </activity>
+        
+         <activity-alias android:name="DialtactsContactsEntryActivityForRecentCalls"
+            android:targetActivity=".activities.DialtactsActivity"
+            android:label="@string/recentCallsIconLabel"
+           
+        >
+            <intent-filter>            
+                <category android:name="android.intent.category.DEFAULT" />            
+                <category android:name="android.intent.category.BROWSABLE" />
+            </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data android:name="android.app.searchable"
+                    android:resource="@xml/calllog_searchable" />
+                    
+        </activity-alias>
+        
         <!-- The main Contacts activity with the contact list, favorites, and groups. -->
         <!-- add config change attribute,when rotate the screen don't recreate the activity. -->
         <activity android:name=".activities.PeopleActivity"
@@ -275,6 +295,16 @@
             />
         </activity>
 
+         <!-- Provides search suggestions for words and their definitions. -->
+        <provider android:name=".calllog.RecentCallSearchProvider"
+                  android:authorities="com.android.contacts.calllog.RecentCallSearchProvider" >
+            <path-permission
+                    android:pathPrefix="/search_suggest_query"
+                    android:readPermission="android.permission.GLOBAL_SEARCH" />
+            <path-permission
+                    android:pathPrefix="/search_suggest_shortcut"
+                    android:readPermission="android.permission.GLOBAL_SEARCH" />
+        </provider>
         <activity android:name=".activities.ContactSelectionActivity"
             android:label="@string/contactsList"
             android:theme="@style/ContactPickerTheme"
@@ -489,7 +519,21 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.item/calls" />
             </intent-filter>
+           
         </activity>
+
+
+		<activity android:name=".calllog.FragmentTabs"                
+			android:label="@string/duration"
+			android:theme="@style/CallDetailActivityTheme"
+			android:screenOrientation="nosensor"
+            
+                     android:taskAffinity="android.task.contacts.phone">            
+			<intent-filter>                
+				<action android:name="android.intent.action.MAIN" />                
+				<category android:name="com.example.android.supportv4.SUPPORT4_SAMPLE_CODE" />            
+			</intent-filter>        
+		</activity>
 
         <!-- Views the details of a single contact -->
         <activity android:name=".activities.ContactDetailActivity"

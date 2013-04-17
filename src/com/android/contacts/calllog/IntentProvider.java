@@ -16,6 +16,7 @@
 
 package com.android.contacts.calllog;
 
+import com.android.internal.telephony.MSimConstants;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
@@ -33,18 +34,30 @@ import com.android.contacts.ContactsUtils;
  */
 public abstract class IntentProvider {
     public abstract Intent getIntent(Context context);
-
-    public static IntentProvider getReturnCallIntentProvider(final String number) {
+  
+      public static IntentProvider getReturnCallIntentProvider(final String number,final int subscription) {
         return new IntentProvider() {
             @Override
             public Intent getIntent(Context context) {
-                return ContactsUtils.getCallIntent(number);
+                Intent intent = ContactsUtils.getCallIntent(number);
+                intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, subscription);
+                return intent;
+            }
+        };
+    }
+    
+    public static IntentProvider getReturnCallDurationTabProvider() {
+        return new IntentProvider() {
+            @Override
+            public Intent getIntent(Context context) {
+                Intent intent = new Intent(context, FragmentTabs.class);
+                return intent;
             }
         };
     }
 
     public static IntentProvider getPlayVoicemailIntentProvider(final long rowId,
-            final String voicemailUri) {
+            final String voicemailUri,final int subscription) {
         return new IntentProvider() {
             @Override
             public Intent getIntent(Context context) {
@@ -55,14 +68,16 @@ public abstract class IntentProvider {
                     intent.putExtra(CallDetailActivity.EXTRA_VOICEMAIL_URI,
                             Uri.parse(voicemailUri));
                 }
-                intent.putExtra(CallDetailActivity.EXTRA_VOICEMAIL_START_PLAYBACK, true);
+                intent.putExtra(
+                        CallDetailActivity.EXTRA_VOICEMAIL_START_PLAYBACK, true);
+                intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, subscription);
                 return intent;
             }
         };
     }
 
     public static IntentProvider getCallDetailIntentProvider(
-            final CallLogAdapter adapter, final int position, final long id, final int groupSize) {
+            final CallLogAdapter adapter, final int position, final long id, final int groupSize,final int subscription) {
         return new IntentProvider() {
             @Override
             public Intent getIntent(Context context) {
@@ -95,6 +110,7 @@ public abstract class IntentProvider {
                     intent.setData(ContentUris.withAppendedId(
                             Calls.CONTENT_URI_WITH_VOICEMAIL, id));
                 }
+                intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, subscription);
                 return intent;
             }
         };

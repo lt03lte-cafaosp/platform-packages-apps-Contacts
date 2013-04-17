@@ -25,6 +25,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract.PhoneLookup;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,8 +41,11 @@ import com.android.contacts.util.ExpirableCache;
 import com.android.contacts.util.UriUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
+import android.widget.TextView;
 
 import java.util.LinkedList;
+import android.provider.Settings;
+import android.util.Log;
 
 /**
  * Adapter class to fill in data for the Call Log.
@@ -439,6 +443,16 @@ import java.util.LinkedList;
     protected void addGroups(Cursor cursor) {
         mCallLogGroupBuilder.addGroups(cursor);
     }
+   
+    private String getMultiSimName(int subscription) {
+       // return Settings.System.getString(mContext.getContentResolver(),
+      //    Settings.System.MULTI_SIM_NAME[subscription]);		
+	String name = Settings.System.getString(mContext.getContentResolver(),Settings.System.MULTI_SIM_NAME[subscription]);
+	if(name == null){
+	name = mContext.getResources().getStringArray(R.array.select_slot_item)[subscription];
+	}
+	return name ;
+    }
 
     @Override
     protected View newStandAloneView(Context context, ViewGroup parent) {
@@ -525,22 +539,23 @@ import java.util.LinkedList;
         final long duration = c.getLong(CallLogQuery.DURATION);
         final int callType = c.getInt(CallLogQuery.CALL_TYPE);
         final String countryIso = c.getString(CallLogQuery.COUNTRY_ISO);
+        final int subscription = c.getInt(CallLogQuery.SUBSCRIPTION);
 
         final ContactInfo cachedContactInfo = getContactInfoFromCallLog(c);
 
         views.primaryActionView.setTag(
                 IntentProvider.getCallDetailIntentProvider(
-                        this, c.getPosition(), c.getLong(CallLogQuery.ID), count));
+                        this, c.getPosition(), c.getLong(CallLogQuery.ID), count,subscription));
         // Store away the voicemail information so we can play it directly.
         if (callType == Calls.VOICEMAIL_TYPE) {
             String voicemailUri = c.getString(CallLogQuery.VOICEMAIL_URI);
             final long rowId = c.getLong(CallLogQuery.ID);
             views.secondaryActionView.setTag(
-                    IntentProvider.getPlayVoicemailIntentProvider(rowId, voicemailUri));
+                    IntentProvider.getPlayVoicemailIntentProvider(rowId, voicemailUri,subscription));
         } else if (!TextUtils.isEmpty(number)) {
             // Store away the number so we can call it directly if you click on the call icon.
             views.secondaryActionView.setTag(
-                    IntentProvider.getReturnCallIntentProvider(number));
+                    IntentProvider.getReturnCallIntentProvider(number,subscription));
         } else {
             // No action enabled.
             views.secondaryActionView.setTag(null);
@@ -591,20 +606,21 @@ import java.util.LinkedList;
         CharSequence formattedNumber = info.formattedNumber;
         final int[] callTypes = getCallTypes(c, count);
         final String geocode = c.getString(CallLogQuery.GEOCODED_LOCATION);
+        final int durationType = c.getInt(CallLogQuery.DURATION_TYPE);
         final PhoneCallDetails details;
         if (TextUtils.isEmpty(name)) {
             details = new PhoneCallDetails(number, formattedNumber, countryIso, geocode,
-                    callTypes, date, duration);
+                    callTypes, date, duration, subscription, durationType);
         } else {
             // We do not pass a photo id since we do not need the high-res picture.
             details = new PhoneCallDetails(number, formattedNumber, countryIso, geocode,
-                    callTypes, date, duration, name, ntype, label, lookupUri, null);
+                    callTypes, date, duration, subscription, durationType, name, ntype, label, lookupUri, null);
         }
 
         final boolean isNew = c.getInt(CallLogQuery.IS_READ) == 0;
         // New items also use the highlighted version of the text.
         final boolean isHighlighted = isNew;
-        mCallLogViewsHelper.setPhoneCallDetails(views, details, isHighlighted);
+        mCallLogViewsHelper.setPhoneCallDetails(views, details, isHighlighted, view.getContext());
         setPhoto(views, photoId, lookupUri);
 
         // Listen for the first draw
