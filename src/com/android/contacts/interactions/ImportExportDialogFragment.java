@@ -819,7 +819,10 @@ public class ImportExportDialogFragment extends DialogFragment
                                             mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
                                             boolean airplane = (System.getInt(mpeople.getContentResolver(),
                                                     System.AIRPLANE_MODE_ON, 0) != 0);
-                                            if (airplane) break;
+                                            if (airplane) {
+                                                isSimCardFull = true;
+                                                break;
+                                            }    
                                             else continue;
                                         }
                                     }
