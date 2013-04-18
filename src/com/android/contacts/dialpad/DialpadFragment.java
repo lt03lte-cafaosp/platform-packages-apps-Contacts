@@ -423,7 +423,7 @@ public class DialpadFragment extends ListFragment
         mDialpadChooser = (ListView) fragmentView.findViewById(R.id.dialpadChooser);
         mDialpadChooser.setOnItemClickListener(this);
 
-        configureScreenFromIntent(getActivity().getIntent());
+        //configureScreenFromIntent(getActivity().getIntent());
 
         mDialpadCling = (DialpadCling)fragmentView.findViewById(R.id.dialpad_cling);
         mClingText = (TextView)fragmentView.findViewById(R.id.clingText);
@@ -2250,6 +2250,8 @@ public class DialpadFragment extends ListFragment
                 Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF, 1.0f);
         hideAction.setDuration(100);
         setupListView();
+
+        configureScreenFromIntent(getActivity().getIntent());
     }
 
     public void onConfigurationChanged(Configuration newConfig) {
