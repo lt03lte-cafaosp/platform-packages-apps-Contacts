@@ -273,6 +273,7 @@
             android:theme="@style/ContactPickerTheme"
             android:launchMode="singleTop"
             android:clearTaskOnLaunch="true"
+            android:screenOrientation="portrait"
             android:uiOptions="splitActionBarWhenNarrow">
             <intent-filter>
                 <action android:name="android.intent.action.INSERT_OR_EDIT" />
@@ -686,6 +687,14 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" >
             <intent-filter>
                 <action android:name="android.intent.action.APPWIDGET_PICK" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".SpeedDialListActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:label="@string/set_speed_dial" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
             </intent-filter>
         </activity>
 
