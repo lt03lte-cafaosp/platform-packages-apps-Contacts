@@ -745,28 +745,28 @@ public class MultiPickContactActivity extends ListActivity implements
                             intent.putExtras(bundle);
                             this.setResult(RESULT_OK, intent);
                             finish();
-                    }else if (mChoiceSet.size() > 0) {
-                        showDialog(R.id.dialog_delete_contact_confirmation);
-                    }
-                } else if (mMode == MODE_DEFAULT_PHONE) {
-                    Intent intent = new Intent();
-                    Bundle bundle = new Bundle();
-                    bundle.putBundle(RESULT_KEY, mChoiceSet);
-                    intent.putExtras(bundle);
-                    this.setResult(RESULT_OK, intent);
-                    finish();
-                } else if (mMode == MODE_DEFAULT_SIM) {
-                    if (mChoiceSet.size() > 0) {
-                        showDialog(R.id.dialog_import_sim_contact_confirmation);
-                    }
-                } else if (mMode == MODE_DEFAULT_EMAIL) {
-                    Intent intent = new Intent();
-                    Bundle bundle = new Bundle();
-                    bundle.putBundle(RESULT_KEY, mChoiceSet);
-                    intent.putExtras(bundle);
-                    this.setResult(RESULT_OK, intent);
-                    finish();
-                } else if (mMode == MODE_DEFAULT_CALL) {
+                        }else if (mChoiceSet.size() > 0) {
+                            showDialog(R.id.dialog_delete_contact_confirmation);
+                        }
+                    } else if (mMode == MODE_DEFAULT_PHONE) {
+                        Intent intent = new Intent();
+                        Bundle bundle = new Bundle();
+                        bundle.putBundle(RESULT_KEY, mChoiceSet);
+                        intent.putExtras(bundle);
+                        this.setResult(RESULT_OK, intent);
+                        finish();
+                    } else if (mMode == MODE_DEFAULT_SIM) {
+                        if (mChoiceSet.size() > 0) {
+                            showDialog(R.id.dialog_import_sim_contact_confirmation);
+                        }
+                    } else if (mMode == MODE_DEFAULT_EMAIL) {
+                        Intent intent = new Intent();
+                        Bundle bundle = new Bundle();
+                        bundle.putBundle(RESULT_KEY, mChoiceSet);
+                        intent.putExtras(bundle);
+                        this.setResult(RESULT_OK, intent);
+                        finish();
+                    } else if (mMode == MODE_DEFAULT_CALL) {
                         if (mChoiceSet.size() > 0) {
                             showDialog(DIALOG_DEL_CALL);
                         }
@@ -774,9 +774,9 @@ public class MultiPickContactActivity extends ListActivity implements
                 } else {
                     // Delete directly contacts after contacts are selected in
                     // search mode
-                    if (mChoiceSet.size() > 0) {
-                        showDialog(R.id.dialog_delete_contact_confirmation);
-                    }
+                    //if (mChoiceSet.size() > 0) {
+                    //    showDialog(R.id.dialog_delete_contact_confirmation);
+                    //}
                     exitSearchMode(true);
                 }
                 break;
