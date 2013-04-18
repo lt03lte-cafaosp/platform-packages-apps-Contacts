@@ -71,7 +71,8 @@ public class PhoneAccountType extends BaseAccountType{
             addDataKindWebsite(context);
             //addDataKindGroupMembership(context);
             addDataKindLocalGroups(context);
-            addDataKindSipAddress(context);
+            if(android.os.SystemProperties.getInt("ro.cta.test", 0) == 0 )
+              addDataKindSipAddress(context);
 
             mIsInitialized = true;
         } catch (DefinitionException e) {

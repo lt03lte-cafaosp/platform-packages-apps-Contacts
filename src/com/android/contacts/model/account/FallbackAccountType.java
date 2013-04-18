@@ -49,7 +49,8 @@ public class FallbackAccountType extends BaseAccountType {
             addDataKindPhoto(context);
             addDataKindNote(context);
             addDataKindWebsite(context);
-            addDataKindSipAddress(context);
+            if(android.os.SystemProperties.getInt("ro.cta.test", 0) == 0 )
+                addDataKindSipAddress(context);
 
             addDataKindLocalGroups(context);
 

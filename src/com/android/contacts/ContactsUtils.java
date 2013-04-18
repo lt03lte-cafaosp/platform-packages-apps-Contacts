@@ -408,6 +408,10 @@ public class ContactsUtils {
             }
         }
 
+        if(account == null) {
+            account = new Account(SimContactsConstants.PHONE_NAME, SimContactsConstants.ACCOUNT_TYPE_PHONE);
+        }
+
         return account;
     }
 
