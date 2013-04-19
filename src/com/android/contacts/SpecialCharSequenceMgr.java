@@ -19,14 +19,12 @@
 
 package com.android.contacts;
 
-import com.android.internal.telephony.msim.ITelephonyMSim;
-import com.android.internal.telephony.ITelephony;
-import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.TelephonyIntents;
 
 import android.app.AlertDialog;
 import android.app.KeyguardManager;
 import android.app.ProgressDialog;
+import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -34,11 +32,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.os.ServiceManager;
-import android.provider.Settings;
-import android.provider.Settings.SettingNotFoundException;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
@@ -47,6 +44,9 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.android.internal.telephony.ITelephony;
+import com.android.internal.telephony.TelephonyCapabilities;
+import com.android.internal.telephony.msim.ITelephonyMSim;
 /**
  * Helper class to listen for some magic character sequences
  * that are handled specially by the dialer.
@@ -64,6 +64,7 @@ public class SpecialCharSequenceMgr {
     private static final String MMI_IMEI_DISPLAY = "*#06#";
     private static final int SUB1 = 0;
     private static final int SUB2 = 1;
+    private static final int LOADING_TIMEOUT_AFTER_AIRPLANE = 10 * 1000; // add time out, threshold is 10s
 
     /**
      * Remembers the previous {@link QueryHandler} and cancel the operation when needed, to
@@ -156,7 +157,7 @@ public class SpecialCharSequenceMgr {
      * This code works alongside the Asynchronous query handler {@link QueryHandler}
      * and query cancel handler implemented in {@link SimContactQueryCookie}.
      */
-    static boolean handleAdnEntry(Context context, String input, EditText textField) {
+    static boolean handleAdnEntry(final Context context, String input, EditText textField) {
         /* ADN entries are of the form "N(N)(N)#" */
 
         TelephonyManager telephonyManager =
@@ -193,10 +194,10 @@ public class SpecialCharSequenceMgr {
                 // the dialer text field.
 
                 // create the async query handler
-                QueryHandler handler = new QueryHandler (context.getContentResolver());
+                final QueryHandler handler = new QueryHandler (context.getContentResolver());
 
                 // create the cookie object
-                SimContactQueryCookie sc = new SimContactQueryCookie(index - 1, handler,
+                final SimContactQueryCookie sc = new SimContactQueryCookie(index - 1, handler,
                         ADN_QUERY_TOKEN);
 
                 // setup the cookie fields
@@ -232,6 +233,15 @@ public class SpecialCharSequenceMgr {
                 // run the query.
                 handler.startQuery(ADN_QUERY_TOKEN, sc, uri,
                         new String[]{ADN_PHONE_NUMBER_COLUMN_NAME}, null, null, null);
+                //  add time out for loading when disable airplane mode, time out is 10s.
+                new Handler().postDelayed(new Runnable() {
+                    public void run() {
+                        if (sc.progressDialog.isShowing()) {
+                            sc.progressDialog.cancel();
+                            Toast.makeText(context, R.string.simContacts_LoadingTimeout, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }, LOADING_TIMEOUT_AFTER_AIRPLANE);
 
                 if (sPreviousAdnQueryHandler != null) {
                     // It is harmless to call cancel() even after the handler's gone.

@@ -479,6 +479,7 @@
 
     <!-- Dialog text displayed when loading a phone number from the SIM card for speed dial -->
     <string name="simContacts_emptyLoading">Loading from SIM card\u2026</string>
+    <string name="simContacts_LoadingTimeout">Loading time out, please try again</string>
 
     <!-- Dialog title displayed when loading a phone number from the SIM card for speed dial -->
     <string name="simContacts_title">SIM card contacts</string>

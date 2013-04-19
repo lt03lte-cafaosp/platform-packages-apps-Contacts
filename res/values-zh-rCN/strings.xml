@@ -164,6 +164,7 @@
     <string name="dialerKeyboardHintText" msgid="5401660096579787344">"使用键盘拨号"</string>
     <string name="dialerDialpadHintText" msgid="5824490365898349041">"拨号以添加通话"</string>
     <string name="simContacts_emptyLoading" msgid="6700035985448642408">"正从 SIM 卡中载入..."</string>
+    <string name="simContacts_LoadingTimeout" msgid="6700035985448642408">"载入超时，请重试"</string>
     <string name="simContacts_title" msgid="27341688347689769">"SIM 卡联系人"</string>
     <string name="noContactsHelpTextWithSyncForCreateShortcut" msgid="801504710275614594">"没有任何联系人可供显示。（如果您刚刚添加了一个帐户，则系统需要几分钟的时间同步联系人。）"</string>
     <string name="noContactsHelpTextForCreateShortcut" msgid="3081286388667108335">"没有任何联系人可供显示。"</string>
