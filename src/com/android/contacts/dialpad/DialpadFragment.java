@@ -2336,12 +2336,17 @@ public class DialpadFragment extends ListFragment
     }
 
     private Cursor doFilter(String filter) {
-        final ContentResolver resolver = getActivity().getContentResolver();
-        Builder builder = CONTENT_SMART_DIALER_FILTER_URI.buildUpon();
-        builder.appendQueryParameter("filter", filter);
-        mCursor = resolver.query(builder.build(), CONTACTS_SUMMARY_FILTER_NUMBER_PROJECTION, null, null,  null);
+        if(getActivity() != null) {
+            final ContentResolver resolver = getActivity().getContentResolver();
+            Builder builder = CONTENT_SMART_DIALER_FILTER_URI.buildUpon();
+            builder.appendQueryParameter("filter", filter);
+            mCursor = resolver.query(builder.build(), CONTACTS_SUMMARY_FILTER_NUMBER_PROJECTION, null, null,  null);
 
-        return mCursor;
+            return mCursor;
+        }
+        else {
+            return null;
+        }
     }
 
     private final class ContactItemListAdapter extends CursorAdapter {
@@ -2557,24 +2562,29 @@ public class DialpadFragment extends ListFragment
             }
 
             public void changeCursor(Cursor cursor) {
-                if(isDigitsEmpty()){
-                    mCountButton.setVisibility(View.GONE);
-                    DialpadFragment.this.getListView().setVisibility(View.GONE);
-                    hideDialPadShowList(false);
-                }else if (cursor != null && cursor.moveToFirst()){
-                    mCountButton.setVisibility(View.VISIBLE);
-                    DialpadFragment.this.getListView().setVisibility(View.VISIBLE);
-                } else {
-                    mCountButton.setVisibility(View.GONE);
-                    DialpadFragment.this.getListView().setVisibility(View.GONE);
-                    hideDialPadShowList(false);
-                }
-                if (mDialpad.isShown() && !isDigitsEmpty() && cursor != null && cursor.getCount() > 0){
-                    mCountButton.setVisibility(View.VISIBLE);
-                    mCountView.setText(cursor.getCount()+"");
-                    mCountView.invalidate();
-                } else {
-                    mCountButton.setVisibility(View.GONE);
+                try {
+                    if(isDigitsEmpty()){
+                        mCountButton.setVisibility(View.GONE);
+                        DialpadFragment.this.getListView().setVisibility(View.GONE);
+                        hideDialPadShowList(false);
+                    }else if (cursor != null && cursor.moveToFirst()){
+                        mCountButton.setVisibility(View.VISIBLE);
+                        DialpadFragment.this.getListView().setVisibility(View.VISIBLE);
+                    } else {
+                        mCountButton.setVisibility(View.GONE);
+                        DialpadFragment.this.getListView().setVisibility(View.GONE);
+                        hideDialPadShowList(false);
+                    }
+                    if (mDialpad.isShown() && !isDigitsEmpty() && cursor != null && cursor.getCount() > 0){
+                        mCountButton.setVisibility(View.VISIBLE);
+                        mCountView.setText(cursor.getCount()+"");
+                        mCountView.invalidate();
+                    } else {
+                        mCountButton.setVisibility(View.GONE);
+                    }
+                } 
+                catch(Exception e) {
+                    e.printStackTrace();
                 }
                 super.changeCursor(cursor);
             }
