@@ -840,7 +840,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             }
             if (ContactsUtils.getSimFreeCount(mContext, sub) <= 0)
             {
-                Toast.makeText(mContext, R.string.card_no_space, 
+                Toast.makeText(mContext, R.string.sim_card_full, 
                                 Toast.LENGTH_SHORT).show();        
                 return ;
             }
