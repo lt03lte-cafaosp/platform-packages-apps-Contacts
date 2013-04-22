@@ -37,6 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
@@ -46,17 +48,21 @@ import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.ContentProviderOperation;
 import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.net.Uri.Builder;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.os.RemoteException;
 import android.provider.CallLog;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.ContactCounts;
@@ -64,7 +70,9 @@ import android.provider.Settings;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
@@ -99,16 +107,10 @@ import com.android.contacts.R;
 import com.android.contacts.SimContactsConstants;
 import com.android.contacts.SimContactsOperation;
 import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import java.util.ArrayList;
-import android.content.ContentProviderOperation;
-import android.provider.ContactsContract.Data;
-import android.content.OperationApplicationException;
-import android.provider.ContactsContract.CommonDataKinds.StructuredName;
-import android.os.RemoteException;
+
 import com.android.contacts.activities.PeopleActivity;
 import com.android.contacts.calllog.PhoneNumberHelper;
+import com.android.contacts.ContactsUtils;
 import com.android.contacts.list.AccountFilterActivity;
 import com.android.contacts.list.ContactListFilter;
 import com.android.contacts.list.ContactsSectionIndexer;
@@ -117,6 +119,8 @@ import com.android.contacts.model.account.SimAccountType;
 
 //add string convert for 'Unknow' to display
 import com.android.internal.telephony.CallerInfo;
+
+import java.util.ArrayList;
 
 public class MultiPickContactActivity extends ListActivity implements
         View.OnClickListener, TextView.OnEditorActionListener,
@@ -295,6 +299,9 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private PhoneNumberHelper mPhoneNumberHelper;
 
+    private PowerManager.WakeLock mWakeLock = null;
+    private final Object mWakeLockSync = new Object();
+
     /**
      * control of whether show the contacts in SIM card, if intent has this
      * flag,not show.
@@ -321,6 +328,8 @@ public class MultiPickContactActivity extends ListActivity implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        enablePowerWakeLock(MultiPickContactActivity.this, "Multipicker");
+        
         mNeedFastScroll = true;
         mPhoneNumberHelper = new PhoneNumberHelper(getResources());
         Log.d(TAG, "onCreate");
@@ -827,6 +836,8 @@ public class MultiPickContactActivity extends ListActivity implements
         }
 
         super.onDestroy();
+
+        disablePowerWakeLock();
     }
 
     private Uri getUriToQuery() {
@@ -1820,6 +1831,37 @@ public class MultiPickContactActivity extends ListActivity implements
     private void cancelSimContactsImporting() {
         if (mProgressDialog != null && mProgressDialog.isShowing()) {
             mProgressDialog.cancel();
+        }
+    }
+
+    /**
+     * Start the service to process the current event notifications, acquiring
+     * the wake lock before returning to ensure that the service will run.
+     */
+    public void enablePowerWakeLock(Context context, String tag) {
+        synchronized (mWakeLockSync) {
+            if (mWakeLock == null) {
+                PowerManager pm =
+                    (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+                mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                        tag);
+                mWakeLock.setReferenceCounted(false);
+            }
+            Log.i(TAG, "enablePowerWakeLock acquire");
+            mWakeLock.acquire();
+        }
+    }
+
+    /**
+     * Called back by the service when it has finished processing notifications,
+     * releasing the wake lock if the service is now stopping.
+     */
+    public void disablePowerWakeLock() {
+        synchronized (mWakeLockSync) {
+            if (mWakeLock != null) {
+                mWakeLock.release();
+                Log.i(TAG, "enablePowerWakeLock release");
+            }
         }
     }
 }
