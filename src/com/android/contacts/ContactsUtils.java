@@ -28,6 +28,7 @@ import android.provider.ContactsContract.CommonDataKinds.Im;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.DisplayPhoto;
 import android.provider.ContactsContract.QuickContact;
+import android.location.Country;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.view.View;
@@ -41,6 +42,7 @@ import com.android.contacts.test.NeededForTesting;
 import com.android.contacts.util.Constants;
 
 import java.util.List;
+import java.util.Locale;
 
 public class ContactsUtils {
     private static final String TAG = "ContactsUtils";
@@ -184,9 +186,18 @@ public class ContactsUtils {
      *         is in.
      */
     public static final String getCurrentCountryIso(Context context) {
-        CountryDetector detector =
-                (CountryDetector) context.getSystemService(Context.COUNTRY_DETECTOR);
-        return detector.detectCountry().getCountryIso();
+        // add Non-null protection of detector for monkey test
+        String countryIso;
+        CountryDetector detector = (CountryDetector) context
+                .getSystemService(Context.COUNTRY_DETECTOR);
+        Country c = null;
+        if (detector != null && (c = detector.detectCountry()) != null) {
+            countryIso = c.getCountryIso();
+        } else {
+            Locale locale = context.getResources().getConfiguration().locale;
+            countryIso = locale.getCountry();
+        }
+        return countryIso;
     }
 
     public static boolean areContactWritableAccountsAvailable(Context context) {
