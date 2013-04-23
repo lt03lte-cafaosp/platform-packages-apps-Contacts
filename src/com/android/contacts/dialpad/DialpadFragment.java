@@ -820,9 +820,7 @@ public class DialpadFragment extends ListFragment
             sendMessageMenuItem.setVisible(true);
             if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
             {
-            	ipSub1CallMenuItem.setVisible(false);
-            	ipSub2CallMenuItem.setVisible(false);
-                /*if(sub0Moderm.equals("")){
+               if(sub0Moderm.equals("")){
                        ipSub1CallMenuItem.setVisible(false);
                     }else
                     {
@@ -835,7 +833,7 @@ public class DialpadFragment extends ListFragment
                        ipSub2CallMenuItem.setVisible(true);
                     }
                 ipSub1CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card1));
-                ipSub2CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card2));*/
+                ipSub2CallMenuItem.setTitle(getResources().getString(R.string.recentCalls_IPCall_card2));
             }else
             {
                 ipSub1CallMenuItem.setVisible(true);
