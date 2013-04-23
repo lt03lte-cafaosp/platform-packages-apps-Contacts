@@ -778,6 +778,10 @@ public class ImportExportDialogFragment extends DialogFragment
                                 Log.i(TAG, "num = " + num);
                                 Log.i(TAG, "anrNum = " + anrNum);
                                 Log.i(TAG, "email = " + email);
+                                if(TextUtils.isEmpty(num) && TextUtils.isEmpty(anrNum)) {
+                                    mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                    continue;
+                                }
                                 itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, anrNum, subscription);
                                 Log.i(TAG, "itemUri = " + itemUri);
                                 if (itemUri == null) {
