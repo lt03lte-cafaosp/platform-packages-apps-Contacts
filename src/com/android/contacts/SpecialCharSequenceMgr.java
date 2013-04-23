@@ -133,12 +133,11 @@ public class SpecialCharSequenceMgr {
     if (input.equals(FTMODE_DISPLAY)) {
             try {
                 Log.d(TAG, "handleFTModeDisplay !!!!!!!!!!!!!!!!!!!");
-                Intent FTModeIntent = new Intent(Intent.ACTION_VIEW);
-                FTModeIntent.setClassName("com.android.ftmode", "com.android.ftmode.FTModeMain");
-                context.startActivity(FTModeIntent);
+                Intent intent = new Intent("android.intent.action.VIEW_SYS_INFO");
+                context.startActivity(intent);
                 return true;
             } catch(ActivityNotFoundException e) {
-                Log.d(TAG, "no activity to handle handleFTModeDisplay");
+                Log.d(TAG, "no activity to handle handleFactoryInfoDisplay");
             }
         }
         return false;
@@ -148,12 +147,12 @@ public class SpecialCharSequenceMgr {
 	{
 		if(input.equals(DM_SETTING))
 		{
-			Intent intent = new Intent(Intent.ACTION_VIEW);
-			intent.setClassName("com.android.dm", "com.android.dm.DmDebugMenu");
+			Intent intent = new Intent("android.intent.action.VIEW_FTMODE");
+
 			try {
-				context.startActivity(intent);
+				     context.startActivity(intent);
 			} catch (ActivityNotFoundException e) {
-				Log.i(TAG, "no activity to handle handleDmCode");
+				Log.i(TAG, "no activity to handle handleFTModeDisplay");
 				return false;
 			}
 			return true;
