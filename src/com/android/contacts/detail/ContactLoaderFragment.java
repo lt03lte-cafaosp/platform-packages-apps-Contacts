@@ -846,8 +846,14 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             }
             if (hasphonenumber == 0)
             {
-                Toast.makeText(mContext, R.string.copy_failure, 
-                                Toast.LENGTH_SHORT).show();      
+               Uri itemUri = ContactsUtils.insertToCard(mContext, name, "", "", "", sub); 
+               int ret = Integer.parseInt(itemUri.getLastPathSegment());
+               if(ret == 1) {
+                    Toast.makeText(mContext,R.string.copy_done,Toast.LENGTH_SHORT).show();
+               }
+               else {
+                    Toast.makeText(mContext,R.string.copy_failure,Toast.LENGTH_SHORT).show();
+               }
             }
             else
             {
