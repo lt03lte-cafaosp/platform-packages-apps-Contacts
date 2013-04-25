@@ -117,7 +117,6 @@ public class ContactDetailActivity extends ContactsActivity {
             actionBar.setTitle("");
         }
 
-        Log.i(TAG, getIntent().getData().toString());
     }
 
     @Override
