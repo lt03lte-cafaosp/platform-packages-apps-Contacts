@@ -54,6 +54,7 @@ public class AttachPhotoActivity extends ContactsActivity {
 
     private static final int REQUEST_PICK_CONTACT = 1;
     private static final int REQUEST_CROP_PHOTO = 2;
+    private static final int PHOTODIM_DEFAULT = 480;
 
     private static final String KEY_CONTACT_URI = "contact_uri";
     private static final String KEY_TEMP_PHOTO_URI = "temp_photo_uri";
@@ -64,7 +65,7 @@ public class AttachPhotoActivity extends ContactsActivity {
     private ContentResolver mContentResolver;
 
     // Height and width (in pixels) to request for the photo - queried from the provider.
-    private static int mPhotoDim;
+    private static int mPhotoDim = PHOTODIM_DEFAULT;
 
     private Uri mContactUri;
 
@@ -96,7 +97,10 @@ public class AttachPhotoActivity extends ContactsActivity {
             c.moveToFirst();
             mPhotoDim = c.getInt(0);
         } finally {
-            c.close();
+            if (null != c) {
+                c.close();
+                c = null;
+            }
         }
     }
 
