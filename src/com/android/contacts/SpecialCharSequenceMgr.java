@@ -27,6 +27,7 @@ import com.android.internal.telephony.TelephonyIntents;
 import android.app.AlertDialog;
 import android.app.KeyguardManager;
 import android.app.ProgressDialog;
+import android.content.ActivityNotFoundException;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -62,6 +63,9 @@ import android.widget.Toast;
 public class SpecialCharSequenceMgr {
     private static final String TAG = "SpecialCharSequenceMgr";
     private static final String MMI_IMEI_DISPLAY = "*#06#";
+    private static final String PRL_VERSION_DISPLAY = "*#0000#";
+    private static final String FTMODE_DISPLAY = "*#0532#";
+    private static final String DM_SETTING = "*#3636#";
     private static final int SUB1 = 0;
     private static final int SUB2 = 1;
 
@@ -99,16 +103,63 @@ public class SpecialCharSequenceMgr {
 
         //get rid of the separators so that the string gets parsed correctly
         String dialString = PhoneNumberUtils.stripSeparators(input);
-
-        if (handleIMEIDisplay(context, dialString, useSystemWindow)
+        if ( handlePRLVersion(context, dialString)
+                || handleIMEIDisplay(context, dialString, useSystemWindow)
                 || handlePinEntry(context, dialString)
                 || handleAdnEntry(context, dialString, textField)
-                || handleSecretCode(context, dialString)) {
+                || handleSecretCode(context, dialString)
+                || handleFTModeDisplay(context, dialString)
+                || handleDmCode(context, dialString)) {
             return true;
         }
 
         return false;
     }
+    static private boolean handlePRLVersion(Context context, String input) {
+        if (input.equals(PRL_VERSION_DISPLAY)) {
+            try {
+                Log.d(TAG, "handlePRLVersion showing device info!!!!!!!!!!!!!!!!!!!");
+                Intent intent = new Intent("android.intent.action.ENGINEER_MODE_DEVICEINFO");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+                return true;
+            } catch(ActivityNotFoundException e) {
+                Log.d(TAG, "no activity to handle showing device info");
+            }
+        }
+        return false;
+    }
+    static private boolean handleFTModeDisplay(Context context, String input) {
+    if (input.equals(FTMODE_DISPLAY)) {
+            try {
+                Log.d(TAG, "handleFTModeDisplay !!!!!!!!!!!!!!!!!!!");
+                Intent intent = new Intent("android.intent.action.VIEW_SYS_INFO");
+                context.startActivity(intent);
+                return true;
+            } catch(ActivityNotFoundException e) {
+                Log.d(TAG, "no activity to handle handleFactoryInfoDisplay");
+            }
+        }
+        return false;
+    }
+
+    static private boolean handleDmCode(Context context, String input)
+	{
+		if(input.equals(DM_SETTING))
+		{
+			Intent intent = new Intent("android.intent.action.VIEW_FTMODE");
+
+			try {
+				     context.startActivity(intent);
+			} catch (ActivityNotFoundException e) {
+				Log.i(TAG, "no activity to handle handleFTModeDisplay");
+				return false;
+			}
+			return true;
+		}
+
+		return false;
+	}
 
     /**
      * Cleanup everything around this class. Must be run inside the main thread.
@@ -300,9 +351,14 @@ public class SpecialCharSequenceMgr {
     static void showIMEIPanel(Context context, boolean useSystemWindow) {
         int subscription = MSimTelephonyManager.getDefault().getPreferredVoiceSubscription();
         String imeiStr;
+        String imeiStr2;
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
             imeiStr = ((MSimTelephonyManager)context.
-                    getSystemService(Context.MSIM_TELEPHONY_SERVICE)).getDeviceId(subscription);
+                    getSystemService(Context.MSIM_TELEPHONY_SERVICE)).getDeviceId(0);
+            imeiStr += "\n";
+            imeiStr2 = ((MSimTelephonyManager)context.
+                    getSystemService(Context.MSIM_TELEPHONY_SERVICE)).getDeviceId(1);
+            imeiStr += imeiStr2;
         } else {
             imeiStr = ((TelephonyManager)context.
                     getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
