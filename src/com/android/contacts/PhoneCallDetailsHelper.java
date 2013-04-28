@@ -109,7 +109,13 @@ public class PhoneCallDetailsHelper {
 
         // Set the call count and date.
         setCallCountAndDate(views, callCount, dateText, highlightColor);
-
+        String cityText = null;
+       if( details.number!=null)
+        {
+        if (!TextUtils.isEmpty(details.number.toString())) {
+            cityText = views.mUtils.getNumberArea(context, details.number.toString());
+        }
+        }
         CharSequence numberFormattedLabel = null;
         // Only show a label if the number is shown and it is not a SIP address.
         if (!TextUtils.isEmpty(details.number)
@@ -125,23 +131,24 @@ public class PhoneCallDetailsHelper {
             mPhoneNumberHelper.getDisplayNumber(details.number, details.formattedNumber);
         if (TextUtils.isEmpty(details.name)) {
             nameText = displayNumber;
-            if (TextUtils.isEmpty(details.geocode)
+            if (TextUtils.isEmpty(cityText) 
                     || mPhoneNumberHelper.isVoicemailNumber(details.number)) {
                 numberText = mResources.getString(R.string.call_log_empty_gecode);
             } else {
-                numberText = details.geocode;
+                numberText = cityText; 
             }
-            labelText = null;
+            cityText = null;
         } else {
             nameText = details.name;
             numberText = displayNumber;
             labelText = numberFormattedLabel;
         }
 
+        setCity(views, cityText); 
         views.nameView.setText(nameText);
         views.numberView.setText(numberText);
-        views.labelView.setText(labelText);
-        views.labelView.setVisibility(TextUtils.isEmpty(labelText) ? View.GONE : View.VISIBLE);
+     // views.labelView.setText(labelText);
+     // views.labelView.setVisibility(TextUtils.isEmpty(labelText) ? View.GONE : View.VISIBLE);
     }
 
     /** Sets the text of the header view for the details page of a phone call. */
@@ -200,6 +207,14 @@ public class PhoneCallDetailsHelper {
         views.callTypeAndDate.setText(formattedText);
     }
 
+    private void setCity(PhoneCallDetailsViews views, String cityStr) {
+        if (!TextUtils.isEmpty(cityStr)) {
+            views.cityView.setText(cityStr);
+            views.cityView.setVisibility(View.VISIBLE);
+        } else {
+            views.cityView.setVisibility(View.GONE);
+        }
+    }
     /** Creates a SpannableString for the given text which is bold and in the given color. */
     private CharSequence addBoldAndColor(CharSequence text, int color) {
         int flags = Spanned.SPAN_INCLUSIVE_INCLUSIVE;

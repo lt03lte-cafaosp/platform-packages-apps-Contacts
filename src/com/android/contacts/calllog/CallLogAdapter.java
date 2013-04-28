@@ -46,6 +46,7 @@ import android.widget.TextView;
 import java.util.LinkedList;
 import android.provider.Settings;
 import android.util.Log;
+import com.android.contacts.ContactsUtils;
 
 /**
  * Adapter class to fill in data for the Call Log.
@@ -499,9 +500,24 @@ import android.util.Log;
 
     private void findAndCacheViews(View view) {
         // Get the views to bind to.
-        CallLogListItemViews views = CallLogListItemViews.fromView(view);
+        final    CallLogListItemViews views = CallLogListItemViews.fromView(view);
         views.primaryActionView.setOnClickListener(mPrimaryActionListener);
         views.secondaryActionView.setOnClickListener(mSecondaryActionListener);
+        views.phoneCallDetailsViews.mUtils = new ContactsUtils();
+        views.phoneCallDetailsViews.mUtils.setListener(new ContactsUtils.Listener() {
+            public void onPostArea(String area){
+                String numberStr = "";
+                if (area == null || area.equals("")) return;
+                if (views.phoneCallDetailsViews != null) {
+                    numberStr = views.phoneCallDetailsViews.numberView.getText().toString();
+                }
+                if (numberStr.equals(mContext.getResources().getString(R.string.call_log_empty_gecode)) || numberStr.equals("")) {
+                    views.phoneCallDetailsViews.numberView.setText(area);
+                } else if(views.phoneCallDetailsViews.cityView != null) {
+                    views.phoneCallDetailsViews.cityView.setText(area);
+                }
+            }
+        });
         view.setTag(views);
     }
 

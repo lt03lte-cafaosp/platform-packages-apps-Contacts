@@ -63,14 +63,23 @@ import com.android.internal.telephony.msim.IIccPhoneBookMSim;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.HashMap;
 import java.util.Locale;
-
+import android.os.Handler;
+import android.os.Message;
 public class ContactsUtils {
     private static final String TAG = "ContactsUtils";
     private static final String WAIT_SYMBOL_AS_STRING = String.valueOf(PhoneNumberUtils.WAIT);
 
+    private AreaDbFetcher mAreaDbFetcher = null;
     private static int sThumbnailSize = -1;
 
+    private static ExecutorService sAreaThreadPool=null;
+    private static HashMap<String, AreaInfo> mAreaCache = new HashMap<String, AreaInfo>();
+    private AreaFetchHandler mHandler=new AreaFetchHandler();
+    private Listener mListener;
     // TODO find a proper place for the canonical version of these
     public interface ProviderNames {
         String YAHOO = "Yahoo";
@@ -807,4 +816,159 @@ public class ContactsUtils {
 
         return st;
      }
-}
+    public String getNumberArea(Context context , String number){
+        if (TextUtils.isEmpty(number))
+        {
+            return "";
+        }
+            
+        String num = number;
+        num  = ContactsUtils.stripSeparatorsToISODigit(num);
+        if (TextUtils.isEmpty(num))
+        {
+            return "";
+        }
+        num = num.substring(0, (num.length()>11?11:num.length()));
+        
+        if (mAreaDbFetcher == null){
+            mAreaDbFetcher = new AreaDbFetcher();
+        }
+        
+        if(mAreaDbFetcher.isContains(num)){
+            String area = mAreaDbFetcher.getArea(num);
+            if(!TextUtils.isEmpty(area)){
+             return area;
+            }else{
+             return "";
+            }       
+        }else{          
+            synchronized (ContactsUtils.class) {
+            mAreaDbFetcher.setData(context,num);
+                if (sAreaThreadPool == null) {
+                    sAreaThreadPool = Executors.newFixedThreadPool(3);
+                }
+                    sAreaThreadPool.execute(mAreaDbFetcher);
+            }
+            return "";
+        }
+    }
+
+    /**
+     * Strips separators from a phone number string.
+     * @param phoneNumber phone number to strip.
+     * @return phone string stripped of separators.
+     */
+    public static String stripSeparatorsToISODigit(String phoneNumber) {
+        if (phoneNumber == null) {
+            return null;
+        }
+        int len = phoneNumber.length();
+        StringBuilder ret = new StringBuilder(len);
+
+        for (int i = 0; i < len; i++) {
+            char c = phoneNumber.charAt(i);
+            if (PhoneNumberUtils.isISODigit(c)) {
+                ret.append(c);
+            }
+        }
+
+        return ret.toString();
+    }
+
+   
+   private  class AreaFetchHandler extends Handler {
+        @Override
+        public void handleMessage(Message message) {
+            AreaInfo areainfo = (AreaInfo)message.obj; 
+            synchronized (areainfo){
+            Listener item = areainfo.listener;
+                if(item != null) item.onPostArea(areainfo.area); 
+            }
+        }
+   }
+
+   public void setListener(Listener item){
+        mListener = item;
+   }
+
+   private class AreaInfo{
+        public String area;
+        public Listener listener;
+
+        public AreaInfo(String area , Listener listener){
+            this.area = area;
+            this.listener = listener;
+        }
+   }
+   private  class AreaDbFetcher implements Runnable {
+        private String mNumber;
+        private Context mContext;
+        
+        public  void setData(Context context,final String number){
+            this.mNumber = number;
+            this.mContext = context;
+        }
+
+        public  boolean isContains(final String number){
+            return mAreaCache.containsKey(number);
+        }
+
+        public  String getArea(final String number){
+            return mAreaCache.get(number).area;
+        }
+        
+        public synchronized void run() {
+            if (Thread.interrupted()) {
+                // shutdown has been called.
+                return;
+                }
+                    
+                final String number = mNumber;
+                final Listener listener = mListener;
+                String area = "";
+
+                Uri NATIVE_AREA_URI = Uri.parse("content://externalareasearch");
+                Cursor cursor = null;
+                try{
+                    cursor = mContext.getContentResolver().query(NATIVE_AREA_URI,null, 
+                                number, null, null);
+                }catch(Exception ex){
+                    Log.e(TAG , "Query AreaInfo E:"+ex);
+                    return;
+                }
+                
+                if(cursor == null)
+                {
+                    return ;
+                }
+             
+                try {
+                    cursor.moveToPosition(-1);
+                    while(cursor != null && cursor.moveToNext()){
+                        area = cursor.getString(0);
+                    }               
+                } finally {
+                    if(cursor != null) {
+                        cursor.close();
+                    }
+                }
+           final AreaInfo areainfo = new AreaInfo(area,listener);
+           mAreaCache.put(number,areainfo);
+           
+           if (Thread.interrupted()) {
+                // shutdown has been called.
+                return;
+            }
+           
+           if(!TextUtils.isEmpty(area)){
+            Message msg = Message.obtain();
+            msg.obj = areainfo;
+            mHandler.sendMessage(msg);
+           }
+        }
+   }
+   
+   public  interface Listener {
+        public void onPostArea(String area);
+   }
+}   
