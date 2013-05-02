@@ -178,12 +178,13 @@ public class MemoryStatusActivity extends ContactsActivity {
                 continue;
             }
             Drawable icon = accountType != null ? accountType.getDisplayIcon(context) : null;
-            int total = 0;
+            int total = -1;
             int count = 0;
             if (!TextUtils.isEmpty(account.type))
             {
                 if (account.type.equals(SimContactsConstants.ACCOUNT_TYPE_SIM))
                 {
+                    total = 0;
                     int sub = ContactsUtils.getSub(account.name, account.type);
                     if(ContactsUtils.getUimLoaderStatus(sub) == 1) {
                         total = ContactsUtils.getAdnCount(ContactsUtils.getSub(account.name, account.type));
