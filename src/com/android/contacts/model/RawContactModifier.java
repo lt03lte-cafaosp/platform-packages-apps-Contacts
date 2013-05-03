@@ -599,7 +599,17 @@ public class RawContactModifier {
                 child.put(Note.NOTE, notes);
             }
         }
+// Website
+        final boolean hasWebisite = extras.containsKey("website");
+        final DataKind kindWebsite = accountType.getKindForMimetype(Website.CONTENT_ITEM_TYPE);
+        if (hasWebisite && RawContactModifier.canInsert(state, kindWebsite)) {
+            final ValuesDelta child = RawContactModifier.insertChild(state, kindWebsite);
 
+            final String website = extras.getString("website");
+            if (ContactsUtils.isGraphic(website)) {
+                child.put(Website.URL, website);
+            }
+        }
         // Arbitrary additional data
         ArrayList<ContentValues> values = extras.getParcelableArrayList(Insert.DATA);
         if (values != null) {
