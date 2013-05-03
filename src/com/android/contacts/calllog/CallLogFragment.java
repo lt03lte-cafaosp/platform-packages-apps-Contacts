@@ -869,7 +869,10 @@ public class CallLogFragment extends ListFragment
          isInViewByName = true;
          mQueryNumber = data;
          mQueryName = data;
-         isPartSearch = partSearch;  
+         isPartSearch = partSearch;
+         if(mCallLogQueryHandler == null) {
+            mCallLogQueryHandler = new CallLogQueryHandler(getActivity().getContentResolver(), this);
+         }
          mCallLogQueryHandler.setNumber(mQueryNumber);
          mCallLogQueryHandler.setName(mQueryName); 
          mCallLogQueryHandler.setPartSearch(isPartSearch);   
