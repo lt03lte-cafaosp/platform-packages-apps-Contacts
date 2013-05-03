@@ -315,7 +315,7 @@
     <string name="number_anr_full">Error, Number is full, the second number will not be saved.</string>
     <string name="email_address_full">Error, Email is full, Email will not be saved.</string>
     <string name="email_address_too_long">Error, Email Address is too long.</string>
-    <string name="sim_card_full">Error, Sim Card is full.</string>
+    <string name="sim_card_full">Sim Card is full.</string>
     <string name="tag_too_long">Error, Contact name is too long.</string>
     <string name="no_phone_number">Please insert phone number.</string>
     <string name="no_name">Please insert name.</string>

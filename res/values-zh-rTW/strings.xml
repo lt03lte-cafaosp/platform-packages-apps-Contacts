@@ -114,7 +114,7 @@
     <string name="airplane_mode_on">"發生錯誤，當前處於飛行模式。"</string>
     <string name="number_anr_too_long">"發生錯誤，電話號碼過長。"</string>
     <string name="email_address_too_long">"發生錯誤，郵箱地址過長。"</string>
-    <string name="sim_card_full">"發生錯誤，SIM卡已滿。"</string>
+    <string name="sim_card_full">"SIM卡已滿。"</string>
     <string name="tag_too_long">"發生錯誤，聯絡人姓名過長。"</string>
     <string name="no_phone_number">請輸入手機號碼。</string>
     <string name="invalid_phone_number">"發生錯誤，電話號碼不合法。"</string>

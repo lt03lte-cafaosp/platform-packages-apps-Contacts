@@ -369,7 +369,13 @@ public class PhoneNumberInteraction implements OnLoadCompleteListener<Cursor> {
                 }
 				Uri itemUri = ContactsUtils.insertToCard(context, name, phoneItem.phoneNumber, "", "", mSub);
                 if(itemUri != null){
-                    Toast.makeText(context,R.string.copy_done,Toast.LENGTH_SHORT).show();
+                    int ret = Integer.parseInt(itemUri.getLastPathSegment());
+                    if(ret == 1) {
+                        Toast.makeText(context,R.string.copy_done,Toast.LENGTH_SHORT).show();
+                    }
+                    else {
+                        Toast.makeText(context,R.string.copy_failure,Toast.LENGTH_SHORT).show();
+                    }
                 }else{
                     Toast.makeText(context,R.string.copy_done,Toast.LENGTH_SHORT).show();
                 }

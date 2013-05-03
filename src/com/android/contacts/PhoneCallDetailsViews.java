@@ -21,7 +21,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.android.contacts.calllog.CallTypeIconsView;
-
+import com.android.contacts.ContactsUtils;
 /**
  * Encapsulates the views that are used to display the details of a phone call in the call log.
  */
@@ -32,18 +32,20 @@ public final class PhoneCallDetailsViews {
     public final TextView callTypeAndDate;
     public final TextView numberView;
     public final TextView subscription;
-    public final TextView labelView;
+  //public final TextView labelView;
+     public final TextView cityView;                    
+      public ContactsUtils mUtils;
 
     private PhoneCallDetailsViews(TextView nameView, View callTypeView,
             CallTypeIconsView callTypeIcons, TextView callTypeAndDate, TextView numberView, TextView subscription,
-            TextView labelView) {
+            TextView cityView) {
         this.nameView = nameView;
         this.callTypeView = callTypeView;
         this.callTypeIcons = callTypeIcons;
         this.callTypeAndDate = callTypeAndDate;
         this.numberView = numberView;
         this.subscription = subscription;
-        this.labelView = labelView;
+        this.cityView = cityView;
     }
 
     /**
@@ -60,7 +62,7 @@ public final class PhoneCallDetailsViews {
                 (TextView) view.findViewById(R.id.call_count_and_date),
                 (TextView) view.findViewById(R.id.number),
                 (TextView) view.findViewById(R.id.subscription),
-                (TextView) view.findViewById(R.id.label));
+                (TextView) view.findViewById(R.id.city));
     }
 
     public static PhoneCallDetailsViews createForTest(Context context) {
