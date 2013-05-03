@@ -599,7 +599,7 @@ public class RawContactModifier {
                 child.put(Note.NOTE, notes);
             }
         }
-// Website
+        // Website
         final boolean hasWebisite = extras.containsKey("website");
         final DataKind kindWebsite = accountType.getKindForMimetype(Website.CONTENT_ITEM_TYPE);
         if (hasWebisite && RawContactModifier.canInsert(state, kindWebsite)) {
