@@ -18,6 +18,7 @@ package com.android.contacts.calllog;
 
 import android.content.Context;
 import android.provider.CallLog.Calls;
+import android.provider.Settings;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -137,6 +138,7 @@ public class CallDetailHistoryAdapter extends BaseAdapter {
         CallTypeIconsView callTypeIconView =
                 (CallTypeIconsView) result.findViewById(R.id.call_type_icon);
         TextView callTypeTextView = (TextView) result.findViewById(R.id.call_type_text);
+        TextView callSubTextView = (TextView) result.findViewById(R.id.subscription);
         TextView dateView = (TextView) result.findViewById(R.id.date);
         TextView durationView = (TextView) result.findViewById(R.id.duration);
 
@@ -144,6 +146,7 @@ public class CallDetailHistoryAdapter extends BaseAdapter {
         callTypeIconView.clear();
         callTypeIconView.add(callType);
         callTypeTextView.setText(mCallTypeHelper.getCallTypeText(callType));
+        callSubTextView.setText(getMultiSimName(mContext,details.subscription));
         // Set the date.
         CharSequence dateValue = DateUtils.formatDateRange(mContext, details.date, details.date,
                 DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_SHOW_DATE |
@@ -165,6 +168,16 @@ public class CallDetailHistoryAdapter extends BaseAdapter {
         }
         }
         return result;
+    }
+
+    private String getMultiSimName(Context context, int subscription) {
+        if(context == null)
+            return "sub" + subscription;
+        String name = Settings.System.getString(context.getContentResolver(),Settings.System.MULTI_SIM_NAME[subscription]);
+        if(name == null){
+            name = context.getResources().getStringArray(R.array.select_slot_item)[subscription];
+        }
+        return name ;
     }
 
     private String formatDuration(long elapsedSeconds) {
