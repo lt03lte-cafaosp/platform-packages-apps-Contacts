@@ -598,6 +598,7 @@
     <string name="dialog_voicemail_not_ready_message" msgid="4384716252789515378">"要设置语音信箱，请转到“菜单”&gt;“设置”。"</string>
     <string name="dialog_voicemail_airplane_mode_message" msgid="530922773669546093">"要呼叫语音信箱，请先关闭飞行模式。"</string>
     <string name="menu_export_database" msgid="2659719297530170820">"导出数据库文件"</string>
+    <string name="device_id">设备标识符</string>
     <string name="label_groups">"群组"</string>
     <string name="title_group_name">"群组名称"</string>
     <string name="title_group_add">"新建群组"</string>
@@ -658,6 +659,18 @@
     <string name="reading_vcard_files">读取VCARD文件</string>
     <string name="progressdialog_cancel">取消</string>
     <string name="export_cancelled">导出操作被取消，<xliff:g id="insertCount">%s</xliff:g>条成功导出</string>
+
+    <!--  for speed dial -->
+    <string name="set_speed_dial">快速拨号设置</string>
+    <string name="not_set">(未设置)</string>
+    <string name="replace">替换</string>
+    <string name="delete">删除</string>
+    <string name="speed_call">通话</string>
+    <string name="speed_sms">信息</string>
+    <string name="is_set_speed">数字键<xliff:g id="number">%s</xliff:g>未设置快速拨号，是否设置？\n</string>
+   <!-- For CSVT -->
+   <!-- Menu item used to initiate videocall from dialer -->
+    <string name="videocall"> 可视电话</string>
     <string name="description_videocall">可视电话 <xliff:g id="name">%1$s</xliff:g></string>
 
     <!-- for editor activity -->

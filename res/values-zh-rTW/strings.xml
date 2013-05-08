@@ -614,6 +614,14 @@
     <string name="select_all">"全選"</string>
     <string name="btn_ok">"確定"</string>
     <string name="btn_cancel">"取消"</string>
+
+    <string name="all_call_log">"所有通話記錄"</string>
+    <string name="title_slot_change">SIM卡選擇</string>
+    <string name="delete_call_title">"刪除通話記錄"</string>
+    <string name="delete_call_message">"正在删除..."</string>
+    <string name="delete_call_alert">"確定要刪除選中的通話記錄嗎?"</string>
+    <string name="title_del_call">删除</string>
+
     <string name="import_sim_contacts_title">"導入聯絡人"</string>
     <string name="import_sim_contacts_message">"正在導入..."</string>
     
@@ -640,6 +648,14 @@
     <string name="dialog_title">提示</string>
     <string name="error_group_exist">不能添加重名的群組</string>
     <string name="reading_vcard_files">讀取Vcard文件</string>
+
+    <!-- for speed dial -->
+    <string name="is_set_speed">數字鍵<xliff:g id="number">%s</xliff:g>未設置快速撥號，是否設置？\n</string>
+    <string name="set_speed_dial">快速撥號設置</string>
+    <string name="not_set">(未設定)</string>
+
+    <string name="videocall">"可視電話"</string>
+    <!-- this is for the read-only contact when edit it failed-->
     <string name="not_edit_read_only_contact">無法修改只讀聯繫人.</string>
 
     <string name="not_attach_photo_to_account">無法爲此類型賬戶設置頭像。</string>

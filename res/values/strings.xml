@@ -1923,6 +1923,8 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
          while the system isn't ready for the access. [CHAR LIMIT=NONE] -->
     <string name="dialog_voicemail_not_ready_message">To set up voicemail, go to Menu &gt; Settings.</string>
 
+    <string name="device_id">Device Identifier</string>
+
     <!-- Dialog message which is shown when the user tries to check voicemail
          while the system is in airplane mode. The user cannot access to
          voicemail service in Airplane mode. [CHAR LIMI=NONE] -->
@@ -1987,6 +1989,18 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 
     <string name="select_sim">Select SIM</string>
 
+    <string name="dialog_title">Tip</string>
+    <string name="error_group_exist">Can not add group by the same name</string>
+    <!--  for speed dial -->
+    <string name="set_speed_dial">Speed dial setting</string>
+    <string name="not_set">(not set)</string>
+    <string name="replace">Replace</string>
+    <string name="delete">Delete</string>
+    <string name="speed_call">Call</string>
+    <string name="speed_sms">Message</string>
+    <string name="speed_item"><xliff:g id="index">%s</xliff:g>. <xliff:g id="content">%s</xliff:g></string>
+    <string name="is_set_speed">Number key <xliff:g id="number">%s</xliff:g> is not set up speed dial, set now?\n</string>
+    <!-- for editor activity -->
     <string name="toast_name_is_too_long">Too many characters, please input again.</string>
     <!-- this is for the read-only contact when edit it failed-->
     <string name="not_edit_read_only_contact">It is a read-only contact.</string>
