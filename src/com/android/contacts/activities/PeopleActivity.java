@@ -256,7 +256,8 @@ public class PeopleActivity extends ContactsActivity
     private final BroadcastReceiver mSimStateReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
-            if (INTENT_SIM_DISABLED.equals(action) || isAirPlaneModeOn(action)) {
+            //in some times,when card state changed but it will resume soon,we should not reset contact list filter
+            if (/*INTENT_SIM_DISABLED.equals(action) || */isAirPlaneModeOn(action)) {
                 mContactListFilterController.setContactListFilter(ContactListFilter.createFilterWithType(
                         ContactListFilter.FILTER_TYPE_ALL_ACCOUNTS), true);
             }
