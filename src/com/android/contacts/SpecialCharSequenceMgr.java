@@ -45,6 +45,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.android.internal.telephony.ITelephony;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.msim.ITelephonyMSim;
 /**
@@ -280,6 +281,9 @@ public class SpecialCharSequenceMgr {
 
     static boolean handleIMEIDisplay(Context context, String input, boolean useSystemWindow) {
         if (input.equals(MMI_IMEI_DISPLAY)) {
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                return handleMSimIMEIDisplay(context);
+            }
             int subscription = MSimTelephonyManager.getDefault().getPreferredVoiceSubscription();
             int phoneType;
             if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
@@ -300,6 +304,33 @@ public class SpecialCharSequenceMgr {
         }
 
         return false;
+    }
+
+    static boolean handleMSimIMEIDisplay(Context context) {
+        StringBuffer deviceIds = new StringBuffer();
+        int titleId = R.string.device_id;
+        for (int i = 0; i < MSimTelephonyManager.getDefault().getPhoneCount(); i++) {
+            if (i != 0) {
+                deviceIds.append("\n");
+            }
+            int phoneType = MSimTelephonyManager.getDefault().getCurrentPhoneType(i);
+            if (phoneType != TelephonyManager.PHONE_TYPE_GSM
+                    && phoneType != TelephonyManager.PHONE_TYPE_CDMA) {
+                return false;
+            }
+            deviceIds.append(context
+                    .getString(PhoneConstants.PHONE_TYPE_CDMA == phoneType ? R.string.meid
+                            : R.string.imei)
+                    + " ");
+            deviceIds.append(MSimTelephonyManager.getDefault().getSubscriberId(i));
+        }
+        AlertDialog alert = new AlertDialog.Builder(context)
+                .setTitle(titleId)
+                .setMessage(deviceIds.toString())
+                .setPositiveButton(android.R.string.ok, null)
+                .setCancelable(false)
+                .show();
+        return true;
     }
 
     // TODO: Combine showIMEIPanel() and showMEIDPanel() into a single

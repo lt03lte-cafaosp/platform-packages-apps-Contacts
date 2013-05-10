@@ -573,4 +573,5 @@
     <string name="expand_collapse_name_fields_description" msgid="8682630859539604311">"展开或折叠姓名字段"</string>
     <!--  No contact prompted -->
     <string name="menu_noContact">无指定联系人</string>
+    <string name="device_id">设备标识符</string>
 </resources>

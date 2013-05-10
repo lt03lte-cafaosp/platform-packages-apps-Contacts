@@ -1876,4 +1876,5 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 
     <string name="dial_conference">Dial conference</string>
     <string name="to_hint">1111:to;sip:abby@example.com:bcc;sip:bill@example.com:cc;</string>
+    <string name="device_id">Device Identifier</string>
 </resources>
