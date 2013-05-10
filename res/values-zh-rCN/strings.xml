@@ -2,6 +2,8 @@
 <!--  Copyright (C) 2006 The Android Open Source Project
       Copyright (C) 2013 The Linux Foundation. All Rights Reserved.
 
+      Not a Contribution.
+
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
      You may obtain a copy of the License at
@@ -542,6 +544,7 @@
     <string name="voicemail_fetching_timout" msgid="6691792377574905201">"无法抓取语音邮件。"</string>
     <string name="call_log_new_header" msgid="846546437517724715">"新记录"</string>
     <string name="call_log_old_header" msgid="6262205894314263629">"旧记录"</string>
+    <string name="call_log_all_calls_header">"所有通话"</string>
     <string name="call_log_voicemail_header" msgid="3945407886667089173">"只显示语音信箱留言"</string>
     <string name="call_log_incoming_header" msgid="2787722299753674684">"只显示来电"</string>
     <string name="call_log_outgoing_header" msgid="761009180766735769">"只显示外拨电话"</string>
@@ -709,4 +712,6 @@
     <!--  No contact prompted -->
     <string name="menu_noContact">无指定联系人</string>
     <string name="device_id">设备标识符</string>
+    <string name="slot_name">"卡"</string>
+    <string name="call_log_show_all_slots">"所有卡"</string>
 </resources>

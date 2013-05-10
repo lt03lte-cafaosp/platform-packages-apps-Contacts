@@ -71,17 +71,19 @@ public class CallLogFragment extends ListFragment
      */
     private static final int EMPTY_LOADER_ID = 0;
 
-    private CallLogAdapter mAdapter;
-    private CallLogQueryHandler mCallLogQueryHandler;
+    protected CallLogAdapter mAdapter;
+    protected CallLogQueryHandler mCallLogQueryHandler;
+
     private boolean mScrollToTop;
 
     /** Whether there is at least one voicemail source installed. */
-    private boolean mVoicemailSourcesAvailable = false;
+    protected boolean mVoicemailSourcesAvailable = false;
 
-    private VoicemailStatusHelper mVoicemailStatusHelper;
-    private View mStatusMessageView;
-    private TextView mStatusMessageText;
-    private TextView mStatusMessageAction;
+    protected VoicemailStatusHelper mVoicemailStatusHelper;
+    protected View mStatusMessageView;
+    protected TextView mStatusMessageText;
+    protected TextView mStatusMessageAction;
+
     private TextView mFilterStatusView;
     private KeyguardManager mKeyguardManager;
 
@@ -89,10 +91,10 @@ public class CallLogFragment extends ListFragment
     private boolean mCallLogFetched;
     private boolean mVoicemailStatusFetched;
 
-    private final Handler mHandler = new Handler();
+    protected final Handler mHandler = new Handler();
 
-    private TelephonyManager mTelephonyManager;
-    private PhoneStateListener mPhoneStateListener;
+    protected TelephonyManager mTelephonyManager;
+    protected PhoneStateListener mPhoneStateListener;
 
     private class CustomContentObserver extends ContentObserver {
         public CustomContentObserver() {
@@ -113,7 +115,7 @@ public class CallLogFragment extends ListFragment
     private boolean mMenuVisible = true;
 
     // Default to all calls.
-    private int mCallTypeFilter = CallLogQueryHandler.CALL_TYPE_ALL;
+    protected int mCallTypeFilter = CallLogQueryHandler.CALL_TYPE_ALL;
 
     @Override
     public void onCreate(Bundle state) {
@@ -193,7 +195,7 @@ public class CallLogFragment extends ListFragment
     }
 
     /** Sets whether there are any voicemail sources available in the platform. */
-    private void setVoicemailSourcesAvailable(boolean voicemailSourcesAvailable) {
+    protected void setVoicemailSourcesAvailable(boolean voicemailSourcesAvailable) {
         if (mVoicemailSourcesAvailable == voicemailSourcesAvailable) return;
         mVoicemailSourcesAvailable = voicemailSourcesAvailable;
 
@@ -606,7 +608,7 @@ public class CallLogFragment extends ListFragment
     /**
      * Un-registers the phone call receiver.
      */
-    private void unregisterPhoneCallReceiver() {
+    protected void unregisterPhoneCallReceiver() {
         if (mPhoneStateListener != null) {
             mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
             mPhoneStateListener = null;

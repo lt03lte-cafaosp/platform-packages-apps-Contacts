@@ -18,6 +18,7 @@ package com.android.contacts;
 
 import android.content.Context;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.contacts.calllog.CallTypeIconsView;
@@ -32,16 +33,18 @@ public final class PhoneCallDetailsViews {
     public final TextView callTypeAndDate;
     public final TextView numberView;
     public final TextView labelView;
+    public final ImageView subIconView;
 
     private PhoneCallDetailsViews(TextView nameView, View callTypeView,
             CallTypeIconsView callTypeIcons, TextView callTypeAndDate, TextView numberView,
-            TextView labelView) {
+            TextView labelView, ImageView subIconView) {
         this.nameView = nameView;
         this.callTypeView = callTypeView;
         this.callTypeIcons = callTypeIcons;
         this.callTypeAndDate = callTypeAndDate;
         this.numberView = numberView;
         this.labelView = labelView;
+        this.subIconView = subIconView;
     }
 
     /**
@@ -57,7 +60,8 @@ public final class PhoneCallDetailsViews {
                 (CallTypeIconsView) view.findViewById(R.id.call_type_icons),
                 (TextView) view.findViewById(R.id.call_count_and_date),
                 (TextView) view.findViewById(R.id.number),
-                (TextView) view.findViewById(R.id.label));
+                (TextView) view.findViewById(R.id.label),
+                (ImageView) view.findViewById(R.id.sub_icon));
     }
 
     public static PhoneCallDetailsViews createForTest(Context context) {
@@ -67,6 +71,7 @@ public final class PhoneCallDetailsViews {
                 new CallTypeIconsView(context),
                 new TextView(context),
                 new TextView(context),
-                new TextView(context));
+                new TextView(context),
+                new ImageView(context));
     }
 }

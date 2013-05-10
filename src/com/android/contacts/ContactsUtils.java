@@ -19,11 +19,14 @@ package com.android.contacts;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.content.res.TypedArray;
 import android.database.Cursor;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.location.CountryDetector;
 import android.net.Uri;
 import android.provider.ContactsContract;
+import android.provider.Settings;
 import android.provider.ContactsContract.CommonDataKinds.Im;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.DisplayPhoto;
@@ -347,5 +350,46 @@ public class ContactsUtils {
     public static boolean isLandscape(Context context) {
         return context.getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
+    }
+
+    /**
+     * @return the SIM name for the special subscription.
+     */
+    public static String getMultiSimName(Context context, int subscription) {
+        if (context == null) {
+            // If the context is null, return null.
+            return null;
+        }
+
+        String name = Settings.Global.getString(context.getContentResolver(),
+                Settings.Global.MULTI_SIM_NAME[subscription]);
+        if (TextUtils.isEmpty(name)) {
+            return context.getString(R.string.slot_name) + " " + (subscription + 1);
+        }
+        return name;
+    }
+
+    /**
+     * @return the SIM icon for the special subscription.
+     */
+    public static Drawable getMultiSimIcon(Context context, int subscription) {
+        if (context == null) {
+            // If the context is null, return 0 as no resource found.
+            return null;
+        }
+
+        TypedArray icons = context.getResources().obtainTypedArray(
+                com.android.internal.R.array.sim_icons);
+        String simIconIndex = Settings.Global.getString(context.getContentResolver(),
+                Settings.Global.PREFERRED_SIM_ICON_INDEX);
+        if (TextUtils.isEmpty(simIconIndex)) {
+            return icons.getDrawable(subscription);
+        } else {
+            String[] indexs = simIconIndex.split(",");
+            if (subscription >= indexs.length) {
+                return null;
+            }
+            return icons.getDrawable(Integer.getInteger(indexs[subscription]));
+        }
     }
 }
