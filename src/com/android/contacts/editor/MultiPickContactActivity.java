@@ -122,6 +122,9 @@ import com.android.internal.telephony.CallerInfo;
 
 import java.util.ArrayList;
 
+import com.qrd.plugin.feature_query.FeatureQuery;
+
+
 public class MultiPickContactActivity extends ListActivity implements
         View.OnClickListener, TextView.OnEditorActionListener,
         OnTouchListener, TextWatcher {
@@ -327,6 +330,7 @@ public class MultiPickContactActivity extends ListActivity implements
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+	 
         super.onCreate(savedInstanceState);
         enablePowerWakeLock(MultiPickContactActivity.this, "Multipicker");
         
@@ -1413,7 +1417,14 @@ public class MultiPickContactActivity extends ListActivity implements
                 durationText.setText(DateUtils.formatElapsedTime(duration));
 
                 // set slot
-                subSlotText.setText(getMultiSimName(subscription));
+                
+		     if (FeatureQuery.FEATURE_CALLLOG_FOR_CMCC){
+		     				Log.d(TAG, "cmcc");
+		           subSlotText.setText("");
+		        }else{
+		        subSlotText.setText(getMultiSimName(subscription));
+		        }
+                
             }
 
             CheckBox checkBox = (CheckBox) view.findViewById(R.id.pick_contact_check);
