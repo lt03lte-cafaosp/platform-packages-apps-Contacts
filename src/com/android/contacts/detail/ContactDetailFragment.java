@@ -426,28 +426,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
         // Setup the photo if applicable
         if (mStaticPhotoContainer != null) {
-            // The presence of a static photo container is not sufficient to determine whether or
-            // not we should show the photo. Check the mShowStaticPhoto flag which can be set by an
-            // outside class depending on screen size, layout, and whether the contact has social
-            // updates or not.
-            if (mShowStaticPhoto) {
-                mStaticPhotoContainer.setVisibility(View.VISIBLE);
-                final ImageView photoView = (ImageView) mStaticPhotoContainer.findViewById(
-                        R.id.photo);
-                final boolean expandPhotoOnClick = mContactData.getPhotoUri() != null;
-                final OnClickListener listener = mPhotoSetter.setupContactPhotoForClick(
-                        mContext, mContactData, photoView, expandPhotoOnClick);
-                if (mPhotoTouchOverlay != null) {
-                    mPhotoTouchOverlay.setVisibility(View.VISIBLE);
-                    if (expandPhotoOnClick || mContactData.isWritableContact(mContext)) {
-                        mPhotoTouchOverlay.setOnClickListener(listener);
-                    } else {
-                        mPhotoTouchOverlay.setClickable(false);
-                    }
-                }
-            } else {
-                mStaticPhotoContainer.setVisibility(View.GONE);
-            }
+            // add for UX_Enhance_Contacts details view
+            mStaticPhotoContainer.setVisibility(View.GONE);
         }
 
         // Build up the contact entries
@@ -751,7 +731,10 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
      */
     private void setupFlattenedList() {
         // All contacts should have a header view (even if there is no data for the contact).
-        mAllEntries.add(new HeaderViewEntry());
+        // discard for UX_Enhance_Contacts details view
+        if (mContactHasSocialUpdates) {
+            mAllEntries.add(new HeaderViewEntry());
+        }
 
         addPhoneticName();
 
