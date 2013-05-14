@@ -31,7 +31,7 @@
         android:layout_weight="@integer/dialpad_layout_weight_digits"
         android:layout_marginTop="@dimen/dialpad_vertical_margin"
         android:gravity="center"
-        android:background="@drawable/dialpad_background" >
+        android:background="#000000" >
 
         <com.android.contacts.dialpad.DigitsEditText
             android:id="@+id/digits"
@@ -74,8 +74,8 @@
             android:background="@android:color/transparent"/>
     </LinearLayout>
 
-    <!-- Keypad section -->
-    <include layout="@layout/dialpad" />
+    <!-- smart dialer section -->
+    <include layout="@layout/smartdialer" />
 
     <!-- dialpadStub values are copied from dialpad.xml.  dialpadStub replaces dialpad when
          dial conference controls are made visible. -->
