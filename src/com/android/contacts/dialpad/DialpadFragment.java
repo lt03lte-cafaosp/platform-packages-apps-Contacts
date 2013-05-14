@@ -692,7 +692,6 @@ public class DialpadFragment extends ListFragment
 
         if (!phoneIsInUse()) {
           //add for UX_smart dialer
-            setupListView();
             setQueryFilter();
             hideDialPadShowList(false);
         }
@@ -1408,8 +1407,10 @@ public class DialpadFragment extends ListFragment
                         (getActivity() instanceof DialtactsActivity ?
                                 ((DialtactsActivity)getActivity()).getCallOrigin() : null));
                 startActivity(intent);
-                mClearDigitsOnStop = true;
-                getActivity().finish();
+                //mClearDigitsOnStop = true;
+                //getActivity().finish();
+                mDigits.getText().clear();  // TODO: Fix bug 1745781
+                getActivity().moveTaskToBack(true);
             }
         }
     }
@@ -2381,6 +2382,10 @@ public class DialpadFragment extends ListFragment
 
     private void setupListView() {
          final ListView list = getListView();
+         if(mAdapter != null)
+            {
+            mAdapter.changeCursor(null);
+            }
          mAdapter = new ContactItemListAdapter(getActivity());
          setListAdapter(mAdapter);
          list.setOnCreateContextMenuListener(this);
