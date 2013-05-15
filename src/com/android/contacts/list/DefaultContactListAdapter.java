@@ -44,6 +44,7 @@ public class DefaultContactListAdapter extends ContactListAdapter {
     public static final char SNIPPET_END_MATCH = '\u0001';
     public static final String SNIPPET_ELLIPSIS = "\u2026";
     public static final int SNIPPET_MAX_TOKENS = 5;
+    public static final String WITHOUT_SIM_FLAG = "no_sim";
 
     public static final String SNIPPET_ARGS = SNIPPET_START_MATCH + "," + SNIPPET_END_MATCH + ","
             + SNIPPET_ELLIPSIS + "," + SNIPPET_MAX_TOKENS;
