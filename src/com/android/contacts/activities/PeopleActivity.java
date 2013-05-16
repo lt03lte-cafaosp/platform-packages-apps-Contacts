@@ -160,7 +160,7 @@ public class PeopleActivity extends ContactsActivity
 
     // Define Action to receive broadcast about "SIM Card changed".
     private final String INTENT_SIM_DISABLED = "com.android.sim.INTENT_SIM_DISABLED";
-	public static final String INTENT_EXPORT_COMPLETE = "com.android.sim.INTENT_EXPORT_COMPLETE";
+	  public static final String INTENT_EXPORT_COMPLETE = "com.android.sim.INTENT_EXPORT_COMPLETE";
     private final DialogManager mDialogManager = new DialogManager(this);
 
     private ContactsIntentResolver mIntentResolver;
@@ -257,7 +257,7 @@ public class PeopleActivity extends ContactsActivity
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             //in some times,when card state changed but it will resume soon,we should not reset contact list filter
-            if (false /*INTENT_SIM_DISABLED.equals(action) || isAirPlaneModeOn(action) */) {
+            if (/*INTENT_SIM_DISABLED.equals(action) || */isAirPlaneModeOn(action)) {
                 mContactListFilterController.setContactListFilter(ContactListFilter.createFilterWithType(
                         ContactListFilter.FILTER_TYPE_ALL_ACCOUNTS), true);
             }
