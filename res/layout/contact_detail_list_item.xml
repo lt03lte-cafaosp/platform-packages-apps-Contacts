@@ -80,6 +80,17 @@
                     android:layout_gravity="center_vertical"
                     android:background="@drawable/ic_list_default_mime_holo_dark" />
 
+					<TextView
+	                    android:id="@+id/area"
+	                    style="@style/ContactDetailItemType"
+	                    android:ellipsize="marquee"
+	                    android:singleLine="true"
+	                    android:gravity="right"
+	                    android:layout_marginRight="1dip"
+	                    android:layout_marginLeft="5dip"
+	                    android:layout_width="match_parent"
+	                    android:layout_height="wrap_content" 
+	                    android:visibility="gone"/>
             </LinearLayout>
 
         </LinearLayout>

@@ -25,6 +25,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.ParseException;
 import android.net.Uri;
@@ -220,6 +221,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     private ArrayList<ViewEntry> mAllEntries = new ArrayList<ViewEntry>();
     private LayoutInflater mInflater;
 
+    private HashMap<String,String> mAreaCache=new HashMap<String,String>();
+    private static final String MIME_TYPE_PHONE = "vnd.android.cursor.item/phone_v2";
     private boolean mIsUniqueNumber;
     private boolean mIsUniqueEmail;
 
@@ -592,6 +595,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     PhoneDataItem phone = (PhoneDataItem) dataItem;
                     // Build phone entries
                     entry.data = phone.getFormattedPhoneNumber();
+                    //build areacache
+                    String number=entry.data.substring(0, (entry.data.length()>11?11:entry.data.length()));		
+                    number = number.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+                    mAreaCache.put(entry.data,getNumArea(number));
+                    //end build areacache
                     final Intent phoneIntent = mHasPhone ?
                             ContactsUtils.getCallIntent(entry.data) : null;
                     final Intent smsIntent = mHasSms ? new Intent(Intent.ACTION_SENDTO,
@@ -801,6 +809,34 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         }
     }
 
+    public String getNumArea(final String number){
+        Uri NATIVE_AREA_URI =Uri.parse("content://externalareasearch");
+        Cursor cursor = null;
+        try{
+            cursor = mContext.getContentResolver().query(NATIVE_AREA_URI,null, 
+            number, null, null);
+        }catch(Exception ex){
+            Log.e(TAG , "Query AreaInfo E:"+ex);
+            return "";
+        }
+        String area="";
+        if(cursor == null)
+        {
+            return "";
+        }
+        try {
+            if (cursor.moveToFirst()) {
+                do{
+                    area = cursor.getString(0);
+                }while(cursor.moveToNext());
+            }
+        } finally {
+            if(cursor!=null){
+                cursor.close();
+            }
+        }
+        return area;
+    }
     /**
      * Collapse all contact detail entries into one aggregated list with a {@link HeaderViewEntry}
      * at the top.
@@ -1492,6 +1528,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
      */
     private static class DetailViewCache {
         public final TextView type;
+        public final TextView area;
         public final TextView data;
         public final ImageView presenceIcon;
         public final ImageView secondaryActionButton;
@@ -1509,6 +1546,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 OnClickListener secondaryActionClickListener,
                 OnClickListener thirdActionClickListener) {
             type = (TextView) view.findViewById(R.id.type);
+			      area=(TextView) view.findViewById(R.id.area);
             data = (TextView) view.findViewById(R.id.data);
             primaryIndicator = view.findViewById(R.id.primary_indicator);
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
@@ -1754,7 +1792,19 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             } else {
                 views.type.setVisibility(View.GONE);
             }
-
+            if(!TextUtils.isEmpty(entry.mimetype)&&entry.mimetype.equals(MIME_TYPE_PHONE)){
+                String number=entry.data;
+                String area = mAreaCache.get(number);
+                if(!TextUtils.isEmpty(area)){
+                    if(!(views.type.getText().toString().contains((CharSequence)area))){
+                        views.area.setText(area);
+                        views.area.setSelected(true);
+                        views.area.setVisibility(View.VISIBLE);
+                    }
+                }
+            }else{
+				        views.area.setVisibility(View.GONE);
+            }
             if (LocalGroup.CONTENT_ITEM_TYPE.equals(entry.mimetype))
                 views.data.setText(Group.restoreGroupById(view.getContext().getContentResolver(),
                         Long.parseLong(entry.data)).getTitle());
