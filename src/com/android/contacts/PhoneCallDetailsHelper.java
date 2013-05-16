@@ -35,6 +35,13 @@ import com.android.contacts.calllog.PhoneNumberHelper;
 import com.android.contacts.test.NeededForTesting;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
+
+
+import android.text.format.DateFormat;
+import android.text.format.Time;
+import android.content.Context;
+
+
 /**
  * Helper class to fill in the views in {@link PhoneCallDetailsViews}.
  */
@@ -50,6 +57,8 @@ public class PhoneCallDetailsHelper {
     private final CallTypeHelper mCallTypeHelper;
     private final PhoneNumberHelper mPhoneNumberHelper;
 
+	private Context mContext;
+
     /**
      * Creates a new instance of the helper.
      * <p>
@@ -57,10 +66,10 @@ public class PhoneCallDetailsHelper {
      *
      * @param resources used to look up strings
      */
-    public PhoneCallDetailsHelper( Resources resources, CallTypeHelper callTypeHelper, // chenxiang 20120322 
+    public PhoneCallDetailsHelper( Context context,Resources resources, CallTypeHelper callTypeHelper, // chenxiang 20120322 
             PhoneNumberHelper phoneNumberHelper) {
- 
-        mResources = resources;
+		mContext = context;
+		mResources = resources;
         mCallTypeHelper = callTypeHelper;
         mPhoneNumberHelper = phoneNumberHelper;
     }
@@ -101,13 +110,28 @@ public class PhoneCallDetailsHelper {
         // The color to highlight the count and date in, if any. This is based on the first call.
         Integer highlightColor =
                 isHighlighted ? mCallTypeHelper.getHighlightedColor(details.callTypes[0]) : null;
+                
+
+        Time then = new Time();
+        then.set(details.date);
+        Time now = new Time();
+        now.setToNow(); 
+		CharSequence dateText="";
+        if (then.yearDay != now.yearDay){            
+            dateText = DateFormat.getDateFormat(mContext).format(details.date);
+	    }else{
+			dateText =DateFormat.getTimeFormat(mContext).format(details.date); 
+		}	   	
 
         // The date of this call, relative to the current time.
+        
+        /*
         CharSequence dateText =
             DateUtils.getRelativeTimeSpanString(details.date,
                     getCurrentTimeMillis(),
                     DateUtils.MINUTE_IN_MILLIS,
                     DateUtils.FORMAT_ABBREV_RELATIVE);
+        **/
 
         // Set the call count and date.
         setCallCountAndDate(views, callCount, dateText, highlightColor);

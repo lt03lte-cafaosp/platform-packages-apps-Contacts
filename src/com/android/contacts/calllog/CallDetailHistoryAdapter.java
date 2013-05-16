@@ -28,6 +28,11 @@ import android.widget.TextView;
 import com.android.contacts.PhoneCallDetails;
 import com.android.contacts.R;
 import com.qrd.plugin.feature_query.FeatureQuery;
+
+import android.text.format.DateFormat;
+import android.text.format.Time;
+
+
 /**
  * Adapter for a ListView containing history items from the details of a call.
  */
@@ -144,11 +149,24 @@ public class CallDetailHistoryAdapter extends BaseAdapter {
         callTypeIconView.clear();
         callTypeIconView.add(callType);
         callTypeTextView.setText(mCallTypeHelper.getCallTypeText(callType));
+
+		 Time then = new Time();
+		 then.set(details.date);
+		 Time now = new Time();
+		 now.setToNow(); 
+	     CharSequence dateText="";
+		 CharSequence timeText="";
+		 dateText = DateFormat.getDateFormat(mContext).format(details.date);
+		 timeText =DateFormat.getTimeFormat(mContext).format(details.date); 		 
+		 CharSequence dateValue=(CharSequence)(dateText.toString()+"  "+timeText.toString()); 	  
+	    
         // Set the date.
-        CharSequence dateValue = DateUtils.formatDateRange(mContext, details.date, details.date,
+        /*CharSequence dateValue = DateUtils.formatDateRange(mContext, details.date, details.date,
                 DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_SHOW_DATE |
                 DateUtils.FORMAT_SHOW_WEEKDAY | DateUtils.FORMAT_SHOW_YEAR);
-        dateView.setText(dateValue);
+        	   
+        	**/
+       	dateView.setText(dateValue);
         // Set the duration
          
         if (FeatureQuery.FEATURE_CALLLOG_FOR_CMCC){

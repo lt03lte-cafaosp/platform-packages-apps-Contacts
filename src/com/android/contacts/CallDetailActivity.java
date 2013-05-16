@@ -261,7 +261,7 @@ public class CallDetailActivity extends Activity implements ProximitySensorAware
 
         mCallTypeHelper = new CallTypeHelper(getResources());
         mPhoneNumberHelper = new PhoneNumberHelper(mResources);
-        mPhoneCallDetailsHelper = new PhoneCallDetailsHelper(mResources, mCallTypeHelper,
+        mPhoneCallDetailsHelper = new PhoneCallDetailsHelper(this,mResources, mCallTypeHelper,
                 mPhoneNumberHelper);
         mVoicemailStatusHelper = new VoicemailStatusHelperImpl();
         mAsyncQueryHandler = new CallDetailActivityQueryHandler(this);

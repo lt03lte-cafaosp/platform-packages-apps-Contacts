@@ -1872,7 +1872,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <string name="description_quick_contact_for">Quick contact for <xliff:g id="name">%1$s</xliff:g></string>
 
     <!-- The string used to represent an unknown location for a phone number in the call log [CHAR LIMIT=3] -->
-    <string name="call_log_empty_gecode">-</string>
+    <string name="call_log_empty_gecode">Unknow</string>
 
     <!-- String describing the text on the header of the profile contact in the contacts list
          This may be programatically capitalized. [CHAR LIMIT=20] -->
@@ -2064,7 +2064,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
    
   
     <string name="delete_call_message">"deleting..."</string>
-    <string name="delete_call_alert">"are you sure to delete calllog?"</string>
+    <string name="delete_call_alert">"are you sure to delete call log?"</string>
   
          <!--modify for call log  -->
 	<!-- The menu item to filter the list of auto_sync_to_baidu_cloud -->

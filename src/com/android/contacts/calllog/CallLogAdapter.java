@@ -248,7 +248,7 @@ import com.android.contacts.ContactsUtils;
 
         mContactPhotoManager = ContactPhotoManager.getInstance(mContext);
         mPhoneNumberHelper = new PhoneNumberHelper(resources);
-        PhoneCallDetailsHelper phoneCallDetailsHelper = new PhoneCallDetailsHelper(
+        PhoneCallDetailsHelper phoneCallDetailsHelper = new PhoneCallDetailsHelper(mContext,
                 resources, callTypeHelper, mPhoneNumberHelper); 
         mCallLogViewsHelper =
                 new CallLogListItemHelper(
