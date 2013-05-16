@@ -31,7 +31,13 @@
 
     <item
         android:id="@+id/menu_set_ringtone"
+        android:icon="@drawable/ic_menu_mark"
         android:title="@string/menu_set_ring_tone" />
+
+    <item
+        android:id="@+id/menu_send_via_sms"
+        android:icon="@drawable/ic_menu_mark"
+        android:title="@string/menu_sendViaSMS" />
 
     <item
         android:id="@+id/menu_send_to_voicemail"
