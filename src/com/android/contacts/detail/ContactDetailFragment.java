@@ -2119,7 +2119,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     private void callViaIP(int viewEntryPosition) {
         DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
         Intent callIntent = new Intent(detailViewEntry.intent);
-        //callIntent.putExtra(MSimConstants.IS_IP_CALL, true);
+        callIntent.putExtra(MSimConstants.IS_IP_CALL, true);
         mContext.startActivity(callIntent);
     }
 
