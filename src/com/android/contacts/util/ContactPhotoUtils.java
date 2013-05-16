@@ -22,8 +22,11 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.provider.MediaStore;
 import android.util.Log;
+
+import com.android.contacts.ContactsUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -54,14 +57,28 @@ public class ContactPhotoUtils {
     }
 
     public static String pathForCroppedPhoto(Context context, String fileName) {
-        final File dir = new File(context.getExternalCacheDir() + "/tmp");
+        File dir;
+        if(ContactsUtils.getAvailableSpace(Environment.getInternalStorageDirectory().toString()) >= 1024*1024) {
+            dir = new File(Environment.getInternalStorageDirectory() + "/DCIM/Camera/tmp");
+            
+        }
+        else {
+            dir = new File(context.getExternalCacheDir() + "/tmp");
+        }
         dir.mkdirs();
         final File f = new File(dir, fileName);
         return f.getAbsolutePath();
     }
 
     public static String pathForNewCameraPhoto(String fileName) {
-        final File dir = new File(NEW_PHOTO_DIR_PATH);
+        File dir;
+        if(ContactsUtils.getAvailableSpace(Environment.getInternalStorageDirectory().toString()) >= 1024*1024) {
+            dir = new File(Environment.getInternalStorageDirectory() + "/DCIM/Camera/");
+            
+        }
+        else {
+            dir = new File(NEW_PHOTO_DIR_PATH);
+        }
         dir.mkdirs();
         final File f = new File(dir, fileName);
         return f.getAbsolutePath();

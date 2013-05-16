@@ -757,6 +757,21 @@ public class ContactsUtils {
         return false;
     }
 
+    public static long getAvailableSpace(String dirname)
+    {
+        File file = new File(dirname);
+        
+        if (!file.exists() || !file.isDirectory() || !file.canRead()) {
+            return 0;
+        }
+        StatFs stat = new StatFs(file.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        
+        long available = availableBlocks*blockSize;
+        return available;
+    }
+
      public static void setUimLoaderStatus(int sub, int state){
         if(MSimTelephonyManager.getDefault().isMultiSimEnabled())
         {
