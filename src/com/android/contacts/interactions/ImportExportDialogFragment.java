@@ -152,6 +152,8 @@ public class ImportExportDialogFragment extends DialogFragment
     private static final int TOAST_EXPORT_CANCELED = 4; //there is a case export is canceled by user
     private static final int TOAST_EMAIL_FULL = 5;
     private static final int TOAST_ANR_FULL = 6;
+    private static final int TOAST_SIM_CARD_LOADING = 7;
+    private static final int TOAST_SIM_CARD_STOP = 8;
 
     private static final int RESULT_EMAIL_FULL_FAILURE = -1;
     private static final int RESULT_ANR_FULL_FAILURE = -3;
@@ -379,7 +381,10 @@ public class ImportExportDialogFragment extends DialogFragment
                     Toast.makeText(getActivity(), R.string.share_error, Toast.LENGTH_SHORT).show();
                     return;
                 }
-
+                if(cursor.getCount() > 2000){
+                    Toast.makeText(getActivity(), R.string.share_failed, Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 StringBuilder uriListBuilder = new StringBuilder();
                 int index = 0;
                 do {
@@ -672,6 +677,17 @@ public class ImportExportDialogFragment extends DialogFragment
         public void run() {
             enablePowerWakeLock(mpeople, "ImportExport");
             freeSimCount = ContactsUtils.getSimFreeCount(mpeople,subscription);
+            if(ContactsUtils.getUimLoaderStatus(subscription) != 1){
+                mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_LOADING);
+                if (mExportProgressDlg != null) {
+                    mExportProgressDlg.dismiss();
+                    mExportProgressDlg = null;
+                }
+                disablePowerWakeLock();
+                Intent intent = new Intent(PeopleActivity.INTENT_EXPORT_COMPLETE);
+                mpeople.sendBroadcast(intent);
+                return;
+            }
             isExportingToSIM = true;
             String accountName = getAccountNameBy(subscription);
             String accountType = SimContactsConstants.ACCOUNT_TYPE_SIM;
@@ -838,9 +854,14 @@ public class ImportExportDialogFragment extends DialogFragment
                                             //    mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
                                             //    break;
                                             //} else {
-                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
                                                 boolean airplane = (System.getInt(mpeople.getContentResolver(),
                                                         System.AIRPLANE_MODE_ON, 0) != 0);
+                                                if(airplane){
+                                                    isSimCardFull = true;
+                                                    mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_STOP);
+                                                    break;
+                                                }
+                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
                                                 if (airplane) {
                                                     isSimCardFull = true;
                                                     break;
@@ -1052,6 +1073,12 @@ public class ImportExportDialogFragment extends DialogFragment
                         int exportCount = msg.arg1;
                         Toast.makeText(mpeople,mpeople.getString(R.string.export_cancelled,
                                        String.valueOf(exportCount)), Toast.LENGTH_SHORT).show();
+                        break;
+                   case TOAST_SIM_CARD_LOADING:
+                        Toast.makeText(mpeople, R.string.sim_loading, Toast.LENGTH_SHORT).show();
+                        break;
+                   case TOAST_SIM_CARD_STOP:
+                        Toast.makeText(mpeople, R.string.sim_stop, Toast.LENGTH_SHORT).show();
                         break;
                 }
             }

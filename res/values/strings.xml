@@ -2095,4 +2095,6 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 	<string name="contacts_full">Data partion full ,contacts creation failed</string>
 	<string name="contact_empty">There is no valid content, it will not be saved!</string>
 	<string name="sim_loading">Loading from SIM card,please wait</string>
+	<string name="sim_stop">Export stoped</string>
+	<string name="share_failed">Too many contacts,share failed</string>
 </resources>

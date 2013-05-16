@@ -755,4 +755,6 @@
 	
 	<string name="contact_empty">没有输入有效内容，将不会被保存!</string>
 	<string name="sim_loading">正在读卡，请稍后</string>
+	<string name="sim_stop">导出停止</string>
+	<string name="share_failed">联系人太多，分享失败</string>
 </resources>

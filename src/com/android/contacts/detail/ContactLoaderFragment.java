@@ -366,7 +366,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             {
                 copyToPhoneMenu.setVisible(true);
                 copyToPhoneMenu.setTitle("" + getString(R.string.menu_copyTo) 
-                            + getString(R.string.phoneLabelsGroup) + "<" + SimContactsConstants.PHONE_NAME+ ">");
+                            + getString(R.string.phoneLabelsGroup));
                 if(MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                     if(SimContactsConstants.SIM_NAME_1.equals(accoutName) && hasEnabledIccCard(1))
                     {
@@ -408,7 +408,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                     if(TelephonyManager.getDefault().hasIccCard() &&
                         TelephonyManager.getDefault().getSimState() == TelephonyManager.SIM_STATE_READY) {
                         copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo) 
-                                + getString(R.string.account_sim) + "<" + SimContactsConstants.SIM_NAME+ ">");
+                                + getString(R.string.account_sim));
                         copyToSim1Menu.setVisible(true);
                     }
                 }

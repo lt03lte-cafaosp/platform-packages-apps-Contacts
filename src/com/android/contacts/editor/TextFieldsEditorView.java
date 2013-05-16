@@ -279,7 +279,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
                         if(inputType == InputType.TYPE_CLASS_PHONE){
                             String newString = str.replace(';','W');
                             newString = newString.replace(',','P');
-                            newString = newString.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+                            newString = newString.replaceAll("[^0123456789 PWN\\,\\;\\*\\#\\+]",""); 
                             if(newString.length() != str.length() || (str.contains(";") || str.contains(","))){
                               fieldView.setText(newString);
                               try {
