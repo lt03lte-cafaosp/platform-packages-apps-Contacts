@@ -47,6 +47,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
@@ -648,6 +649,7 @@ public class ImportExportDialogFragment extends DialogFragment
         private int adnCount = 0;
         boolean showEmailFull = true;
         boolean showAnrFull = true;
+        private int freeSimCount = 0;
 
         public ExportToSimThread(int type, int subscription, ArrayList<String[]> contactList, Activity mpactiv) {
             super();
@@ -668,6 +670,8 @@ public class ImportExportDialogFragment extends DialogFragment
 
         @Override
         public void run() {
+            enablePowerWakeLock(mpeople, "ImportExport");
+            freeSimCount = ContactsUtils.getSimFreeCount(mpeople,subscription);
             isExportingToSIM = true;
             String accountName = getAccountNameBy(subscription);
             String accountType = SimContactsConstants.ACCOUNT_TYPE_SIM;
@@ -765,69 +769,96 @@ public class ImportExportDialogFragment extends DialogFragment
                         Uri itemUri = null;
                         Log.i(TAG, "GroupCount = " + GroupCount);
                         for(int i = 0 ; i < GroupCount ; i++){
-                            String num = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
-                            String anrNum = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
-                            String email = arrayEmail.size() > 0 ? arrayEmail.remove(0) : null;
-                            Log.i(TAG, "name = " + name);
-                            Log.i(TAG, "num = " + num);
-                            Log.i(TAG, "anrNum = " + anrNum);
-                            Log.i(TAG, "email = " + email);
-                            itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, anrNum, subscription);
-                            Log.i(TAG, "itemUri = " + itemUri);
-                            if (itemUri == null) {
-                                // add toast handler when sim card is full
-                                if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
-                                    isSimCardFull = true;
-                                    mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
-                                    break;
+                            Log.d(TAG, "Exported contact freeSimCount = " + freeSimCount);
+                            if(freeSimCount > 0) {
+                                String num = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
+                                String anrNum = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
+                                String email = arrayEmail.size() > 0 ? arrayEmail.remove(0) : null;
+                                Log.i(TAG, "name = " + name);
+                                Log.i(TAG, "num = " + num);
+                                Log.i(TAG, "anrNum = " + anrNum);
+                                Log.i(TAG, "email = " + email);
+                                itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, anrNum, subscription);
+                                Log.i(TAG, "itemUri = " + itemUri);
+                                if (itemUri == null) {
+                                    // add toast handler when sim card is full
+                                    //if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
+                                    //    isSimCardFull = true;
+                                    //    mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
+                                    //    break;
+                                    //} else {
+                                        mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                        boolean airplane = (System.getInt(mpeople.getContentResolver(),
+                                                System.AIRPLANE_MODE_ON, 0) != 0);
+                                        if (airplane) break;
+                                        else continue;
+                                    //}
                                 } else {
-                                    mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
-                                    boolean airplane = (System.getInt(mpeople.getContentResolver(),
-                                            System.AIRPLANE_MODE_ON, 0) != 0);
-                                    if (airplane) break;
-                                    else continue;
-                                }
-                            } else {
-                                Log.d(TAG, "Exported contact [" + name + ", " + contactInfo[0] + ", " + contactInfo[1]
-                                    + "] to sub " + subscription);
-                                int ret = Integer.parseInt(itemUri.getLastPathSegment()); 
-                                Log.d(TAG, "Exported contact ret = " + ret);
-                                if(ret != 1) {
-                                    if(ret == RESULT_EMAIL_FULL_FAILURE){
-                                        itemUri = ContactsUtils.insertToCard(mpeople, name, num, "", anrNum, subscription);
-                                        Log.d(TAG, "Exported contact showEmailFull = " + showEmailFull);
-                                        if(showEmailFull) {
-                                            mToastHandler.sendEmptyMessage(TOAST_EMAIL_FULL);
+                                    Log.d(TAG, "Exported contact [" + name + ", " + contactInfo[0] + ", " + contactInfo[1]
+                                        + "] to sub " + subscription);
+                                    int ret = Integer.parseInt(itemUri.getLastPathSegment()); 
+                                    Log.d(TAG, "Exported contact ret = " + ret);
+                                    if(ret != 1) {
+                                        if(ret == RESULT_EMAIL_FULL_FAILURE){
+                                            itemUri = ContactsUtils.insertToCard(mpeople, name, num, "", anrNum, subscription);
+                                            Log.d(TAG, "Exported contact showEmailFull = " + showEmailFull);
+                                            if(showEmailFull) {
+                                                mToastHandler.sendEmptyMessage(TOAST_EMAIL_FULL);
+                                            }
+                                            showEmailFull = false;
+                                            ret = Integer.parseInt(itemUri.getLastPathSegment());
+                                            if(ret == 1) {
+                                                insertCount++;
+                                                freeSimCount--;
+                                            }
+                                            else {
+                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                            }
                                         }
-                                        showEmailFull = false;
-                                    }
-                                    else if(ret == RESULT_ANR_FULL_FAILURE){
-                                        itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, "", subscription);
-                                        Log.d(TAG, "Exported contact showAnrFull = " + showAnrFull);
-                                        if(showAnrFull) {
-                                            mToastHandler.sendEmptyMessage(TOAST_ANR_FULL);
+                                        else if(ret == RESULT_ANR_FULL_FAILURE){
+                                            itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, "", subscription);
+                                            Log.d(TAG, "Exported contact showAnrFull = " + showAnrFull);
+                                            if(showAnrFull) {
+                                                mToastHandler.sendEmptyMessage(TOAST_ANR_FULL);
+                                            }
+                                            showAnrFull = false;
+                                            ret = Integer.parseInt(itemUri.getLastPathSegment());
+                                            if(ret == 1) {
+                                                insertCount++;
+                                                freeSimCount--;
+                                            }
+                                            else {
+                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                            }
                                         }
-                                        showAnrFull = false;
+                                        else {
+                                            //if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
+                                            //    Log.d(TAG, "Exported contact SimCardFull");
+                                            //    isSimCardFull = true;
+                                            //    mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
+                                            //    break;
+                                            //} else {
+                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                                boolean airplane = (System.getInt(mpeople.getContentResolver(),
+                                                        System.AIRPLANE_MODE_ON, 0) != 0);
+                                                if (airplane) {
+                                                    isSimCardFull = true;
+                                                    break;
+                                                }    
+                                                else continue;
+                                            //}
+                                        }
                                     }
                                     else {
-                                        if (isSimCardFull(mpeople.getContentResolver(),adnCount)) {
-                                            Log.d(TAG, "Exported contact SimCardFull");
-                                            isSimCardFull = true;
-                                            mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
-                                            break;
-                                        } else {
-                                            mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
-                                            boolean airplane = (System.getInt(mpeople.getContentResolver(),
-                                                    System.AIRPLANE_MODE_ON, 0) != 0);
-                                            if (airplane) {
-                                                isSimCardFull = true;
-                                                break;
-                                            }    
-                                            else continue;
-                                        }
+                                        insertCount++;
+                                        freeSimCount--;
                                     }
                                 }
-                                insertCount++;
+                            }
+                            else {
+                                isSimCardFull = true;
+                                mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
+                                break; 
                             }
                         }
                         if(isSimCardFull) {
@@ -863,6 +894,7 @@ public class ImportExportDialogFragment extends DialogFragment
             } else {
                 mToastHandler.sendEmptyMessage(TOAST_EXPORT_FINISHED);
             }
+            disablePowerWakeLock();
             isExportingToSIM = false;
             Intent intent = new Intent(PeopleActivity.INTENT_EXPORT_COMPLETE);
             mpeople.sendBroadcast(intent);
@@ -1310,6 +1342,40 @@ public class ImportExportDialogFragment extends DialogFragment
         super.onDismiss(dialog);
         if (null != mactiv && null != mSimStateReceiver) {
             mactiv.unregisterReceiver(mSimStateReceiver);
+        }
+    }
+
+    private PowerManager.WakeLock mWakeLock = null;
+    private final Object mWakeLockSync = new Object();
+
+    /**
+     * Start the service to process the current event notifications, acquiring
+     * the wake lock before returning to ensure that the service will run.
+     */
+    public void enablePowerWakeLock(Context context, String tag) {
+        synchronized (mWakeLockSync) {
+            if (mWakeLock == null) {
+                PowerManager pm =
+                    (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+                mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                        tag);
+                mWakeLock.setReferenceCounted(false);
+            }
+            Log.i(TAG, "enablePowerWakeLock acquire");
+            mWakeLock.acquire();
+        }
+    }
+
+    /**
+     * Called back by the service when it has finished processing notifications,
+     * releasing the wake lock if the service is now stopping.
+     */
+    public void disablePowerWakeLock() {
+        synchronized (mWakeLockSync) {
+            if (mWakeLock != null) {
+                mWakeLock.release();
+                Log.i(TAG, "enablePowerWakeLock release");
+            }
         }
     }
 }

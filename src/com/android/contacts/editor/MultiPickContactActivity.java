@@ -57,6 +57,8 @@ import android.net.Uri;
 import android.net.Uri.Builder;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.os.RemoteException;
 import android.provider.CallLog;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.ContactCounts;
@@ -295,6 +297,9 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private PhoneNumberHelper mPhoneNumberHelper;
 
+    private PowerManager.WakeLock mWakeLock = null;
+    private final Object mWakeLockSync = new Object();
+
     /**
      * control of whether show the contacts in SIM card, if intent has this
      * flag,not show.
@@ -321,6 +326,8 @@ public class MultiPickContactActivity extends ListActivity implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        enablePowerWakeLock(MultiPickContactActivity.this, "Multipicker");
+        
         mNeedFastScroll = true;
         mPhoneNumberHelper = new PhoneNumberHelper(getResources());
         Log.d(TAG, "onCreate");
@@ -827,6 +834,8 @@ public class MultiPickContactActivity extends ListActivity implements
         }
 
         super.onDestroy();
+
+        disablePowerWakeLock();
     }
 
     private Uri getUriToQuery() {
@@ -1820,6 +1829,37 @@ public class MultiPickContactActivity extends ListActivity implements
     private void cancelSimContactsImporting() {
         if (mProgressDialog != null && mProgressDialog.isShowing()) {
             mProgressDialog.cancel();
+        }
+    }
+
+    /**
+     * Start the service to process the current event notifications, acquiring
+     * the wake lock before returning to ensure that the service will run.
+     */
+    public void enablePowerWakeLock(Context context, String tag) {
+        synchronized (mWakeLockSync) {
+            if (mWakeLock == null) {
+                PowerManager pm =
+                    (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+                mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                        tag);
+                mWakeLock.setReferenceCounted(false);
+            }
+            Log.i(TAG, "enablePowerWakeLock acquire");
+            mWakeLock.acquire();
+        }
+    }
+
+    /**
+     * Called back by the service when it has finished processing notifications,
+     * releasing the wake lock if the service is now stopping.
+     */
+    public void disablePowerWakeLock() {
+        synchronized (mWakeLockSync) {
+            if (mWakeLock != null) {
+                mWakeLock.release();
+                Log.i(TAG, "enablePowerWakeLock release");
+            }
         }
     }
 }

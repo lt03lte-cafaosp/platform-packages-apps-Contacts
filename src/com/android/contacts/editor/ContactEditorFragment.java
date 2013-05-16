@@ -1273,20 +1273,21 @@ public class ContactEditorFragment extends Fragment implements
     private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
     private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
     private static final int RESULT_RECORD_INVALID = 10; // only for sim failure of record is valid
+    private static final int RESULT_RECORD_LOADING = 11; // only for sim not show toast
 
     // Only for accessing SIM card
     // when device is in the "AirPlane" mode.
-    private static final int RESULT_AIR_PLANE_MODE = 11;
+    private static final int RESULT_AIR_PLANE_MODE = 12;
 
     public void onSaveCompleted(boolean hadChanges, int saveMode, boolean saveSucceeded,
             Uri contactLookupUri, int result) {
-        Log.d(TAG, "onSaveCompleted(" + saveMode + ", " + contactLookupUri);
+        Log.d(TAG, "onSaveCompleted(" + saveMode + ", " + contactLookupUri + ", " + result);
         if (hadChanges) {
             if (result != RESULT_NO_NAME && result != RESULT_SIM_FAILURE
                     && result != RESULT_NUMBER_ANR_FAILURE && result != RESULT_EMAIL_FAILURE
                     && result != RESULT_SIM_FULL_FAILURE && result != RESULT_TAG_FAILURE
                     && result != RESULT_NUMBER_INVALID && result != RESULT_AIR_PLANE_MODE
-                    && result != RESULT_RECORD_INVALID
+                    && result != RESULT_RECORD_INVALID && result != RESULT_RECORD_LOADING
                     && saveSucceeded) {
                 if ( saveMode != SaveMode.JOIN ) {
                     if (contactLookupUri != null) {
@@ -1351,6 +1352,9 @@ public class ContactEditorFragment extends Fragment implements
                     mStatus = Status.EDITING;
                     setEnabled(true);
                     return;
+                } else if (result == RESULT_RECORD_LOADING) {
+                    // when reading card, contactsaveservice already show toast
+                    // do nothing, not show contactSavedErrorToast 
                 } else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG).show();
                 }

@@ -282,7 +282,11 @@ public class TextFieldsEditorView extends LabeledEditorView {
                             newString = newString.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
                             if(newString.length() != str.length() || (str.contains(";") || str.contains(","))){
                               fieldView.setText(newString);
-                              fieldView.setSelection(start+count-(str.length()-newString.length()));
+                              try {
+                                fieldView.setSelection(start+count-(str.length()-newString.length()));
+                              } catch(Exception e) {
+                                e.printStackTrace();
+                              }
                             }
                             
                         }

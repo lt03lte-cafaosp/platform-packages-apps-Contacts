@@ -553,13 +553,26 @@ public class ContactsUtils {
         mValues.clear();
         mValues.put("tag", name);
         if(!TextUtils.isEmpty(number)) {
-            mValues.put("number", number.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""));
+            number = number.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]","");
+            if(number.length() > 20) {
+                number = number.substring(0, 20);
+            }
+            
+            mValues.put("number", number);
         }
         if (!TextUtils.isEmpty(emails)) {
+            if(emails.length() > 40) {
+                emails = emails.substring(0, 40);
+            }
             mValues.put("emails", emails);
         }
         if (!TextUtils.isEmpty(anrNumber)) {
-            mValues.put("anrs", anrNumber.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""));
+            anrNumber = anrNumber.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]","");
+            if(anrNumber.length() > 20) {
+                anrNumber = anrNumber.substring(0, 20);
+            }
+            
+            mValues.put("anrs", anrNumber);
         }
 
         SimContactsOperation mSimContactsOperation = new SimContactsOperation(context);

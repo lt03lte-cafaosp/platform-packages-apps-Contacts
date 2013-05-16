@@ -277,6 +277,7 @@ public class ContactSaveService extends IntentService {
               showToast(R.string.sim_loading);
               Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
               if(callbackIntent != null){
+                callbackIntent.putExtra(SAVE_CONTACT_RESULT, RESULT_RECORD_LOADING);
                 deliverCallback(callbackIntent);
               }
               return;
@@ -454,10 +455,11 @@ public class ContactSaveService extends IntentService {
     private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
     private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
     private static final int RESULT_RECORD_INVALID = 10; // only for sim failure of record is valid
+    private static final int RESULT_RECORD_LOADING = 11; // only for sim not show toast
 
     // Only for request accessing SIM card
     // when device is in the "AirPlane" mode.
-    private static final int RESULT_AIR_PLANE_MODE = 11;
+    private static final int RESULT_AIR_PLANE_MODE = 12;
     
     private boolean checkPhoneContactsFull(Context context,Intent intent){
       RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);

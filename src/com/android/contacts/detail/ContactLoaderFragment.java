@@ -650,7 +650,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                            Toast.makeText(mContext,R.string.copy_failure,Toast.LENGTH_SHORT).show();
                            break;
                         case MSG_CANCEL:
-                            Toast.makeText(mContext, R.string.card_no_space, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(mContext, R.string.sim_card_full, Toast.LENGTH_SHORT).show();
                             break;
                         case MSG_NO_EMPTY_EMAIL:
                             Toast.makeText(mContext,R.string.no_empty_email_in_usim, Toast.LENGTH_SHORT).show();
@@ -840,14 +840,20 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             }
             if (ContactsUtils.getSimFreeCount(mContext, sub) <= 0)
             {
-                Toast.makeText(mContext, R.string.card_no_space, 
+                Toast.makeText(mContext, R.string.sim_card_full, 
                                 Toast.LENGTH_SHORT).show();        
                 return ;
             }
             if (hasphonenumber == 0)
             {
-                Toast.makeText(mContext, R.string.copy_failure, 
-                                Toast.LENGTH_SHORT).show();      
+               Uri itemUri = ContactsUtils.insertToCard(mContext, name, "", "", "", sub); 
+               int ret = Integer.parseInt(itemUri.getLastPathSegment());
+               if(ret == 1) {
+                    Toast.makeText(mContext,R.string.copy_done,Toast.LENGTH_SHORT).show();
+               }
+               else {
+                    Toast.makeText(mContext,R.string.copy_failure,Toast.LENGTH_SHORT).show();
+               }
             }
             else
             {
