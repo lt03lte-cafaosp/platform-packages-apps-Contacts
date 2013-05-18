@@ -757,4 +757,5 @@
 	<string name="sim_loading">正在读卡，请稍后</string>
 	<string name="sim_stop">导出停止</string>
 	<string name="share_failed">联系人太多，分享失败</string>
+	<string name="max_pick">供选择的上限为</string>
 </resources>

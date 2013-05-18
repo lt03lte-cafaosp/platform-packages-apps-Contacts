@@ -310,6 +310,9 @@ public class MultiPickContactActivity extends ListActivity implements
      * flag,not show.
      */
     public static final String EXT_NOT_SHOW_SIM_FLAG = "not_sim_show";
+    
+    //max contacts number other app can pick
+    private Integer mMaxPickNumber = 0xffff;
 
     //registerReceiver to update content when airplane mode change.
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -346,6 +349,10 @@ public class MultiPickContactActivity extends ListActivity implements
             mMode = MODE_DEFAULT_CONTACT;
         } else if (ACTION_MULTI_PICK.equals(action)) {
             mMode = MODE_DEFAULT_PHONE;
+            mMaxPickNumber = intent.getIntExtra("com.android.contacts.MULTI_SEL_EXTRA_MAXITEMS",0xffff);
+            Log.d(TAG, "mMaxPickNumber:" + mMaxPickNumber);
+            if(mMaxPickNumber != 0xffff)
+                Toast.makeText(this, getString(R.string.max_pick) + mMaxPickNumber, Toast.LENGTH_SHORT).show();
         } else if (ACTION_MULTI_PICK_EMAIL.equals(action)) {
             mMode = MODE_DEFAULT_EMAIL;
         } else if (ACTION_MULTI_PICK_CALL.equals(action)) {
@@ -434,6 +441,12 @@ public class MultiPickContactActivity extends ListActivity implements
         CheckBox checkBox = (CheckBox) v.findViewById(R.id.pick_contact_check);
         boolean isChecked = checkBox.isChecked() ? false : true;
         checkBox.setChecked(isChecked);
+        if(isChecked){
+          if(mChoiceSet.size() >= mMaxPickNumber){
+              checkBox.setChecked(!isChecked);
+              return;
+          }
+        }
         if (isChecked) {
             String[] value = null;
             ContactItemCache cache = (ContactItemCache) v.getTag();
@@ -450,7 +463,7 @@ public class MultiPickContactActivity extends ListActivity implements
             }
             mChoiceSet.putStringArray(String.valueOf(id), value);
             if (!isSearchMode()) {
-                if (mChoiceSet.size() == mAdapter.getCount()) {
+                if (mChoiceSet.size() == mAdapter.getCount() || mChoiceSet.size() == mMaxPickNumber) {
                     mSelectAllCheckBox.setChecked(true);
                 }
             }
@@ -1135,7 +1148,9 @@ public class MultiPickContactActivity extends ListActivity implements
             Log.w(TAG, "cursor is null.");
             return;
         }
-
+        //add max picker featrue
+        if(isSelected)mChoiceSet.clear();
+        int selectIdx = 0;
         cursor.moveToPosition(-1);
         while (cursor.moveToNext()) {
             String id = null;
@@ -1174,10 +1189,12 @@ public class MultiPickContactActivity extends ListActivity implements
             if (DEBUG)
                 Log.d(TAG, "isSelected: " + isSelected + ", id: " + id);
             if (isSelected) {
-                mChoiceSet.putStringArray(id, value);
+                if(selectIdx < mMaxPickNumber)
+                    mChoiceSet.putStringArray(id, value);
             } else {
                 mChoiceSet.remove(id);
             }
+            selectIdx ++;
         }
 
         // update UI items.
@@ -1187,7 +1204,13 @@ public class MultiPickContactActivity extends ListActivity implements
         for (int i = 0; i < count; i++) {
             View v = mList.getChildAt(i);
             CheckBox checkBox = (CheckBox) v.findViewById(R.id.pick_contact_check);
-            checkBox.setChecked(isSelected);
+            if(isSelected)
+              if(i < mMaxPickNumber)
+                checkBox.setChecked(true);
+              else
+                checkBox.setChecked(false);
+            else
+              checkBox.setChecked(false);
         }
     }
 

@@ -2097,4 +2097,5 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 	<string name="sim_loading">Loading from SIM card,please wait</string>
 	<string name="sim_stop">Export stoped</string>
 	<string name="share_failed">Too many contacts,share failed</string>
+	<string name="max_pick">Max contacts you can picker are </string>
 </resources>
