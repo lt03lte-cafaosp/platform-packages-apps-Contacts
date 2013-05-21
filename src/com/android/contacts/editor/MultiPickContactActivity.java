@@ -801,6 +801,10 @@ public class MultiPickContactActivity extends ListActivity implements
                 } else {
                     selectAll(false);
                 }
+                Cursor cursor = mAdapter.getCursor();
+                if(cursor != null && cursor.getCount() <= 0) {
+                    mSelectAllCheckBox.setChecked(false);
+                }
                 break;
             case R.id.search_field:
                 enterSearchMode();
@@ -1513,7 +1517,12 @@ public class MultiPickContactActivity extends ListActivity implements
                             break;
                         }
                     }
-                    mSelectAllCheckBox.setChecked(isAllChoosed);
+                    if(cursor.getCount() <= 0) {
+                        mSelectAllCheckBox.setChecked(false);
+                    }
+                    else {
+                        mSelectAllCheckBox.setChecked(isAllChoosed);
+                    }
                 }
             }
             String[] sections = null;
