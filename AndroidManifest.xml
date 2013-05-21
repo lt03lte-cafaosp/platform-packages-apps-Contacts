@@ -571,7 +571,7 @@
         <!-- Create a new or edit an existing contact -->
         <activity
             android:name=".activities.ContactEditorActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden|locale"
+            
             android:theme="@style/EditorActivityTheme"
             android:windowSoftInputMode="adjustResize">
 
