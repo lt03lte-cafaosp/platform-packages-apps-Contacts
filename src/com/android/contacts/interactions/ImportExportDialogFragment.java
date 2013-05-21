@@ -764,7 +764,13 @@ public class ImportExportDialogFragment extends DialogFragment
                         int nameCount = (name != null && !name.equals("")) ? 1 : 0;
                         int GroupNumCount = (arrayNumber.size()%2) != 0 ? (arrayNumber.size()/2 + 1) : (arrayNumber.size()/2);
                         int GroupEmailCount = arrayEmail.size();
-                        int GroupCount = Math.max(GroupEmailCount, Math.max(nameCount, GroupNumCount));
+                        int GroupCount = 0;
+                        if(canSaveEmail) {
+                            GroupCount = Math.max(GroupEmailCount, Math.max(nameCount, GroupNumCount));
+                        }
+                        else {
+                            GroupCount = Math.max(nameCount, arrayNumber.size());
+                        }
 
                         Uri itemUri = null;
                         Log.i(TAG, "GroupCount = " + GroupCount);
@@ -772,13 +778,23 @@ public class ImportExportDialogFragment extends DialogFragment
                             Log.d(TAG, "Exported contact freeSimCount = " + freeSimCount);
                             if(freeSimCount > 0) {
                                 String num = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
-                                String anrNum = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
-                                String email = arrayEmail.size() > 0 ? arrayEmail.remove(0) : null;
+                                String anrNum = "";
+                                String email = "";
+                                if(canSaveEmail) {
+                                    anrNum = arrayNumber.size() > 0 ? arrayNumber.remove(0) : null;
+                                    email = arrayEmail.size() > 0 ? arrayEmail.remove(0) : null;
+                                }    
+                                
                                 Log.i(TAG, "name = " + name);
                                 Log.i(TAG, "num = " + num);
                                 Log.i(TAG, "anrNum = " + anrNum);
                                 Log.i(TAG, "email = " + email);
-                                itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, anrNum, subscription);
+                                if(canSaveEmail) {
+                                    itemUri = ContactsUtils.insertToCard(mpeople, name, num, email, anrNum, subscription);
+                                }
+                                else {
+                                    itemUri = ContactsUtils.insertToCard(mpeople, name, num, "", "", subscription);
+                                }
                                 Log.i(TAG, "itemUri = " + itemUri);
                                 if (itemUri == null) {
                                     // add toast handler when sim card is full
