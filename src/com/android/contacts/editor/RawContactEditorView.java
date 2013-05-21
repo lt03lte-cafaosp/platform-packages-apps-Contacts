@@ -273,12 +273,15 @@ public class RawContactEditorView extends BaseRawContactEditorView {
                 sub = 1;
             }
             if (!is3GCard(sub) && mState != null) {
-                for (ValuesDelta entry : mState
-                        .getMimeEntries(Phone.CONTENT_ITEM_TYPE)) {
-                    if (Phone.TYPE_HOME == entry.getAsLong(Phone.TYPE)) {
-                        mState.getMimeEntries(Phone.CONTENT_ITEM_TYPE).remove(
-                                entry);
-                        break;
+                ArrayList<ValuesDelta> entryDelta= mState
+                        .getMimeEntries(Phone.CONTENT_ITEM_TYPE);
+                if(entryDelta != null) {        
+                    for (ValuesDelta entry : entryDelta) {
+                        if (Phone.TYPE_HOME == entry.getAsLong(Phone.TYPE)) {
+                            mState.getMimeEntries(Phone.CONTENT_ITEM_TYPE).remove(
+                                    entry);
+                            break;
+                        }
                     }
                 }
                 ArrayList<ValuesDelta> temp = mState
