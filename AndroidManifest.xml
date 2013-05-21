@@ -40,6 +40,7 @@
     <uses-permission android:name="com.google.android.googleapps.permission.GOOGLE_AUTH.mail" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.USE_CREDENTIALS" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -570,7 +571,7 @@
         <!-- Create a new or edit an existing contact -->
         <activity
             android:name=".activities.ContactEditorActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden|locale"
+            
             android:theme="@style/EditorActivityTheme"
             android:windowSoftInputMode="adjustResize">
 
