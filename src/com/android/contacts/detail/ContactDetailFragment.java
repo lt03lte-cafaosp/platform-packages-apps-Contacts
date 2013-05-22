@@ -110,6 +110,7 @@ import com.android.contacts.util.DataStatus;
 import com.android.contacts.util.DateUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.StructuredPostalUtils;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.MSimConstants;
 import com.google.common.annotations.VisibleForTesting;
@@ -1890,16 +1891,19 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         } else if (!isUniqueMimeType) {
             menu.add(ContextMenu.NONE, ContextMenuIds.SET_DEFAULT,
                     ContextMenu.NONE, getString(R.string.set_default));
-            }
+        }
+
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedMimeType)) {
+            // add limit length to show IP call item
             if (selectedEntry.data.length() > MAX_NUM_LENGTH) {
                 menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL,
                         ContextMenu.NONE, getString(R.string.ipcall));
             }
+
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
         }
-     }
+    }
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
@@ -1956,9 +1960,10 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     private void callViaIP(int viewEntryPosition) {
         DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
         Intent callIntent = new Intent(detailViewEntry.intent);
-        callIntent.putExtra("ip_call", true);
+        callIntent.putExtra(PhoneConstants.IP_CALL, true);
         mContext.startActivity(callIntent);
     }
+
     private void callByEdit(int viewEntryPosition) {
         DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
         Intent intent = new Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", detailViewEntry.data,
