@@ -398,7 +398,7 @@ public class AggregationSuggestionEngine extends HandlerThread {
                     rawContact.dataSet = mDataCursor.getString(DataQuery.DATA_SET);
 
                     // Don't display SIM Card Contacts aggregation suggestion when local contacts is edited
-                    if (rawContact.accountType.equals(SimAccountType.ACCOUNT_TYPE)) {
+                    if (rawContact.accountType != null && rawContact.accountType.equals(SimAccountType.ACCOUNT_TYPE)) {
                         list.remove(suggestion);
                         suggestion = null;
                         currentContactId = -1;
