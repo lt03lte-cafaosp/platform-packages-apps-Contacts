@@ -38,6 +38,7 @@ import com.android.contacts.list.PhoneFavoriteFragment;
 import com.android.contacts.list.PhoneNumberPickerFragment;
 import com.android.contacts.util.AccountFilterUtil;
 import com.android.contacts.util.Constants;
+import com.android.contacts.vcard.ExportVCardActivity;
 import com.android.internal.telephony.ITelephony;
 
 import android.app.ActionBar;
@@ -1619,6 +1620,31 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
                         mContactListFilterController, resultCode, data);
             }
             break;
+
+            case 100:
+                if (resultCode == RESULT_OK) {
+                    Bundle result = data.getExtras().getBundle("result");
+                    
+                    Set<String> keySet = result.keySet();
+                    Iterator<String> it = keySet.iterator();
+                    String selExport = "";
+                    while (it.hasNext() ) {
+                        String id = it.next();
+
+                        if(selExport.equals("")) {
+                            selExport += id;
+                        }
+                        else {
+                            selExport = selExport + "," + id;
+                        }
+                    }    
+                    selExport = "_id IN (" + selExport + ")";
+                    Intent exportIntent = new Intent(this, ExportVCardActivity.class);
+                    exportIntent.putExtra("SelExport", selExport);
+                    this.startActivity(exportIntent);
+                       
+                }    
+                break;
         }
     }
 }
