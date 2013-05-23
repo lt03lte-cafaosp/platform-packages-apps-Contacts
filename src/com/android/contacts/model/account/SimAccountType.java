@@ -37,18 +37,17 @@ import android.telephony.MSimTelephonyManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.inputmethod.EditorInfo;
+import android.graphics.drawable.Drawable;
 
 import com.android.contacts.R;
 import com.android.contacts.model.account.AccountType.DefinitionException;
 import com.android.contacts.model.dataitem.DataKind;
 import com.google.android.collect.Lists;
 
-
 public class SimAccountType extends BaseAccountType{
     private static final String TAG = "SimContactsType";
 
     public static final String ACCOUNT_TYPE = "com.android.sim";
-    public static final String RES_PACKAGE_NAME = "com.qrd.simcontacts";
     public static final int FLAGS_PERSON_NAME = EditorInfo.TYPE_CLASS_TEXT
             | EditorInfo.TYPE_TEXT_FLAG_CAP_WORDS | EditorInfo.TYPE_TEXT_VARIATION_PERSON_NAME;
     public static final int FLAGS_PHONETIC = EditorInfo.TYPE_CLASS_TEXT
@@ -58,8 +57,8 @@ public class SimAccountType extends BaseAccountType{
 
     public SimAccountType(Context context, String resPackageName) {
         this.accountType = ACCOUNT_TYPE;
-        this.resourcePackageName = RES_PACKAGE_NAME;
-        this.syncAdapterPackageName = RES_PACKAGE_NAME;
+        this.resourcePackageName = resPackageName;
+        this.syncAdapterPackageName = resPackageName;
         this.titleRes = R.string.account_sim;
         this.iconRes = R.drawable.ic_launcher_contacts;
 
@@ -86,14 +85,13 @@ public class SimAccountType extends BaseAccountType{
         return kind;
     }
 
-
     @Override
     protected DataKind addDataKindPhone(Context context) throws DefinitionException {
         final DataKind kind = super.addDataKindPhone(context);
 
-        kind.iconAltRes = 0x7f020003;
+        kind.iconAltRes = R.drawable.ic_text_holo_light;
         kind.typeOverallMax = 2;
-      //  kind.isList = true;
+        kind.isList = true;
         kind.typeColumn = Phone.TYPE;
         kind.typeList = Lists.newArrayList();
         kind.typeList.add(buildPhoneType(Phone.TYPE_MOBILE));
