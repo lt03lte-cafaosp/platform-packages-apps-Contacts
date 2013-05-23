@@ -16,6 +16,8 @@
 
 package com.android.contacts.activities;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
@@ -31,8 +33,10 @@ import android.os.SystemProperties;
 import android.preference.PreferenceActivity;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.Intents;
 import android.provider.ContactsContract.ProviderStatus;
 import android.provider.ContactsContract.QuickContact;
+import android.provider.LocalGroups.Group;
 import android.provider.Settings;
 import android.preference.PreferenceManager;
 import android.support.v13.app.FragmentPagerAdapter;
@@ -47,6 +51,9 @@ import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListPopupWindow;
 import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
@@ -63,6 +70,7 @@ import com.android.contacts.dialog.ClearFrequentsDialog;
 import com.android.contacts.group.GroupBrowseListFragment;
 import com.android.contacts.group.GroupBrowseListFragment.OnGroupBrowserActionListener;
 import com.android.contacts.group.GroupDetailFragment;
+import com.android.contacts.group.local.AddLocalGroupDialog;
 import com.android.contacts.interactions.ContactDeletionInteraction;
 import com.android.contacts.interactions.ImportExportDialogFragment;
 import com.android.contacts.interactions.PhoneNumberInteraction;
@@ -83,12 +91,15 @@ import com.android.contacts.list.OnContactBrowserActionListener;
 import com.android.contacts.list.OnContactsUnavailableActionListener;
 import com.android.contacts.list.ProviderStatusWatcher;
 import com.android.contacts.list.ProviderStatusWatcher.ProviderStatusListener;
+import com.android.contacts.model.AccountTypeManager;
 import com.android.contacts.model.Contact;
 import com.android.contacts.model.account.AccountWithDataSet;
 import com.android.contacts.preference.ContactsPreferenceActivity;
 import com.android.contacts.preference.DisplayOptionsPreferenceFragment;
 import com.android.contacts.util.AccountFilterUtil;
 import com.android.contacts.util.AccountPromptUtils;
+import com.android.contacts.util.AccountsListAdapter;
+import com.android.contacts.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.util.Constants;
 import com.android.contacts.util.DialogManager;
 import com.android.contacts.util.HelpUtils;
@@ -98,6 +109,9 @@ import com.android.contacts.util.XCloudManager;
 import com.android.contacts.widget.TransitionAnimationView;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -150,6 +164,9 @@ public class PeopleActivity extends ContactsActivity
     private ProviderStatusWatcher.Status mProviderStatus;
 
     private boolean mOptionsMenuContactsAvailable;
+    public boolean isLocalGroupsShown;
+    private MenuItem switchGroupsMenu;
+    private MenuItem addGroupMenu;
 
     /**
      * Showing a list of Contacts. Also used for showing search results in search mode.
@@ -163,6 +180,7 @@ public class PeopleActivity extends ContactsActivity
     private View mBrowserView;
     private TransitionAnimationView mContactDetailsView;
     private TransitionAnimationView mGroupDetailsView;
+    private View mAddGroupImageView;
 
     /** ViewPager for swipe, used only on the phone (i.e. one-pane mode) */
     private ViewPager mTabPager;
@@ -529,6 +547,17 @@ public class PeopleActivity extends ContactsActivity
         }
 
         super.onDestroy();
+    }
+    private void showAddLocalGroupDialog() {
+        new AddLocalGroupDialog(this, new AddLocalGroupDialog.AddGroupListener() {
+            @Override
+            public void onAddGroup(String name) {
+                Group group = new Group();
+                group.setTitle(name);
+                group.save(getContentResolver());
+                mGroupsFragment.updateGroupData();
+            };
+        }).show();
     }
 
     private void configureFragments(boolean fromRequest) {
@@ -1430,8 +1459,9 @@ public class PeopleActivity extends ContactsActivity
         // Get references to individual menu items in the menu
         final MenuItem addContactMenu = menu.findItem(R.id.menu_add_contact);
         final MenuItem contactsFilterMenu = menu.findItem(R.id.menu_contacts_filter);
+        switchGroupsMenu = menu.findItem(R.id.menu_switch_group);
 
-        MenuItem addGroupMenu = menu.findItem(R.id.menu_add_group);
+        addGroupMenu = menu.findItem(R.id.menu_add_group);
 
         final MenuItem clearFrequentsMenu = menu.findItem(R.id.menu_clear_frequents);
         final MenuItem helpMenu = menu.findItem(R.id.menu_help);
@@ -1441,6 +1471,7 @@ public class PeopleActivity extends ContactsActivity
             addContactMenu.setVisible(false);
             addGroupMenu.setVisible(false);
             contactsFilterMenu.setVisible(false);
+            switchGroupsMenu.setVisible(false);
             clearFrequentsMenu.setVisible(false);
             helpMenu.setVisible(false);
             makeMenuItemVisible(menu, R.id.menu_delete, false);
@@ -1450,24 +1481,23 @@ public class PeopleActivity extends ContactsActivity
                     addContactMenu.setVisible(false);
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
+                    switchGroupsMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(hasFrequents());
                     break;
                 case TabState.ALL:
                     addContactMenu.setVisible(true);
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(true);
+                    switchGroupsMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
                     break;
                 case TabState.GROUPS:
-                    // Do not display the "new group" button if no accounts are available
-                    if (areGroupWritableAccountsAvailable()) {
-                        addGroupMenu.setVisible(true);
-                    } else {
-                        addGroupMenu.setVisible(false);
-                    }
                     addContactMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
+                    switchGroupsMenu.setVisible(true);
+                    // Do not display the "new group" button if no accounts are available
+                    updateGroupsMenu();
                     break;
             }
             HelpUtils.prepareHelpMenuItem(this, helpMenu, R.string.help_url_people_main);
@@ -1562,7 +1592,12 @@ public class PeopleActivity extends ContactsActivity
                 return true;
             }
             case R.id.menu_add_group: {
-                createNewGroup();
+                if (isLocalGroupsShown) {
+                    showAddLocalGroupDialog();
+                } else {
+                    createNewGroupWithAccountDisambiguation();
+                }
+                return true;
             }
             // QRD enhancement: multi contact delete
             case R.id.menu_delete: {
@@ -1599,6 +1634,12 @@ public class PeopleActivity extends ContactsActivity
                 startActivity(intent);
                 return true;
             }
+            case R.id.menu_switch_group: {
+                isLocalGroupsShown = !isLocalGroupsShown;
+                updateGroupsMenu();
+                mGroupsFragment.updateGroupData();
+                return true;
+            }
         }
         return false;
     }
@@ -1607,6 +1648,58 @@ public class PeopleActivity extends ContactsActivity
         final Intent intent = new Intent(this, GroupEditorActivity.class);
         intent.setAction(Intent.ACTION_INSERT);
         startActivityForResult(intent, SUBACTIVITY_NEW_GROUP);
+    }
+
+    private void updateGroupsMenu() {
+        if (areGroupWritableAccountsAvailable() || isLocalGroupsShown) {
+            addGroupMenu.setVisible(true);
+        } else {
+            addGroupMenu.setVisible(false);
+        }
+        switchGroupsMenu
+            .setTitle(isLocalGroupsShown ? R.string.title_switch_group_remote
+                : R.string.title_switch_group_local);
+        switchGroupsMenu
+            .setIcon(isLocalGroupsShown ? R.drawable.ic_remote_group_holo_dark
+                : R.drawable.ic_location_group_holo_dark);
+    }
+
+
+    private void createNewGroupWithAccountDisambiguation() {
+        final List<AccountWithDataSet> accounts =
+            AccountTypeManager.getInstance(this).getAccounts(true,
+                AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_LOCAL);
+        if (accounts.size() <= 1 || mAddGroupImageView == null) {
+            // No account to choose or no control to anchor the popup-menu to
+            // ==> just go straight to the editor which will disambig if necessary
+            final Intent intent = new Intent(this, GroupEditorActivity.class);
+            intent.setAction(Intent.ACTION_INSERT);
+            startActivityForResult(intent, SUBACTIVITY_NEW_GROUP);
+            return;
+        }
+
+        final ListPopupWindow popup = new ListPopupWindow(this, null);
+        popup.setWidth(getResources().getDimensionPixelSize(R.dimen.account_selector_popup_width));
+        popup.setAnchorView(mAddGroupImageView);
+        // Create a list adapter with all writeable accounts (assume that the writeable accounts all
+        // allow group creation).
+        final AccountsListAdapter adapter = new AccountsListAdapter(this,
+            AccountListFilter.ACCOUNTS_GROUP_WRITABLE);
+        popup.setAdapter(adapter);
+        popup.setOnItemClickListener(new OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                popup.dismiss();
+                AccountWithDataSet account = adapter.getItem(position);
+                final Intent intent = new Intent(PeopleActivity.this, GroupEditorActivity.class);
+                intent.setAction(Intent.ACTION_INSERT);
+                intent.putExtra(Intents.Insert.ACCOUNT, account);
+                intent.putExtra(Intents.Insert.DATA_SET, account.dataSet);
+                startActivityForResult(intent, SUBACTIVITY_NEW_GROUP);
+            }
+        });
+        popup.setModal(true);
+        popup.show();
     }
 
     @Override

@@ -34,14 +34,17 @@ import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
+import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.Im;
+import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Directory;
 import android.provider.ContactsContract.DisplayNameSources;
 import android.provider.ContactsContract.StatusUpdates;
+import android.provider.LocalGroups.Group;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -103,6 +106,7 @@ import com.android.contacts.model.dataitem.SipAddressDataItem;
 import com.android.contacts.model.dataitem.StructuredNameDataItem;
 import com.android.contacts.model.dataitem.StructuredPostalDataItem;
 import com.android.contacts.model.dataitem.WebsiteDataItem;
+import com.android.contacts.model.dataitem.LocalGroupDataItem;
 import com.android.contacts.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.util.ClipboardUtils;
 import com.android.contacts.util.Constants;
@@ -208,6 +212,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     private ArrayList<DetailViewEntry> mWebsiteEntries = new ArrayList<DetailViewEntry>();
     private ArrayList<DetailViewEntry> mSipEntries = new ArrayList<DetailViewEntry>();
     private ArrayList<DetailViewEntry> mEventEntries = new ArrayList<DetailViewEntry>();
+    private ArrayList<DetailViewEntry> mLocalGroupEntries = new ArrayList<DetailViewEntry>();
     private final Map<AccountType, List<DetailViewEntry>> mOtherEntriesMap =
             new HashMap<AccountType, List<DetailViewEntry>>();
     private ArrayList<ViewEntry> mAllEntries = new ArrayList<ViewEntry>();
@@ -279,6 +284,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     @Override
     public void onResume() {
         super.onResume();
+        if (mContactData != null) {
+            bindData();
+        }
     }
 
     @Override
@@ -705,6 +713,14 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     entry.intent.putExtra(SearchManager.QUERY, entry.data);
                     entry.intent.setType(Contacts.CONTENT_TYPE);
                     mRelationEntries.add(entry);
+                } else if (dataItem instanceof LocalGroupDataItem && hasData) {
+                    Uri data = ContentUris.withAppendedId(LocalGroup.CONTENT_URI,
+                        +Long.parseLong(entry.data));
+                    Intent intent = new Intent(Intent.ACTION_EDIT, data);
+                    intent.putExtra("data", data);
+                    intent.setType("vnd.android.cursor.item/local-groups");
+                    entry.intent = intent;
+                    mLocalGroupEntries.add(entry);
                 } else {
                     // Handle showing custom rows
                     entry.intent = new Intent(Intent.ACTION_VIEW);
@@ -773,6 +789,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         flattenList(mGroupEntries);
         flattenList(mRelationEntries);
         flattenList(mNoteEntries);
+        flattenList(mLocalGroupEntries);
     }
 
     /**
@@ -1677,7 +1694,12 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 views.type.setVisibility(View.GONE);
             }
 
-            views.data.setText(entry.data);
+            if (LocalGroup.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
+                views.data.setText(Group.restoreGroupById(view.getContext().getContentResolver(),
+                    Long.parseLong(entry.data)).getTitle());
+            } else {
+                views.data.setText(entry.data);
+            }
             setMaxLines(views.data, entry.maxLines);
 
             // Set the default contact method
@@ -1863,7 +1885,13 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         AdapterView.AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
         DetailViewEntry selectedEntry = (DetailViewEntry) mAllEntries.get(info.position);
 
-        menu.setHeaderTitle(selectedEntry.data);
+        // get the title instead of group id
+        if (LocalGroup.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
+            menu.setHeaderTitle(Group.restoreGroupById(this.getActivity().getContentResolver(),
+                Long.parseLong(selectedEntry.data)).getTitle());
+        } else {
+            menu.setHeaderTitle(selectedEntry.data);
+        }
         menu.add(ContextMenu.NONE, ContextMenuIds.COPY_TEXT,
                 ContextMenu.NONE, getString(R.string.copy_text));
 
@@ -1953,6 +1981,12 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
         // Checking for empty string
         if (TextUtils.isEmpty(textToCopy)) return;
+
+        // get the title instead of group id
+        if (LocalGroup.CONTENT_ITEM_TYPE.equals(detailViewEntry.mimetype)) {
+            textToCopy = Group.restoreGroupById(this.getActivity().getContentResolver(),
+                Long.parseLong((String) textToCopy)).getTitle();
+        }
 
         ClipboardUtils.copyText(getActivity(), detailViewEntry.typeString, textToCopy, true);
     }

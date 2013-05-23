@@ -251,6 +251,8 @@
         wide screen devices). -->
     <dimen name="contact_picker_contact_list_min_height">550dip</dimen>
 
+    <dimen name="contact_shortcut_frame_width">50dip</dimen>
+    <dimen name="contact_shortcut_frame_height">56dip</dimen>
     <!-- Min with of fake menu buttons, which should be same as ActionBar's one -->
     <dimen name="fake_menu_button_min_width">56dip</dimen>
 </resources>
