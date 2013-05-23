@@ -38,6 +38,7 @@ import com.android.contacts.list.PhoneFavoriteFragment;
 import com.android.contacts.list.PhoneNumberPickerFragment;
 import com.android.contacts.util.AccountFilterUtil;
 import com.android.contacts.util.Constants;
+import com.android.contacts.vcard.ExportVCardActivity;
 import com.android.internal.telephony.ITelephony;
 
 import android.app.ActionBar;
@@ -161,6 +162,8 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
     private static final int SHOW_CLING_DURATION = 550;
     public static final int DISMISS_CLING_DURATION = 250;
     public static boolean dialpadClingShowed = false;
+    
+    public static final int CODE_EXPORT_CONTACTS = 100;
     
     private ArrayList<String[]> mContactList;    // QRD enhancement: contacts list for multi contact pick
     private ExportToSimThread mExportThread = null;
@@ -1678,6 +1681,30 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
                     }
                 }
                 break;
+            case CODE_EXPORT_CONTACTS:
+                if (resultCode == RESULT_OK) {
+                    Bundle result = data.getExtras().getBundle("result");
+                    
+                    Set<String> keySet = result.keySet();
+                    Iterator<String> it = keySet.iterator();
+                    String selExport = "";
+                    while (it.hasNext() ) {
+                        String id = it.next();
+
+                        if(selExport.equals("")) {
+                            selExport += id;
+                        }
+                        else {
+                            selExport = selExport + "," + id;
+                        }
+                    }    
+                    selExport = "_id IN (" + selExport + ")";
+                    Intent exportIntent = new Intent(this, ExportVCardActivity.class);
+                    exportIntent.putExtra("SelExport", selExport);
+                    this.startActivity(exportIntent);
+                       
+                }    
+                break;    
         }
     }
 }
