@@ -121,6 +121,9 @@ import com.android.contacts.ContactsLib;
 import com.android.contacts.SpeedDialUtils;
 import com.android.contacts.SpeedDialListActivity;
 
+import java.io.File;
+import android.os.StatFs;
+
 /**
  * Fragment that displays a twelve-key phone dialpad.
  */
@@ -2072,6 +2075,10 @@ public class DialpadFragment extends ListFragment
      * exists yet.
      */
     private void queryLastOutgoingCall() {
+        if(checkdataFull())
+            {
+              return;
+            }
         mLastNumberDialed = EMPTY_NUMBER;
         CallLogAsync.GetLastOutgoingCallArgs lastCallArgs =
                 new CallLogAsync.GetLastOutgoingCallArgs(
@@ -2283,7 +2290,7 @@ public class DialpadFragment extends ListFragment
 
     private void setQueryFilter(){
         listScrollTop();
-        if(mAdapter != null) {
+        if( !checkdataFull() && mAdapter != null) {
             String filterString = getTextFilter();
             if (TextUtils.isEmpty(filterString)){
                 mAdapter.changeCursor(null);
@@ -2292,6 +2299,19 @@ public class DialpadFragment extends ListFragment
                 filter.filter(getTextFilter());
             }
         }
+    }
+    public static boolean checkdataFull(){
+            
+        File path = new File("/data/");
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        long available = availableBlocks*blockSize;
+        if (available < 10*1024*1024)
+        {
+            return true;
+        }
+        return false;
     }
 
     private void hideDialPadShowList(boolean isHide) {
@@ -2415,7 +2435,7 @@ public class DialpadFragment extends ListFragment
     }
 
     private Cursor doFilter(String filter) {
-        if(getActivity() != null) {
+        if(!checkdataFull() && getActivity() != null) {
             final ContentResolver resolver = getActivity().getContentResolver();
             Builder builder = CONTENT_SMART_DIALER_FILTER_URI.buildUpon();
             builder.appendQueryParameter("filter", filter);
