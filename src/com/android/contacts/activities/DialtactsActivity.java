@@ -29,7 +29,7 @@ import com.android.contacts.dialpad.DialpadFragment;
 import com.android.contacts.editor.SelectAccountDialogFragment;
 import com.android.contacts.interactions.ImportExportDialogFragment;
 import com.android.contacts.interactions.PhoneNumberInteraction;
-//import com.android.contacts.interactions.ImportExportDialogFragment.ExportToSimThread;
+import com.android.contacts.interactions.ImportExportDialogFragment.ExportToSimThread;
 import com.android.contacts.list.ContactListFilterController;
 import com.android.contacts.list.ContactListFilterController.ContactListFilterListener;
 import com.android.contacts.list.ContactListItemView;
@@ -162,6 +162,33 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
     private static final int SHOW_CLING_DURATION = 550;
     public static final int DISMISS_CLING_DURATION = 250;
     public static boolean dialpadClingShowed = false;
+    
+    public static final int CODE_EXPORT_CONTACTS = 100;
+    
+    private ArrayList<String[]> mContactList;    // QRD enhancement: contacts list for multi contact pick
+    private ExportToSimThread mExportThread = null;
+    public static final String INTENT_EXPORT_COMPLETE = "com.android.sim.INTENT_EXPORT_COMPLETE";
+    private final BroadcastReceiver mExportToSimCompleteListener = new BroadcastReceiver (){
+        public void onReceive(Context context, Intent intent){
+            String action = intent.getAction();
+
+            if (action.equals(INTENT_EXPORT_COMPLETE)){
+                ImportExportDialogFragment.destroyExportToSimThread();
+                mExportThread = null;
+            }
+        }
+    };
+    //Configure Change
+    private BroadcastReceiver mConfigureChangeReceiver = new BroadcastReceiver(){
+        public void onReceive(Context context, Intent intent){
+            if("Intent.ACTION_LOCALE_CHANGED".equals(intent.getAction())){
+                Log.e(TAG,"locale changed");
+                if (mExportThread != null){
+                    mExportThread.hideExportProgressDialog();
+                }
+            }
+        }
+    };
 
     public class ViewPagerAdapter extends FragmentPagerAdapter {
         public ViewPagerAdapter(FragmentManager fm) {
@@ -594,6 +621,10 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
                 && icicle == null) {
             setupFilterText(intent);
         }
+        final IntentFilter exportCompleteFilter = new IntentFilter(INTENT_EXPORT_COMPLETE);
+        registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
+        IntentFilter configFilter = new IntentFilter("Intent.ACTION_LOCALE_CHANGED");
+        registerReceiver(mConfigureChangeReceiver, configFilter);
     }
 
     @Override
@@ -627,6 +658,8 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
     public void onDestroy() {
         super.onDestroy();
         mContactListFilterController.removeListener(mContactListFilterListener);
+        unregisterReceiver(mConfigureChangeReceiver);
+        unregisterReceiver(mExportToSimCompleteListener);
     }
 
     @Override
@@ -1621,7 +1654,7 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
             }
             break;
 
-            case 100:
+            case CODE_EXPORT_CONTACTS:
                 if (resultCode == RESULT_OK) {
                     Bundle result = data.getExtras().getBundle("result");
                     
@@ -1645,6 +1678,34 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
                        
                 }    
                 break;
+            case ImportExportDialogFragment.SUBACTIVITY_MULTI_PICK_CONTACT:
+                if (resultCode == RESULT_OK) {
+                    mContactList = new ArrayList<String[]>();
+                    Bundle b = data.getExtras();
+                    Bundle choiceSet = b.getBundle("result");
+                    Set<String> set = choiceSet.keySet();
+                    Iterator<String> i = set.iterator();
+                    while (i.hasNext()) {
+                        String contactInfo[] = choiceSet.getStringArray(i.next());
+                        mContactList.add(contactInfo);
+                    }
+                    Log.d(TAG, "return " + mContactList.size() + " contacts");
+                    if (!mContactList.isEmpty()) {
+                        if (!ImportExportDialogFragment.isExportingToSIM()){
+                            ImportExportDialogFragment.destroyExportToSimThread();
+                            mExportThread =
+                                new ImportExportDialogFragment().createExportToSimThread(
+                                ImportExportDialogFragment.ExportToSimThread.TYPE_SELECT,ImportExportDialogFragment.mExportSub,mContactList,DialtactsActivity.this);
+                           mExportThread.start();
+                        }
+                        else{
+                            Log.d(TAG, "ImportExportDialogFragment.SUBACTIVITY_MULTI_PICK_CONTACT ----again");
+                        }
+                    } else {
+                        //Toast.makeText(this, R.string.no_contact_selected, Toast.LENGTH_SHORT).show();
+                    }
+                }
+                break;    
         }
     }
 }
