@@ -520,6 +520,10 @@ public class ImportExportDialogFragment extends DialogFragment
             if (which >= 0) {
                 mExportSub = which;
             } else if (which == DialogInterface.BUTTON_POSITIVE) {
+                if(ContactsUtils.getUimLoaderStatus(mExportSub) != 1) {
+                    Toast.makeText(mactiv, R.string.sim_loading, Toast.LENGTH_SHORT).show();
+                    return ;
+                }
                 Intent pickPhoneIntent = new Intent(ACTION_MULTI_PICK, Contacts.CONTENT_URI);
                 // do not show the contacts in SIM card
                 pickPhoneIntent.putExtra(MultiPickContactActivity.EXT_NOT_SHOW_SIM_FLAG, true);
@@ -1266,6 +1270,10 @@ public class ImportExportDialogFragment extends DialogFragment
             displayImportExportDialog(Id, null).show();
         } else {
             mExportSub = getEnabledIccCard();
+            if(ContactsUtils.getUimLoaderStatus(mExportSub) != 1) {
+                Toast.makeText(mactiv, R.string.sim_loading, Toast.LENGTH_SHORT).show();
+                return ;
+            }
             Intent pickPhoneIntent = new Intent(ACTION_MULTI_PICK, Contacts.CONTENT_URI);
             // do not show the contacts in SIM card
             pickPhoneIntent.putExtra(MultiPickContactActivity.EXT_NOT_SHOW_SIM_FLAG, true);
