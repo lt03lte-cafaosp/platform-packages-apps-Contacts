@@ -178,7 +178,7 @@ public class MemoryStatusActivity extends ContactsActivity {
                 continue;
             }
             Drawable icon = accountType != null ? accountType.getDisplayIcon(context) : null;
-            int total = 0;
+            int total = -1;
             int count = 0;
             if (!TextUtils.isEmpty(account.type))
             {
