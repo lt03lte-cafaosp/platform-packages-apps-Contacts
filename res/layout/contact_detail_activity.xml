@@ -39,9 +39,10 @@
                 android:textSize="18sp"
                 android:textColor="#FFFFFF"
                 android:maxWidth="128dip"
-                android:maxLines="1"
-                android:ellipsize="end"
                 android:singleLine="true"
+                android:fadingEdge="horizontal"
+                android:fadingEdgeLength="3dip"
+                android:ellipsize="marquee"
                 android:layout_toRightOf="@id/back"
                 android:layout_centerVertical="true" />
             <ImageView
