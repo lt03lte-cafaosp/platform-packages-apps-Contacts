@@ -366,18 +366,18 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             {
                 copyToPhoneMenu.setVisible(true);
                 copyToPhoneMenu.setTitle("" + getString(R.string.menu_copyTo) 
-                            + getString(R.string.phoneLabelsGroup) + "<" + SimContactsConstants.PHONE_NAME+ ">");
+                            + getString(R.string.phoneLabelsGroup));
                 if(MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
                     if(SimContactsConstants.SIM_NAME_1.equals(accoutName) && hasEnabledIccCard(1))
                     {
                       copyToSim2Menu.setTitle("" + getString(R.string.menu_copyTo) 
-                            + getString(R.string.account_sim)+ "<" + SimContactsConstants.SIM_NAME_2+ ">");
+                            + getString(R.string.str_slot2));
                       copyToSim2Menu.setVisible(true);
                     }
                     if(SimContactsConstants.SIM_NAME_2.equals(accoutName) && hasEnabledIccCard(0))
                     {
                       copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo) 
-                            + getString(R.string.account_sim) + "<" + SimContactsConstants.SIM_NAME_1 + ">");
+                            + getString(R.string.str_slot1));
                       copyToSim1Menu.setVisible(true);
                     }
                 }
@@ -394,13 +394,13 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                     if(hasEnabledIccCard(0))
                     {
                         copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo) 
-                                + getString(R.string.account_sim) + "<" + SimContactsConstants.SIM_NAME_1 + ">");
+                                + getString(R.string.str_slot1));
                         copyToSim1Menu.setVisible(true);
                     }
                     if(hasEnabledIccCard(1))
                     {
                         copyToSim2Menu.setTitle("" + getString(R.string.menu_copyTo) 
-                                + getString(R.string.account_sim) + "<" + SimContactsConstants.SIM_NAME_2 + ">");
+                                + getString(R.string.str_slot2));
                         copyToSim2Menu.setVisible(true);
                     }
                 }
@@ -408,7 +408,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                     if(TelephonyManager.getDefault().hasIccCard() &&
                         TelephonyManager.getDefault().getSimState() == TelephonyManager.SIM_STATE_READY) {
                         copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo) 
-                                + getString(R.string.account_sim) + "<" + SimContactsConstants.SIM_NAME+ ">");
+                                + getString(R.string.str_slot));
                         copyToSim1Menu.setVisible(true);
                     }
                 }
