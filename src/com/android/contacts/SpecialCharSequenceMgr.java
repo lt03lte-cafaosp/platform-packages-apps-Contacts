@@ -322,7 +322,7 @@ public class SpecialCharSequenceMgr {
                     .getString(PhoneConstants.PHONE_TYPE_CDMA == phoneType ? R.string.meid
                             : R.string.imei)
                     + " ");
-            deviceIds.append(MSimTelephonyManager.getDefault().getSubscriberId(i));
+            deviceIds.append(MSimTelephonyManager.getDefault().getDeviceId(i));
         }
         AlertDialog alert = new AlertDialog.Builder(context)
                 .setTitle(titleId)
