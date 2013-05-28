@@ -36,16 +36,19 @@ import android.app.ProgressDialog;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.AsyncQueryHandler;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.ContentProviderOperation;
 import android.content.DialogInterface;
+import android.content.IntentFilter;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.net.Uri.Builder;
@@ -261,15 +264,15 @@ public class MultiPickContactActivity extends ListActivity implements
         "name",
         "number",
         "emails",
-        "anrs",
+        //"anrs",
         "_id"
     };
 
     public static final int SIM_COLUMN_DISPLAY_NAME = 0;
     public static final int SIM_COLUMN_NUMBER = 1;
     public static final int SIM_COLUMN_EMAILS = 2;
-    public static final int SIM_COLUMN_ANRS = 3;
-    public static final int SIM_COLUMN_ID = 4;
+    //  public static final int SIM_COLUMN_ANRS = 3;
+    public static final int SIM_COLUMN_ID = 3;
 
     /**
      * control of whether show the contacts in SIM card, if intent has this
@@ -277,6 +280,21 @@ public class MultiPickContactActivity extends ListActivity implements
      */
     public static final String EXT_NOT_SHOW_SIM_FLAG = "not_sim_show";
 
+    //registerReceiver to update content when airplane mode change.
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            if (intent.getAction().equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
+                updateContent();
+
+                // If now is airplane mode, should cancel import sim contacts
+                if (isPickSim() && isAirplaneModeOn()) {
+                    cancelSimContactsImporting();
+                }
+            }
+        }
+    };
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -308,6 +326,10 @@ public class MultiPickContactActivity extends ListActivity implements
         if (!initSearchText()) {
             startQuery();
         }
+        //register receiver.
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        registerReceiver(mBroadcastReceiver, filter);
     }
 
     @Override
@@ -368,7 +390,8 @@ public class MultiPickContactActivity extends ListActivity implements
             } else if (isPickEmail()) {
                 value = new String[] { cache.name, cache.email };
             } else if (isPickSim()) {
-                value = new String[] {cache.name, cache.number, cache.email, cache.anrs};
+            //    value = new String[] {cache.name, cache.number, cache.email, cache.anrs};
+                value = new String[] {cache.name, cache.number, cache.email};
             }
             mChoiceSet.putStringArray(String.valueOf(id), value);
             if (!isSearchMode()) {
@@ -711,6 +734,11 @@ public class MultiPickContactActivity extends ListActivity implements
             mProgressDialog.cancel();
         }
 
+        //unregister receiver.
+        if (mBroadcastReceiver != null) {
+            unregisterReceiver(mBroadcastReceiver);
+        }
+
         super.onDestroy();
     }
 
@@ -890,7 +918,8 @@ public class MultiPickContactActivity extends ListActivity implements
     public void startQuery() {
         Uri uri = getUriToQuery();
         ContactListFilter filter = (ContactListFilter) getIntent().getExtra(
-                          AccountFilterActivity.KEY_EXTRA_CONTACT_LIST_FILTER);
+                AccountFilterActivity.KEY_EXTRA_CONTACT_LIST_FILTER);
+
         if (filter != null) {
             if (filter.filterType == ContactListFilter.FILTER_TYPE_ACCOUNT) {
                 // We should exclude the invisiable contacts.
@@ -1020,8 +1049,9 @@ public class MultiPickContactActivity extends ListActivity implements
                 String name = cursor.getString(SIM_COLUMN_DISPLAY_NAME);
                 String number = cursor.getString(SIM_COLUMN_NUMBER);
                 String email = cursor.getString(SIM_COLUMN_EMAILS);
-                String anrs = cursor.getString(SIM_COLUMN_ANRS);
-                value = new String[] {name, number, email, anrs};
+                //String anrs = cursor.getString(SIM_COLUMN_ANRS);
+                //value = new String[] {name, number, email, anrs};
+                value = new String[] {name, number, email};
             }
             if (DEBUG) {
                 Log.d(TAG, "isSelected: " + isSelected + ", id: " + id);
@@ -1063,6 +1093,10 @@ public class MultiPickContactActivity extends ListActivity implements
             }
             final MultiPickContactActivity activity = mActivity.get();
             activity.mAdapter.changeCursor(cursor);
+            if (cursor == null || cursor.getCount() == 0) {
+                Toast.makeText(mContext, R.string.listFoundAllContactsZero, Toast.LENGTH_SHORT)
+                    .show();
+            }
         }
     }
 
@@ -1075,7 +1109,7 @@ public class MultiPickContactActivity extends ListActivity implements
         String label;
         String contact_id;
         String email;
-        String anrs;
+        //String anrs;
     }
 
     private final class ContactItemListAdapter extends CursorAdapter implements SectionIndexer {
@@ -1115,7 +1149,7 @@ public class MultiPickContactActivity extends ListActivity implements
                 cache.name = cursor.getString(SIM_COLUMN_DISPLAY_NAME);
                 cache.number = cursor.getString(SIM_COLUMN_NUMBER);
                 cache.email = cursor.getString(SIM_COLUMN_EMAILS);
-                cache.anrs = cursor.getString(SIM_COLUMN_ANRS);
+                //cache.anrs = cursor.getString(SIM_COLUMN_ANRS);
                 ((TextView) view.findViewById(R.id.pick_contact_name)).setText(cache.name);
                 ((TextView) view.findViewById(R.id.pick_contact_number)).setText(cache.number);
             } else if (isPickEmail()) {
@@ -1174,12 +1208,17 @@ public class MultiPickContactActivity extends ListActivity implements
         public void changeCursor(Cursor cursor) {
             super.changeCursor(cursor);
             if (!isSearchMode()) {
-                if (cursor != null && cursor.getCount() == mChoiceSet.size()) {
-                    mSelectAllCheckBox.setChecked(true);
+                if (cursor == null || cursor.getCount() == 0) {
+                    mSelectAllCheckBox.setChecked(false);
+                    mSelectAllLabel.setTextColor(Color.GRAY);
+                    mSelectAllCheckBox.setClickable(false);
+                } else if (cursor.getCount() > mChoiceSet.size()) {
+                    mSelectAllCheckBox.setChecked(false);
                 } else {
                     mSelectAllCheckBox.setChecked(false);
                 }
             }
+
             String[] sections = null;
             int[] counts = null;
             if (cursor != null
@@ -1375,23 +1414,23 @@ public class MultiPickContactActivity extends ListActivity implements
         final String name = values[0];
         final String phoneNumber = values[1];
         final String emailAddresses = values[2];
-        final String anrs = values[3];
+        //final String anrs = values[3];
         final String[] emailAddressArray;
-        final String[] anrArray;
+        final String[] anrArray = null;
         if (!TextUtils.isEmpty(emailAddresses)) {
             emailAddressArray = emailAddresses.split(",");
         } else {
             emailAddressArray = null;
         }
-        if (!TextUtils.isEmpty(anrs)) {
+        /*if (!TextUtils.isEmpty(anrs)) {
             anrArray = anrs.split(",");
         } else {
             anrArray = null;
-        }
+        }*/
         if (DEBUG) {
             log(" actuallyImportOneSimContact: name= " + name +
                 ", phoneNumber= " + phoneNumber +", emails= "+ emailAddresses
-                +", anrs= "+ anrs + ", account is " + account);
+               + ", account is " + account);
         }
         final ArrayList<ContentProviderOperation> operationList =
             new ArrayList<ContentProviderOperation>();
@@ -1458,5 +1497,14 @@ public class MultiPickContactActivity extends ListActivity implements
             // TODO Auto-generated catch block
         }
         return false;
+    }
+
+    /**
+     * After turn on airplane mode, cancel import sim contacts operation.
+     */
+    private void cancelSimContactsImporting() {
+        if (mProgressDialog != null && mProgressDialog.isShowing()) {
+            mProgressDialog.cancel();
+        }
     }
 }

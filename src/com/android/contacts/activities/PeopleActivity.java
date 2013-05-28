@@ -18,12 +18,17 @@ package com.android.contacts.activities;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -67,12 +72,14 @@ import com.android.contacts.detail.ContactDetailUpdatesFragment;
 import com.android.contacts.detail.ContactLoaderFragment;
 import com.android.contacts.detail.ContactLoaderFragment.ContactLoaderFragmentListener;
 import com.android.contacts.dialog.ClearFrequentsDialog;
+import com.android.contacts.editor.SelectAccountDialogFragment;
 import com.android.contacts.group.GroupBrowseListFragment;
 import com.android.contacts.group.GroupBrowseListFragment.OnGroupBrowserActionListener;
 import com.android.contacts.group.GroupDetailFragment;
 import com.android.contacts.group.local.AddLocalGroupDialog;
 import com.android.contacts.interactions.ContactDeletionInteraction;
 import com.android.contacts.interactions.ImportExportDialogFragment;
+import com.android.contacts.interactions.ImportExportDialogFragment.ExportToSimThread;
 import com.android.contacts.interactions.PhoneNumberInteraction;
 import com.android.contacts.list.AccountFilterActivity;
 import com.android.contacts.list.ContactBrowseListFragment;
@@ -93,9 +100,11 @@ import com.android.contacts.list.ProviderStatusWatcher;
 import com.android.contacts.list.ProviderStatusWatcher.ProviderStatusListener;
 import com.android.contacts.model.AccountTypeManager;
 import com.android.contacts.model.Contact;
+import com.android.contacts.model.account.AccountType;
 import com.android.contacts.model.account.AccountWithDataSet;
 import com.android.contacts.preference.ContactsPreferenceActivity;
 import com.android.contacts.preference.DisplayOptionsPreferenceFragment;
+import com.android.contacts.SimContactsConstants;
 import com.android.contacts.util.AccountFilterUtil;
 import com.android.contacts.util.AccountPromptUtils;
 import com.android.contacts.util.AccountsListAdapter;
@@ -192,6 +201,7 @@ public class PeopleActivity extends ContactsActivity
     private boolean mEnableDebugMenuOptions;
 
     private final Handler mHandler = new Handler();
+    private ExportToSimThread mExportThread = null;
 
     /**
      * True if this activity instance is a re-created one.  i.e. set true after orientation change.
@@ -215,9 +225,25 @@ public class PeopleActivity extends ContactsActivity
      */
     private boolean mCurrentFilterIsValid;
 
+    private boolean isImportExportDialogDismissed = false;
+
     /** Sequential ID assigned to each instance; used for logging */
     private final int mInstanceId;
     private static final AtomicInteger sNextInstanceId = new AtomicInteger();
+
+    //TODO: we need to refactor the export code in future release.
+    // QRD enhancement: contacts list for multi contact pick
+    private ArrayList<String[]> mContactList;
+    private final BroadcastReceiver mExportToSimCompleteListener = new BroadcastReceiver (){
+        public void onReceive(Context context, Intent intent){
+            String action = intent.getAction();
+
+            if (action.equals(SimContactsConstants.INTENT_EXPORT_COMPLETE)){
+                ImportExportDialogFragment.destroyExportToSimThread();
+                mExportThread = null;
+            }
+        }
+    };
 
     public PeopleActivity() {
         mInstanceId = sNextInstanceId.getAndIncrement();
@@ -291,6 +317,9 @@ public class PeopleActivity extends ContactsActivity
         if (Log.isLoggable(Constants.PERFORMANCE_TAG, Log.DEBUG)) {
             Log.d(Constants.PERFORMANCE_TAG, "PeopleActivity.onCreate finish");
         }
+        final IntentFilter exportCompleteFilter = new IntentFilter(SimContactsConstants
+            .INTENT_EXPORT_COMPLETE);
+        registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
     }
 
     @Override
@@ -507,11 +536,19 @@ public class PeopleActivity extends ContactsActivity
         mOptionsMenuContactsAvailable = false;
         mProviderStatusWatcher.stop();
         super.onPause();
+
+        dismissDialog(ImportExportDialogFragment.TAG);
+        dismissDialog(SelectAccountDialogFragment.TAG);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        if (isImportExportDialogDismissed && !ImportExportDialogFragment.isMenuItemClicked()) {
+            ImportExportDialogFragment.show(getFragmentManager(), areContactsAvailable());
+            isImportExportDialogDismissed = false;
+        }
 
         mProviderStatusWatcher.start();
         updateViewConfiguration(true);
@@ -546,6 +583,7 @@ public class PeopleActivity extends ContactsActivity
             mContactListFilterController.removeListener(this);
         }
 
+        unregisterReceiver(mExportToSimCompleteListener);
         super.onDestroy();
     }
     private void showAddLocalGroupDialog() {
@@ -558,6 +596,22 @@ public class PeopleActivity extends ContactsActivity
                 mGroupsFragment.updateGroupData();
             };
         }).show();
+    }
+
+    private void dismissDialog(String tag) {
+
+        // when this activity lose focus,dismiss the dialog
+        Fragment dialogFragment = getFragmentManager().findFragmentByTag(tag);
+        if (dialogFragment != null) {
+            if(dialogFragment instanceof DialogFragment) {
+                ((DialogFragment)dialogFragment).dismiss();
+                if (ImportExportDialogFragment.TAG.equals(tag)) {
+                    isImportExportDialogDismissed = true;
+                }
+            }
+        } else if (ImportExportDialogFragment.TAG.equals(tag)) {
+            isImportExportDialogDismissed = false;
+        }
     }
 
     private void configureFragments(boolean fromRequest) {
@@ -1612,7 +1666,12 @@ public class PeopleActivity extends ContactsActivity
                 return true;
             }
             case R.id.menu_import_export: {
-                ImportExportDialogFragment.show(getFragmentManager(), areContactsAvailable());
+                if (!ImportExportDialogFragment.isExportingToSIM()) {
+                    ImportExportDialogFragment.show(getFragmentManager(), areContactsAvailable());
+                } else {
+                    new ImportExportDialogFragment().showExportToSIMProgressDialog(
+                        PeopleActivity.this);
+                }
                 return true;
             }
             case R.id.menu_clear_frequents: {
@@ -1744,10 +1803,41 @@ public class PeopleActivity extends ContactsActivity
 
             // TODO: Using the new startActivityWithResultFromFragment API this should not be needed
             // anymore
-            case ContactEntryListFragment.ACTIVITY_REQUEST_CODE_PICKER:
+            case ContactEntryListFragment.ACTIVITY_REQUEST_CODE_PICKER: {
                 if (resultCode == RESULT_OK) {
                     mAllFragment.onPickerResult(data);
                 }
+                break;
+            }
+            case ImportExportDialogFragment.SUBACTIVITY_MULTI_PICK_CONTACT:
+                if (resultCode == RESULT_OK) {
+                    mContactList = new ArrayList<String[]>();
+                    Bundle b = data.getExtras();
+                    Bundle choiceSet = b.getBundle("result");
+                    Set<String> set = choiceSet.keySet();
+                    Iterator<String> i = set.iterator();
+                    while (i.hasNext()) {
+                        String contactInfo[] = choiceSet.getStringArray(i.next());
+                        mContactList.add(contactInfo);
+                    }
+                    Log.d(TAG, "return " + mContactList.size() + " contacts");
+                    if (!mContactList.isEmpty()) {
+                        if (!ImportExportDialogFragment.isExportingToSIM()) {
+                            ImportExportDialogFragment.destroyExportToSimThread();
+                            mExportThread =
+                                new ImportExportDialogFragment().createExportToSimThread(
+                                ImportExportDialogFragment.ExportToSimThread.TYPE_SELECT,
+                                ImportExportDialogFragment.mExportSub,mContactList,
+                                PeopleActivity.this);
+                            mExportThread.start();
+                        }
+                        else {
+                            Log.d(TAG, "ImportExportDialogFragment.SUBACTIVITY_MULTI_PICK_CONTACT");
+                        }
+                    } else {
+                    }
+                }
+                break;
 
 // TODO fix or remove multipicker code
 //                else if (resultCode == RESULT_CANCELED && mMode == MODE_PICK_MULTIPLE_PHONES) {

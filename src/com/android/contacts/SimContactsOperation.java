@@ -94,8 +94,10 @@ public class SimContactsOperation {
         Uri uri = getContentUri(subscription);
         String number = values.getAsString(SimContactsConstants.STR_NUMBER);
         String anrs = values.getAsString(SimContactsConstants.STR_ANRS);
+        String emails = values.getAsString(SimContactsConstants.STR_EMAILS);
         values.put(SimContactsConstants.STR_NUMBER,PhoneNumberUtils.stripSeparators(number));
         values.put(SimContactsConstants.STR_ANRS,PhoneNumberUtils.stripSeparators(anrs));
+        values.put(SimContactsConstants.STR_EMAILS,emails);
 
         Uri resultUri;
         resultUri = mResolver.insert(uri,values);
