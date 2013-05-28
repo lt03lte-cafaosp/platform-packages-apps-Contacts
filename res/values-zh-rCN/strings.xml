@@ -580,7 +580,7 @@
     <string name="description_send_message" msgid="6046623392322890962">"向<xliff:g id="NAME">%1$s</xliff:g>发送短信"</string>
     <string name="description_dial_phone_number" msgid="8831647331642648637">"拨打<xliff:g id="NAME">%1$s</xliff:g>的电话"</string>
     <string name="description_quick_contact_for" msgid="6737516415168327789">"<xliff:g id="NAME">%1$s</xliff:g>的快速联系头像"</string>
-    <string name="call_log_empty_gecode" msgid="5588904744812100846">"-"</string>
+    <string name="call_log_empty_gecode" msgid="5588904744812100846">"未知归属地"</string>
     <string name="user_profile_contacts_list_header" msgid="5582421742835006940">"我"</string>
     <string name="local_profile_title" msgid="2021416826991393684">"我的本地个人资料"</string>
     <string name="external_profile_title" msgid="8034998767621359438">"我的<xliff:g id="EXTERNAL_SOURCE">%1$s</xliff:g>个人资料"</string>
