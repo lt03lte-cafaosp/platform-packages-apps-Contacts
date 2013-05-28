@@ -60,6 +60,7 @@ import android.widget.SearchView.OnQueryTextListener;
 import com.android.contacts.ContactsUtils;
 import com.android.contacts.R;
 import com.android.contacts.calllog.CallLogFragment;
+import com.android.contacts.calllog.MSimCallLogFragment;
 import com.android.contacts.dialpad.DialpadFragment;
 import com.android.contacts.interactions.PhoneNumberInteraction;
 import com.android.contacts.list.ContactListFilterController;
@@ -132,7 +133,11 @@ public class DialtactsActivity extends TransactionSafeActivity
                 case TAB_INDEX_DIALER:
                     return new DialpadFragment();
                 case TAB_INDEX_CALL_LOG:
-                    return new CallLogFragment();
+                    if (MSimTelephonyManager.getDefault().getPhoneCount() > 1) {
+                        return new MSimCallLogFragment();
+                    } else {
+                        return new CallLogFragment();
+                    }
                 case TAB_INDEX_FAVORITES:
                     return new PhoneFavoriteFragment();
             }

@@ -45,6 +45,8 @@ public class PhoneCallDetailsHelperTest extends AndroidTestCase {
         new GregorianCalendar(2011, 5, 3, 13, 0, 0).getTimeInMillis();
     /** A test duration value for phone calls. */
     private static final long TEST_DURATION = 62300;
+    /** A test subscription value for phone calls. */
+    private static final int TEST_SUBSCRIPTION = 0;
     /** The number of the caller/callee in the log entry. */
     private static final String TEST_NUMBER = "14125555555";
     /** The formatted version of {@link #TEST_NUMBER}. */
@@ -69,7 +71,7 @@ public class PhoneCallDetailsHelperTest extends AndroidTestCase {
         Resources resources = context.getResources();
         CallTypeHelper callTypeHelper = new CallTypeHelper(resources);
         mPhoneNumberHelper = new TestPhoneNumberHelper(resources, TEST_VOICEMAIL_NUMBER);
-        mHelper = new PhoneCallDetailsHelper(resources, callTypeHelper, mPhoneNumberHelper);
+        mHelper = new PhoneCallDetailsHelper(context, callTypeHelper, mPhoneNumberHelper);
         mHelper.setCurrentTimeForTest(
                 new GregorianCalendar(2011, 5, 4, 13, 0, 0).getTimeInMillis());
         mViews = PhoneCallDetailsViews.createForTest(context);
@@ -293,7 +295,8 @@ public class PhoneCallDetailsHelperTest extends AndroidTestCase {
             String geocodedLocation) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(number, formattedNumber, TEST_COUNTRY_ISO, geocodedLocation,
-                        new int[]{ Calls.VOICEMAIL_TYPE }, TEST_DATE, TEST_DURATION),
+                        new int[]{ Calls.VOICEMAIL_TYPE }, TEST_DATE, TEST_DURATION,
+                        TEST_SUBSCRIPTION),
                 true);
     }
 
@@ -301,7 +304,8 @@ public class PhoneCallDetailsHelperTest extends AndroidTestCase {
     private void setPhoneCallDetailsWithDate(long date) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, date, TEST_DURATION),
+                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, date, TEST_DURATION,
+                        TEST_SUBSCRIPTION),
                 false);
     }
 
@@ -309,20 +313,21 @@ public class PhoneCallDetailsHelperTest extends AndroidTestCase {
     private void setPhoneCallDetailsWithCallTypeIcons(int... callTypes) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, callTypes, TEST_DATE, TEST_DURATION),
+                        TEST_GEOCODE, callTypes, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION),
                 false);
     }
 
     private void setCallDetailsHeaderWithNumberOnly(String number) {
         mHelper.setCallDetailsHeader(mNameView,
                 new PhoneCallDetails(number, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, TEST_DATE, TEST_DURATION));
+                        TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, TEST_DATE, TEST_DURATION,
+                        TEST_SUBSCRIPTION));
     }
 
     private void setCallDetailsHeader(String name) {
         mHelper.setCallDetailsHeader(mNameView,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
                         TEST_GEOCODE, new int[]{ Calls.INCOMING_TYPE }, TEST_DATE, TEST_DURATION,
-                        name, 0, "", null, null));
+                        name, 0, "", null, null, TEST_SUBSCRIPTION));
     }
 }

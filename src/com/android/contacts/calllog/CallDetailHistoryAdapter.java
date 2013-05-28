@@ -18,13 +18,16 @@ package com.android.contacts.calllog;
 
 import android.content.Context;
 import android.provider.CallLog.Calls;
+import android.telephony.MSimTelephonyManager;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.android.contacts.ContactsUtils;
 import com.android.contacts.PhoneCallDetails;
 import com.android.contacts.R;
 
@@ -137,6 +140,7 @@ public class CallDetailHistoryAdapter extends BaseAdapter {
         CallTypeIconsView callTypeIconView =
                 (CallTypeIconsView) result.findViewById(R.id.call_type_icon);
         TextView callTypeTextView = (TextView) result.findViewById(R.id.call_type_text);
+        ImageView subIconView = (ImageView) result.findViewById(R.id.sub_icon);
         TextView dateView = (TextView) result.findViewById(R.id.date);
         TextView durationView = (TextView) result.findViewById(R.id.duration);
 
@@ -144,6 +148,15 @@ public class CallDetailHistoryAdapter extends BaseAdapter {
         callTypeIconView.clear();
         callTypeIconView.add(callType);
         callTypeTextView.setText(mCallTypeHelper.getCallTypeText(callType));
+        // Set the sub icon.
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            subIconView.setVisibility(View.VISIBLE);
+            subIconView.setImageDrawable(
+                    ContactsUtils.getMultiSimIcon(mContext, details.subscription));
+        } else {
+            // Not enable, set the view as gone.
+            subIconView.setVisibility(View.GONE);
+        }
         // Set the date.
         CharSequence dateValue = DateUtils.formatDateRange(mContext, details.date, details.date,
                 DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_SHOW_DATE |

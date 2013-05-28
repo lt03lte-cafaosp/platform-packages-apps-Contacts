@@ -38,6 +38,8 @@ public class CallLogListItemHelperTest extends AndroidTestCase {
     private static final long TEST_DATE = 1300000000;
     /** A test duration value for phone calls. */
     private static final long TEST_DURATION = 62300;
+    /** A test subscription value for phone calls. */
+    private static final int TEST_SUBSCRIPTION = 0;
     /** A test voicemail number. */
     private static final String TEST_VOICEMAIL_NUMBER = "123";
     /** The country ISO name used in the tests. */
@@ -60,7 +62,7 @@ public class CallLogListItemHelperTest extends AndroidTestCase {
         CallTypeHelper callTypeHelper = new CallTypeHelper(resources);
         mPhoneNumberHelper = new TestPhoneNumberHelper(resources, TEST_VOICEMAIL_NUMBER);
         PhoneCallDetailsHelper phoneCallDetailsHelper = new PhoneCallDetailsHelper(
-                resources, callTypeHelper, mPhoneNumberHelper);
+                context, callTypeHelper, mPhoneNumberHelper);
         mHelper = new CallLogListItemHelper(phoneCallDetailsHelper, mPhoneNumberHelper, resources);
         mViews = CallLogListItemViews.createForTest(context);
     }
@@ -129,7 +131,7 @@ public class CallLogListItemHelperTest extends AndroidTestCase {
             int callType) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(number, formattedNumber, TEST_COUNTRY_ISO, TEST_GEOCODE,
-                        new int[]{ callType }, TEST_DATE, TEST_DURATION),
+                        new int[]{ callType }, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION),
                 false);
     }
 
@@ -137,7 +139,7 @@ public class CallLogListItemHelperTest extends AndroidTestCase {
     private void setPhoneCallDetailsWithTypes(int... types) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION),
+                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION),
                 false);
     }
 
@@ -145,7 +147,7 @@ public class CallLogListItemHelperTest extends AndroidTestCase {
     private void setUnreadPhoneCallDetailsWithTypes(int... types) {
         mHelper.setPhoneCallDetails(mViews,
                 new PhoneCallDetails(TEST_NUMBER, TEST_FORMATTED_NUMBER, TEST_COUNTRY_ISO,
-                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION),
+                        TEST_GEOCODE, types, TEST_DATE, TEST_DURATION, TEST_SUBSCRIPTION),
                 true);
     }
 }

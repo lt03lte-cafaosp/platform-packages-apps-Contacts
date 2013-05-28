@@ -347,6 +347,16 @@
         <item name="android:textAllCaps">true</item>
     </style>
 
+    <style name="CallLogSpinnerStyle">
+        <item name="android:textAppearance">?android:attr/textAppearanceSmall</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
     <style name="PeopleNavigationDropDownTextAppearance">
         <item name="android:textColor">#333333</item>
         <item name="android:textSize">18sp</item>

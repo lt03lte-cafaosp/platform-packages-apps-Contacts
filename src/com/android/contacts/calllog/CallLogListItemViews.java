@@ -36,6 +36,8 @@ public final class CallLogListItemViews {
     public final View primaryActionView;
     /** The secondary action button on the entry. */
     public final ImageView secondaryActionView;
+    /** The sub icon to mark the call action. */
+    public final ImageView subIconView;
     /** The divider between the primary and secondary actions. */
     public final View dividerView;
     /** The details of the phone call. */
@@ -46,12 +48,13 @@ public final class CallLogListItemViews {
     public final View bottomDivider;
 
     private CallLogListItemViews(QuickContactBadge quickContactView, View primaryActionView,
-            ImageView secondaryActionView, View dividerView,
+            ImageView secondaryActionView, ImageView subIconView, View dividerView,
             PhoneCallDetailsViews phoneCallDetailsViews,
             TextView listHeaderTextView, View bottomDivider) {
         this.quickContactView = quickContactView;
         this.primaryActionView = primaryActionView;
         this.secondaryActionView = secondaryActionView;
+        this.subIconView = subIconView;
         this.dividerView = dividerView;
         this.phoneCallDetailsViews = phoneCallDetailsViews;
         this.listHeaderTextView = listHeaderTextView;
@@ -63,6 +66,7 @@ public final class CallLogListItemViews {
                 (QuickContactBadge) view.findViewById(R.id.quick_contact_photo),
                 view.findViewById(R.id.primary_action_view),
                 (ImageView) view.findViewById(R.id.secondary_action_icon),
+                (ImageView) view.findViewById(R.id.call_action_sub_icon),
                 view.findViewById(R.id.divider),
                 PhoneCallDetailsViews.fromView(view),
                 (TextView) view.findViewById(R.id.call_log_header),
@@ -74,6 +78,7 @@ public final class CallLogListItemViews {
         return new CallLogListItemViews(
                 new QuickContactBadge(context),
                 new View(context),
+                new ImageView(context),
                 new ImageView(context),
                 new View(context),
                 PhoneCallDetailsViews.createForTest(context),
