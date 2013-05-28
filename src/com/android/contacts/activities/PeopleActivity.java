@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
+import android.os.SystemProperties;
 import android.preference.PreferenceActivity;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
@@ -93,6 +94,7 @@ import com.android.contacts.util.DialogManager;
 import com.android.contacts.util.HelpUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.UriUtils;
+import com.android.contacts.util.XCloudManager;
 import com.android.contacts.widget.TransitionAnimationView;
 
 import java.util.ArrayList;
@@ -1412,7 +1414,19 @@ public class PeopleActivity extends ContactsActivity
         if (!mOptionsMenuContactsAvailable) {
             return false;
         }
-
+        if (SystemProperties.getBoolean("persist.env.baiduxcloud", false)) {
+            XCloudManager.getInstance().updateMenuState(menu, this);
+        } else {
+            final MenuItem autoSyncToXCloudSwitcher = menu.findItem(
+                R.id.menu_auto_sync_to_baidu_cloud);
+            final MenuItem syncToXCloud = menu.findItem(R.id.menu_sync_to_baidu_cloud);
+            if (autoSyncToXCloudSwitcher != null) {
+                autoSyncToXCloudSwitcher.setVisible(false);
+            }
+            if (syncToXCloud != null) {
+                syncToXCloud.setVisible(false);
+            }
+        }
         // Get references to individual menu items in the menu
         final MenuItem addContactMenu = menu.findItem(R.id.menu_add_contact);
         final MenuItem contactsFilterMenu = menu.findItem(R.id.menu_contacts_filter);
@@ -1492,6 +1506,10 @@ public class PeopleActivity extends ContactsActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (SystemProperties.getBoolean("persist.env.baiduxcloud", false)) {
+            if(XCloudManager.getInstance().handleXCouldRelatedMenuItem(item, this))
+                return true;
+        }
         switch (item.getItemId()) {
             case android.R.id.home: {
                 // The home icon on the action bar is pressed
