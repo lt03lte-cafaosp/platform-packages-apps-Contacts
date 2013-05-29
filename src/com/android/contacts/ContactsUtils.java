@@ -756,7 +756,19 @@ public class ContactsUtils {
         }
         return false;
     }
-
+    public static boolean checkSdcardFull(Context context){
+     
+        File path = new File("/sdcard/");
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        long available = availableBlocks*blockSize;
+        if (available < 5*1024*1024)
+        {
+            return true;
+        }
+        return false;
+    }
     public static long getAvailableSpace(String dirname)
     {
         File file = new File(dirname);

@@ -276,6 +276,11 @@ public class ImportExportDialogFragment extends DialogFragment
                         break;
                     }
                     case R.string.export_to_sdcard: {
+                        if (com.android.contacts.ContactsUtils.checkSdcardFull(getActivity())) {
+                            dialog.dismiss();
+                            Toast.makeText(getActivity(), R.string.sdcard_full, Toast.LENGTH_LONG).show();
+                            return;
+                        }
                         dismissDialog = true;
                         //Intent exportIntent = new Intent(getActivity(), ExportVCardActivity.class);
                         //getActivity().startActivity(exportIntent);
