@@ -1543,7 +1543,7 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
         actionBar.setDisplayShowCustomEnabled(false);
         actionBar.setDisplayShowHomeEnabled(false);
         actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-
+        mInSearchUi = false;
         for (int i = 0; i < TAB_INDEX_COUNT; i++) {
             sendFragmentVisibilityChange(i, i == mViewPager.getCurrentItem());
         }
@@ -1561,7 +1561,7 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
 
         // See comments in onActionViewExpanded()
         mSearchView.onActionViewCollapsed();
-        mInSearchUi = false;
+
     }
 
     private Fragment getFragmentAt(int position) {
@@ -1580,10 +1580,10 @@ private static final String ACTION_SEARCH = "android.intent.action.SEARCH";
     private void sendFragmentVisibilityChange(int position, boolean visibility) {
         if (DEBUG) {
             Log.d(TAG, "sendFragmentVisibiltyChange(). position: " + position
-                    + ", visibility: " + visibility);
+                    + ", visibility: " + visibility+ "   mInSearchUi : " +mInSearchUi);
         }
         // Position can be -1 initially. See PageChangeListener.
-        if (position >= 0) {
+        if (position >= 0  && !mInSearchUi) {
             final Fragment fragment = getFragmentAt(position);
             if (fragment != null) {
                 fragment.setMenuVisibility(visibility);
