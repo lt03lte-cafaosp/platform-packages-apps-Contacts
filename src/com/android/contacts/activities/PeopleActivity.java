@@ -133,6 +133,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.qrd.plugin.feature_query.FeatureQuery;
+import com.android.contacts.ContactsLib;
 import com.android.contacts.util.MemoryUtils.XCloudManager;
 /**
  * Displays a list to browse contacts. For xlarge screens, this also displays a detail-pane on
@@ -395,6 +396,7 @@ public class PeopleActivity extends ContactsActivity
 
         mIsRecreatedInstance = (savedState != null);
         createViewsAndFragments(savedState);
+        ContactsLib.disableTransactionLock(getContentResolver());
         if (Log.isLoggable(Constants.PERFORMANCE_TAG, Log.DEBUG)) {
             Log.d(Constants.PERFORMANCE_TAG, "PeopleActivity.onCreate finish");
         }

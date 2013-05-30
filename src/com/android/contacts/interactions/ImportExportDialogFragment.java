@@ -80,6 +80,7 @@ import com.android.contacts.util.AccountSelectionUtil;
 import com.android.contacts.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.vcard.ExportVCardActivity;
 import com.android.contacts.activities.PeopleActivity;
+import com.android.contacts.ContactsLib;
 import com.android.contacts.editor.MultiPickContactActivity;
 import com.android.contacts.SimContactsConstants;
 import com.android.contacts.SimContactsOperation;
@@ -688,6 +689,7 @@ public class ImportExportDialogFragment extends DialogFragment
                 mpeople.sendBroadcast(intent);
                 return;
             }
+            ContactsLib.enableTransactionLock(mpeople.getContentResolver());
             isExportingToSIM = true;
             String accountName = getAccountNameBy(subscription);
             String accountType = SimContactsConstants.ACCOUNT_TYPE_SIM;
@@ -931,6 +933,7 @@ public class ImportExportDialogFragment extends DialogFragment
             } else {
                 mToastHandler.sendEmptyMessage(TOAST_EXPORT_FINISHED);
             }
+            ContactsLib.disableTransactionLock(mpeople.getContentResolver());
             disablePowerWakeLock();
             isExportingToSIM = false;
             Intent intent = new Intent(PeopleActivity.INTENT_EXPORT_COMPLETE);
