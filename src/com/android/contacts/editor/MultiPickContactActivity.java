@@ -954,11 +954,6 @@ public class MultiPickContactActivity extends ListActivity implements
         }
     }
 
-    private String getMultiSimName(int subscription) {
-        return Settings.Global.getString(getContentResolver(),
-                Settings.Global.MULTI_SIM_NAME[subscription]);
-    }
-
     private boolean isPickContact() {
         return mMode == MODE_DEFAULT_CONTACT || mMode == MODE_SEARCH_CONTACT;
     }
@@ -1134,10 +1129,6 @@ public class MultiPickContactActivity extends ListActivity implements
             }
         }
 
-        private String getMultiSimName(int subscription) {
-            return Settings.Global.getString(getContentResolver(),
-                    Settings.Global.MULTI_SIM_NAME[subscription]);
-        }
 
         @Override
         public View newView(Context context, Cursor cursor, ViewGroup parent) {
