@@ -150,8 +150,9 @@ public class ImportExportDialogFragment extends DialogFragment
     private static final int TOAST_SIM_CARD_FULL = 2; // only for sim card is full
     private static final int TOAST_CONTACT_NAME_TOO_LONG = 3; // only for contact name too long
     private static final int TOAST_EXPORT_CANCELED = 4; //there is a case export is canceled by user
-    private static final int TOAST_EMAIL_FULL = 5;
-    private static final int TOAST_ANR_FULL = 6;
+    private static final int TOAST_EXPORT_INTERRUPT = 5; //there is a case export is canceled by user
+    private static final int TOAST_EMAIL_FULL = 6;
+    private static final int TOAST_ANR_FULL = 7;
 
     private static final int RESULT_EMAIL_FULL_FAILURE = -1;
     private static final int RESULT_ANR_FULL_FAILURE = -3;
@@ -659,6 +660,7 @@ public class ImportExportDialogFragment extends DialogFragment
         boolean showEmailFull = true;
         boolean showAnrFull = true;
         private int freeSimCount = 0;
+        private int errorSimCount = 0;
 
         public ExportToSimThread(int type, int subscription, ArrayList<String[]> contactList, Activity mpactiv) {
             super();
@@ -832,12 +834,15 @@ public class ImportExportDialogFragment extends DialogFragment
                                             }
                                             showEmailFull = false;
                                             ret = Integer.parseInt(itemUri.getLastPathSegment());
+                                            Log.d(TAG, "Exported contact showEmailFull ret = " + ret);
                                             if(ret == 1) {
                                                 insertCount++;
                                                 freeSimCount--;
                                             }
                                             else {
-                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                                errorSimCount++;
+                                                freeSimCount--;
+                                                //mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
                                             }
                                         }
                                         else if(ret == RESULT_ANR_FULL_FAILURE){
@@ -848,12 +853,15 @@ public class ImportExportDialogFragment extends DialogFragment
                                             }
                                             showAnrFull = false;
                                             ret = Integer.parseInt(itemUri.getLastPathSegment());
+                                            Log.d(TAG, "Exported contact showAnrFull ret = " + ret);
                                             if(ret == 1) {
                                                 insertCount++;
                                                 freeSimCount--;
                                             }
                                             else {
-                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                                errorSimCount++;
+                                                freeSimCount--;
+                                                //mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
                                             }
                                         }
                                         else {
@@ -863,7 +871,9 @@ public class ImportExportDialogFragment extends DialogFragment
                                             //    mToastHandler.sendEmptyMessage(TOAST_SIM_CARD_FULL);
                                             //    break;
                                             //} else {
-                                                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
+                                                errorSimCount++;
+                                                freeSimCount--;
+                                                //mToastHandler.sendEmptyMessage(TOAST_EXPORT_FAILED);
                                                 boolean airplane = (System.getInt(mpeople.getContentResolver(),
                                                         System.AIRPLANE_MODE_ON, 0) != 0);
                                                 if (airplane) {
@@ -917,7 +927,13 @@ public class ImportExportDialogFragment extends DialogFragment
                 mToastHandler.sendMessage(mToastHandler.obtainMessage(TOAST_EXPORT_CANCELED,
                         insertCount, 0));
             } else {
-                mToastHandler.sendEmptyMessage(TOAST_EXPORT_FINISHED);
+                if(errorSimCount > 0) {
+                    mToastHandler.sendMessage(mToastHandler.obtainMessage(TOAST_EXPORT_INTERRUPT,
+                        insertCount, errorSimCount));
+                }
+                else {
+                    mToastHandler.sendEmptyMessage(TOAST_EXPORT_FINISHED);
+                }
             }
             disablePowerWakeLock();
             isExportingToSIM = false;
@@ -1077,6 +1093,11 @@ public class ImportExportDialogFragment extends DialogFragment
                         int exportCount = msg.arg1;
                         Toast.makeText(mpeople,mpeople.getString(R.string.export_cancelled,
                                        String.valueOf(exportCount)), Toast.LENGTH_SHORT).show();
+                    case TOAST_EXPORT_INTERRUPT:
+                        int exportCount1 = msg.arg1;
+                        int failCount = msg.arg2;
+                        Toast.makeText(mpeople,mpeople.getString(R.string.export_break,
+                                       String.valueOf(exportCount1), String.valueOf(failCount)), Toast.LENGTH_SHORT).show();                   
                         break;
                 }
             }
