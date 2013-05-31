@@ -1968,6 +1968,7 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
     <string name="menu_export_database">Export database files</string>
     <string name="progressdialog_cancel">Cancel</string>
     <string name="export_cancelled">Export is canceled, <xliff:g id="insertCount">%s</xliff:g>items are exported</string>
+    <string name="export_break">Export is interrupted, <xliff:g id="insertCount">%s</xliff:g>items are exported, <xliff:g id="failCount">%s</xliff:g>items are failed.</string>
     <!-- Content description for the fake action menu overflow button.
          This should be same as the description for the real action menu
          overflow button available in ActionBar.
