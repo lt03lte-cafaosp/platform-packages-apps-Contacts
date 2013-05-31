@@ -31,6 +31,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract.Contacts;
@@ -62,6 +63,7 @@ import com.android.contacts.R;
 import com.android.contacts.calllog.CallLogFragment;
 import com.android.contacts.calllog.MSimCallLogFragment;
 import com.android.contacts.dialpad.DialpadFragment;
+import com.android.contacts.dialpad.SmartDialpadFragment;
 import com.android.contacts.interactions.PhoneNumberInteraction;
 import com.android.contacts.list.ContactListFilterController;
 import com.android.contacts.list.ContactListFilterController.ContactListFilterListener;
@@ -131,7 +133,11 @@ public class DialtactsActivity extends TransactionSafeActivity
         public Fragment getItem(int position) {
             switch (position) {
                 case TAB_INDEX_DIALER:
-                    return new DialpadFragment();
+                    if (SystemProperties.getBoolean("persist.env.smartdialer", true)) {
+                        return new SmartDialpadFragment();
+                    } else {
+                        return new DialpadFragment();
+                    }
                 case TAB_INDEX_CALL_LOG:
                     if (MSimTelephonyManager.getDefault().getPhoneCount() > 1) {
                         return new MSimCallLogFragment();
