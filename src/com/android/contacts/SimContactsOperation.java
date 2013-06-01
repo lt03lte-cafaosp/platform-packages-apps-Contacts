@@ -199,11 +199,10 @@ public class SimContactsOperation {
       TelephonyManager tm = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
       MSimTelephonyManager msimtm = (MSimTelephonyManager)
       mContext.getSystemService(Context.MSIM_TELEPHONY_SERVICE);
-       if (msimtm.isMultiSimEnabled() && msimtm != null) {
-       return msimtm.getCardType(subscription);
-        }
-     if (!msimtm.isMultiSimEnabled() && tm != null) {
-        return tm.getCardType();
+       if (msimtm != null && msimtm.isMultiSimEnabled()) {
+           return msimtm.getCardType(subscription);
+       } else if (tm != null) {
+           return tm.getCardType();
        }
       return null;
     }

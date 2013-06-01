@@ -45,7 +45,7 @@ import com.google.android.collect.Lists;
 
 
 public class PhoneAccountType extends BaseAccountType{
-    private static final String TAG = "SimContactsType";
+    private static final String TAG = "PhoneAccountType";
 
     public static final String ACCOUNT_TYPE = "com.android.localphone";
     public static final int FLAGS_PERSON_NAME = EditorInfo.TYPE_CLASS_TEXT
