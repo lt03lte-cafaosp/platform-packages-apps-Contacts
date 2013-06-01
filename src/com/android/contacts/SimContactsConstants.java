@@ -54,6 +54,8 @@ public interface SimContactsConstants {
     public static final String CSIM = "CSIM";
     public static final String SIM  = "SIM";
     public static final String RUIM = "RUIM";
+    public static final String INTENT_EXPORT_COMPLETE =
+        "com.android.sim.INTENT_EXPORT_COMPLETE";
     public static final int SUB_1 = 0;
     public static final int SUB_2 = 1;
     public static final int SIM_STATE_READY = 1;
