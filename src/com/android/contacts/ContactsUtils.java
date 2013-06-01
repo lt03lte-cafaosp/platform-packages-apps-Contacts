@@ -361,8 +361,8 @@ public class ContactsUtils {
             return null;
         }
 
-        String name = Settings.Global.getString(context.getContentResolver(),
-                Settings.Global.MULTI_SIM_NAME[subscription]);
+        String name = Settings.System.getString(context.getContentResolver(),
+                Settings.System.MULTI_SIM_NAME[subscription]);
         if (TextUtils.isEmpty(name)) {
             return context.getString(R.string.slot_name) + " " + (subscription + 1);
         }
@@ -380,8 +380,8 @@ public class ContactsUtils {
 
         TypedArray icons = context.getResources().obtainTypedArray(
                 com.android.internal.R.array.sim_icons);
-        String simIconIndex = Settings.Global.getString(context.getContentResolver(),
-                Settings.Global.PREFERRED_SIM_ICON_INDEX);
+        String simIconIndex = Settings.System.getString(context.getContentResolver(),
+                Settings.System.PREFERRED_SIM_ICON_INDEX);
         if (TextUtils.isEmpty(simIconIndex)) {
             return icons.getDrawable(subscription);
         } else {
