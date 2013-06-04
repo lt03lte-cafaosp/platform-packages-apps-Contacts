@@ -1380,6 +1380,9 @@ public class DialpadFragment extends Fragment
                 mDialConferenceButton.setImageResource(R.drawable.ic_dialpad_holo_dark);
             }
         } else {
+            if (mDigitsContainer != null) {
+                mDigitsContainer.setVisibility(View.VISIBLE);
+            }
             if (mRecipients != null) mRecipients.setVisibility(View.GONE);
             if (mDialpadStub != null) mDialpadStub.setVisibility(View.GONE);
             if (mDigits != null) mDigits.setVisibility(View.VISIBLE);
