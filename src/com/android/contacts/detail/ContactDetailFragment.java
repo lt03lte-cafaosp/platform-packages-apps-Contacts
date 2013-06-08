@@ -1805,9 +1805,13 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }else{
 				        views.area.setVisibility(View.GONE);
             }
-            if (LocalGroup.CONTENT_ITEM_TYPE.equals(entry.mimetype))
-                views.data.setText(Group.restoreGroupById(view.getContext().getContentResolver(),
-                        Long.parseLong(entry.data)).getTitle());
+            if (LocalGroup.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
+                Group group = Group.restoreGroupById(view.getContext().getContentResolver(),
+                        Long.parseLong(entry.data));
+                if(group != null) {        
+                    views.data.setText(group.getTitle());
+                }
+            }    
             else
                 views.data.setText(entry.data);
             setMaxLines(views.data, entry.maxLines);

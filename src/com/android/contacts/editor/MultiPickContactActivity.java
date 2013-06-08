@@ -859,6 +859,10 @@ public class MultiPickContactActivity extends ListActivity implements
         super.onDestroy();
 
         disablePowerWakeLock();
+
+        if(preFilterCursor != null) {
+            preFilterCursor.close();
+        }
     }
 
     private Uri getUriToQuery() {
@@ -1214,6 +1218,8 @@ public class MultiPickContactActivity extends ListActivity implements
         }
     }
 
+    private Cursor preFilterCursor = null;
+
     private class QueryHandler extends AsyncQueryHandler {
         protected WeakReference<MultiPickContactActivity> mActivity;
 
@@ -1225,6 +1231,13 @@ public class MultiPickContactActivity extends ListActivity implements
 
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+            if(preFilterCursor != null) {
+                preFilterCursor.close();
+                preFilterCursor = null;
+            }
+            
+            preFilterCursor = cursor;
+            
             // In the case of low memory, the WeakReference object may be
             // recycled.
             if (mActivity == null || mActivity.get() == null) {

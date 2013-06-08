@@ -659,6 +659,7 @@
     <string name="reading_vcard_files">读取VCARD文件</string>
     <string name="progressdialog_cancel">取消</string>
     <string name="export_cancelled">导出操作被取消，<xliff:g id="insertCount">%s</xliff:g>条成功导出</string>
+    <string name="export_break">导出操作被中断，<xliff:g id="insertCount">%s</xliff:g>条成功导出，<xliff:g id="failCount">%s</xliff:g>条导出失败。</string>
 
     <!--  for speed dial -->
     <string name="set_speed_dial">快速拨号设置</string>
