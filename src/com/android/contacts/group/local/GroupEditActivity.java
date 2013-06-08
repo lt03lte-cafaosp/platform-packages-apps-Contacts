@@ -65,6 +65,7 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.android.contacts.R;
+import com.android.contacts.ContactsLib;
 import com.android.contacts.editor.MultiPickContactActivity;
 import com.android.contacts.list.AccountFilterActivity;
 import com.android.contacts.list.ContactListFilter;
@@ -267,12 +268,13 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
             final ArrayList<ContentProviderOperation> updateList = new ArrayList<ContentProviderOperation>();
             ContentProviderOperation.Builder builder = null;
             mIsAddMembersTaskCanceled = false;
+            ContactsLib.enableTransactionLock(getContentResolver());
             while (it.hasNext() ) {
                 if (mIsAddMembersTaskCanceled) {
                     alertHandler.sendEmptyMessage(MSG_CANCEL);
                     break;
                 }
-                if (progressIncrement++ % 2 == 0) {
+                if (progressIncrement++ % 1 == 0) {
                     handler.obtainMessage(1).sendToTarget();
                 }
                 String id = it.next();
@@ -310,6 +312,11 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
 
                         // add the insert operation to the update list.
                         updateList.add(builder.build());
+                        if (updateList.size() > 0) {
+                            addMembersApplyBatchByBuffer(updateList, getContentResolver());
+                            updateList.clear();
+                        }
+                        
                     }
                 } finally {
                     if (c != null) {
@@ -324,6 +331,7 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
             if (updateList.size() > 0) {
                 addMembersApplyBatchByBuffer(updateList, getContentResolver());
             }
+            ContactsLib.disableTransactionLock(getContentResolver());
             if (hasInvalide) {
                 alertHandler.sendEmptyMessage(0);
             }
@@ -347,7 +355,7 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
                 if (!temp.isEmpty()) {
                     try {
                         cr.applyBatch(ContactsContract.AUTHORITY, temp);
-                        handler.obtainMessage(temp.size() / 4).sendToTarget();
+                        //handler.obtainMessage(temp.size() / 4).sendToTarget();
                     } catch (Exception e) {
                         Log.e(TAG, "apply batch by buffer error:" + e);
                     }
@@ -426,10 +434,10 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
             }
         }
     }
-
+    
     @Override
-    protected void onStop() {
-
+    protected void onDestroy() {
+        super.onDestroy();
         // dismiss the dialog and cancel the task in order to avoid a case that GroupEditActivity does not exist,
         // but task is going on in background, then onPostExecute() will cause Exception.
         if (mAddMembersTask != null && mAddMembersTask.mProgressDialog != null) {
@@ -438,6 +446,6 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
                    mIsAddMembersTaskCanceled = true;
                }
            }
-       super.onStop();
+       
     }
 }

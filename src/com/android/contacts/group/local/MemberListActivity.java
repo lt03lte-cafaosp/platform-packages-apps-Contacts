@@ -475,7 +475,7 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
     private ContentObserver observer = new ContentObserver(new Handler()) {
         @Override
         public void onChange(boolean selfChange) {
-            mAdapter.refresh();
+            startQuery();
         }
     };
 
@@ -593,6 +593,10 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
         @Override
         public View newView(Context context, Cursor cursor, ViewGroup parent) {
             return LayoutInflater.from(context).inflate(R.layout.member_item, parent, false);
+        }
+        @Override
+        protected void onContentChanged() {
+            startQuery();
         }
 
         private void refresh() {
