@@ -389,7 +389,7 @@ public class ContactsUtils {
             if (subscription >= indexs.length) {
                 return null;
             }
-            return icons.getDrawable(Integer.getInteger(indexs[subscription]));
+            return icons.getDrawable(Integer.parseInt(indexs[subscription]));
         }
     }
 }
