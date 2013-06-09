@@ -232,36 +232,29 @@ public class DialpadFragment extends ListFragment
     private String sub0Moderm = "";
     private String sub1Moderm = "";
 
-    private PhoneStateListener getPhoneStateListener(final int subscription) {
-        PhoneStateListener phoneStateListener = new PhoneStateListener(subscription) {
-            /**
-             * Listen for phone state changes so that we can take down the
-             * "dialpad chooser" if the phone becomes idle while the
-             * chooser UI is visible.
-             */
+
+   private  PhoneStateListener phoneStateListener0 = new PhoneStateListener(0) {
             @Override
             public void onCallStateChanged(int state, String incomingNumber) {
-                // Log.i(TAG, "PhoneStateListener.onCallStateChanged: "
-                //       + state + ", '" + incomingNumber + "'");
                 if (!phoneIsInUse() && dialpadChooserVisible()) {
-                    // Log.i(TAG, "Call ended with dialpad chooser visible!  Taking it down...");
-                    // Note there's a race condition in the UI here: the
-                    // dialpad chooser could conceivably disappear (on its
-                    // own) at the exact moment the user was trying to select
-                    // one of the choices, which would be confusing.  (But at
-                    // least that's better than leaving the dialpad chooser
-                    // onscreen, but useless...)
                     showDialpadChooser(false);
                 }
-                // before display dialpad first refresh the hint string
                 if (!phoneIsInUse()) {
-                    // Common case; no hint necessary.
                     mDigits.setHint(null);
                 }
             }
         };
-        return phoneStateListener;
-    }
+   private  PhoneStateListener phoneStateListener1 = new PhoneStateListener(1) {
+            @Override
+            public void onCallStateChanged(int state, String incomingNumber) {
+                if (!phoneIsInUse() && dialpadChooserVisible()) {
+                    showDialpadChooser(false);
+                }
+                if (!phoneIsInUse()) {
+                    mDigits.setHint(null);
+                }
+            }
+        };
 
     private boolean mWasEmptyBeforeTextChange;
     private boolean mDialButtonClickWithEmptyDigits;
@@ -656,8 +649,9 @@ public class DialpadFragment extends ListFragment
         // purely so that we can take down the "dialpad chooser" if the
         // phone becomes idle while the chooser UI is visible.
         TelephonyManager telephonyManager = (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
-        for (int i = 0; i < MSimTelephonyManager.getDefault().getPhoneCount(); i++) {
-            telephonyManager.listen(getPhoneStateListener(i), PhoneStateListener.LISTEN_CALL_STATE);
+        telephonyManager.listen(phoneStateListener0, PhoneStateListener.LISTEN_CALL_STATE);
+        if(MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            telephonyManager.listen(phoneStateListener1, PhoneStateListener.LISTEN_CALL_STATE);
         }
 
         stopWatch.lap("tm");
@@ -706,8 +700,9 @@ public class DialpadFragment extends ListFragment
 
         // Stop listening for phone state changes.
         TelephonyManager telephonyManager = (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
-        for (int i = 0; i < MSimTelephonyManager.getDefault().getPhoneCount(); i++) {
-            telephonyManager.listen(getPhoneStateListener(i), PhoneStateListener.LISTEN_NONE);
+        telephonyManager.listen(phoneStateListener0, PhoneStateListener.LISTEN_NONE);
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            telephonyManager.listen(phoneStateListener1, PhoneStateListener.LISTEN_NONE);
         }
 
         // Make sure we don't leave this activity with a tone still playing.
@@ -1411,9 +1406,9 @@ public class DialpadFragment extends ListFragment
                                 ((DialtactsActivity)getActivity()).getCallOrigin() : null));
                 startActivity(intent);
                 //mClearDigitsOnStop = true;
-                //getActivity().finish();
                 mDigits.getText().clear();  // TODO: Fix bug 1745781
-                getActivity().moveTaskToBack(true);
+                getActivity().finish();
+               // getActivity().moveTaskToBack(true);
             }
         }
     }
