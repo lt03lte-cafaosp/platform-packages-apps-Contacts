@@ -85,6 +85,8 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     //add for UX_Enhance_Contacts details view
     private ImageView mBack;
     private TextView mName;
+    private TextView mNameSub;
+    private View mName_view;
     private ImageView mStar;
     private ImageView mPhoto;
     private boolean mStarred;
@@ -262,6 +264,10 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         String company =  ContactDetailDisplayUtils.getCompany(this, mContactData);
 
         mName.setText(displayName);
+        if(!TextUtils.isEmpty(company)) {
+            mNameSub.setVisibility(View.VISIBLE);
+            mNameSub.setText(company);
+        }
 
         byte[] photoBytes = mContactData.getPhotoBinaryData();
         if (photoBytes != null) {
@@ -364,7 +370,9 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     //add for UX_Enhance_Contacts details view
      private void initView(){
          mName = ((TextView)this.findViewById(R.id.name));
-         mName.setOnClickListener(this);
+         mNameSub = ((TextView)this.findViewById(R.id.action_bar_subtitle));
+         mName_view = this.findViewById(R.id.name_view);
+         mName_view.setOnClickListener(this);
          mBack = ((ImageView)this.findViewById(R.id.back));
          mBack.setOnClickListener(this);
          mStar = ((ImageView)this.findViewById(R.id.star));
@@ -377,7 +385,7 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
          int id = v.getId();
          switch(id){
          case R.id.back:
-         case R.id.name:
+         case R.id.name_view:
              finish();
              break;
          case R.id.star:
