@@ -516,6 +516,7 @@ import com.android.contacts.ContactsUtils;
                 } else if(views.phoneCallDetailsViews.cityView != null) {
                     views.phoneCallDetailsViews.cityView.setText(area);
                 }
+              notifyDataSetChanged();  
             }
         });
         view.setTag(views);
