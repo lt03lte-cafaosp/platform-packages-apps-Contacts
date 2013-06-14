@@ -187,6 +187,10 @@ public class AttachPhotoActivity extends ContactsActivity {
         // Create a scaled, compressed bitmap to add to the entity-delta list.
         final int size = ContactsUtils.getThumbnailSize(this);
         final Bitmap bitmap = BitmapFactory.decodeFile(mTempPhotoFile.getAbsolutePath());
+        if (bitmap == null) {
+            Log.w(TAG, "cannot decodeFile to bitmap");
+            return;
+        }
         final Bitmap scaled = Bitmap.createScaledBitmap(bitmap, size, size, false);
         final byte[] compressed = ContactPhotoUtils.compressBitmap(scaled);
         if (compressed == null) {
