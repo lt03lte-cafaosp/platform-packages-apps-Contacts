@@ -24,6 +24,9 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.android.contacts.R;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -64,9 +67,14 @@ public class ContactPhotoUtils {
             final File f = new File(dir, fileName);
             return f.getAbsolutePath();
         } else {
-            dirSdcard1.mkdirs();
-            final File f = new File(dirSdcard1, fileName);
-            return f.getAbsolutePath();
+            if (dirSdcard1.getFreeSpace() > 1024 * 1024) {
+                dirSdcard1.mkdirs();
+                final File f = new File(dirSdcard1, fileName);
+                return f.getAbsolutePath();
+            } else {
+                Toast.makeText(context, R.string.storage_full, Toast.LENGTH_LONG).show();
+                return "";
+            }
         }
     }
 

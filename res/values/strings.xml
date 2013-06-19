@@ -2069,4 +2069,5 @@ connection to the voicemail server is lost. [CHAR LIMIT=64] -->
 
     <!-- To match the DSDS/DSDA, add the filter for call log. -->
     <string name="call_log_show_all_slots">All SIMs</string>
+    <string name="storage_full">"Error, Storage is full"</string>
 </resources>
