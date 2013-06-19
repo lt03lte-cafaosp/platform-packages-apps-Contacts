@@ -47,7 +47,6 @@ import android.util.Log;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
-
 /**
  * Helper class to listen for some magic character sequences
  * that are handled specially by the dialer.
@@ -233,6 +232,13 @@ public class SpecialCharSequenceMgr {
 
         if ((len > 1) && (len < 5) && (input.endsWith("#"))) {
             try {
+            	
+            	    boolean isAirplaneModeOn =  Settings.System.getInt(context.getContentResolver(),
+                                Settings.System.AIRPLANE_MODE_ON, 0) != 0;
+						       Log.d(TAG,"isAirplaneModeOn is " + isAirplaneModeOn);
+						       if(isAirplaneModeOn){
+						       	return false; 
+						        }
                 // get the ordinal number of the sim contact
                 int index = Integer.parseInt(input.substring(0, len-1));
 
