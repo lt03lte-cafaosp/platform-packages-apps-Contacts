@@ -155,6 +155,11 @@ public class PhoneCallDetailsHelper {
         final CharSequence labelText;
         final CharSequence displayNumber =
             mPhoneNumberHelper.getDisplayNumber(details.number, details.formattedNumber);
+        
+        if(PhoneNumberUtils.isEmergencyNumber(displayNumber.toString()))
+        {
+        	details.name= mResources.getString(R.string.emergency_number);
+        }
         if (TextUtils.isEmpty(details.name)) {
             nameText = displayNumber;
             if (TextUtils.isEmpty(cityText) 

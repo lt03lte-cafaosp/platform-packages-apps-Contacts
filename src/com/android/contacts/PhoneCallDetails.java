@@ -43,7 +43,7 @@ public class PhoneCallDetails {
     /** The duration of the call in milliseconds, or 0 for missed calls. */
     public final long duration;
     /** The name of the contact, or the empty string. */
-    public final CharSequence name;
+    public  CharSequence name;
     /** The type of phone, e.g., {@link Phone#TYPE_HOME}, 0 if not available. */
     public final int numberType;
     /** The custom label associated with the phone number in the contact, or the empty string. */
