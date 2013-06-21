@@ -757,4 +757,6 @@
 	<string name="contact_empty">没有输入有效内容，将不会被保存!</string>
 	<string name="sim_loading">正在读卡，请稍后</string>
 	<string name="sdcard_full">"SD卡满"</string>
+	
+	<string name="dialpad_cling_multi_sim_call">滑动拨号按钮选择通过卡1或卡2呼出</string>
 </resources>
