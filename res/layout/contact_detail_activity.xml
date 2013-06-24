@@ -31,25 +31,45 @@
                 android:layout_height="20dip"
                 android:layout_centerVertical="true"
                 android:src="@drawable/actionbar_back"/>
-            <TextView
-                android:id="@+id/name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingLeft="10dip"
-                android:textSize="18sp"
-                android:textColor="#FFFFFF"
-                android:maxWidth="128dip"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:layout_toRightOf="@id/back"
-                android:layout_centerVertical="true" />
+            <LinearLayout 
+            	android:id="@+id/name_view"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+				android:layout_gravity="center_vertical|left"
+				android:paddingLeft="10dip"
+				android:orientation="vertical"
+				android:layout_toRightOf="@id/back">
+		        <TextView android:id="@+id/name"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textSize="18sp"
+					android:textColor="#FFFFFF"
+					android:maxWidth="128dip"
+					android:singleLine="true"
+					android:fadingEdge="horizontal"
+					android:fadingEdgeLength="3dip"
+					android:ellipsize="marquee"/>
+		        <TextView android:id="@+id/action_bar_subtitle"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="-3dip"
+					android:layout_marginBottom="5dip"
+					android:textSize="14dp"
+					android:textColor="#FFFFFF"
+					android:maxWidth="128dip"
+					android:singleLine="true"
+					android:fadingEdge="horizontal"
+					android:fadingEdgeLength="3dip"
+					android:ellipsize="marquee"
+					android:visibility="gone" />
+		    </LinearLayout>    
             <ImageView
                 android:id="@+id/star"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingLeft="20dip"
-                android:layout_toRightOf="@id/name"
+                android:layout_toRightOf="@id/name_view"
                 android:layout_centerVertical="true"
                 android:src="@drawable/btn_star_off_normal_holo_dark"/>
             <ImageView
