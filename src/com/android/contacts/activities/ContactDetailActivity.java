@@ -81,6 +81,7 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     // add for UX_Enhance_Contacts details view
     private ImageView mBack;
     private TextView mName;
+    private TextView mCompanyName;
     private ImageView mStar;
     private ImageView mPhoto;
     private boolean mStarred;
@@ -233,7 +234,7 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         final StringBuilder talkback = new StringBuilder();
 
         mName.setText(displayName);
-
+        mCompanyName.setText(company);
         byte[] photoBytes = mContactData.getPhotoBinaryData();
         if (photoBytes != null) {
             final Bitmap photo = BitmapFactory.decodeByteArray(photoBytes, 0,
@@ -346,6 +347,8 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     private void initView() {
         mName = ((TextView) this.findViewById(R.id.name));
         mName.setOnClickListener(this);
+        mCompanyName = ((TextView) this.findViewById(R.id.companyname));
+        mCompanyName.setOnClickListener(this);
         mBack = ((ImageView) this.findViewById(R.id.back));
         mBack.setOnClickListener(this);
         mStar = ((ImageView) this.findViewById(R.id.star));
