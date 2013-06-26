@@ -420,6 +420,8 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private String getOKString() {
+        // Disable OK button when no item is selected
+        mOKButton.setEnabled(mChoiceSet.size() > 0);
         return getString(R.string.btn_ok) + "(" + mChoiceSet.size() + ")";
     }
 
