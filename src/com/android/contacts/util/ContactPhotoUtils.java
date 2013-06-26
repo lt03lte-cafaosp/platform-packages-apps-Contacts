@@ -61,9 +61,11 @@ public class ContactPhotoUtils {
         final File dirSdcard1 = new File("/storage/sdcard1");
         // get the available space size of SD,if size <= 1024 * 1024,we use the
         // phone storage.
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
         long freeSpaceSizeSD0 = dir.getFreeSpace();
         if (freeSpaceSizeSD0 > 1024 * 1024) {
-            dir.mkdirs();
             final File f = new File(dir, fileName);
             return f.getAbsolutePath();
         } else {
