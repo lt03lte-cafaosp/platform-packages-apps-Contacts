@@ -56,7 +56,7 @@
     <string name="config_export_vcard_type" translatable="false">default</string>
 
     <!-- Directory in which exported VCard file is stored -->
-    <string name="config_export_dir" translatable="false">/mnt/sdcard</string>
+    <string name="config_export_dir" translatable="false">/storage/sdcard1</string>
 
     <!-- Prefix of exported VCard file -->
     <string name="config_export_file_prefix" translatable="false"></string>

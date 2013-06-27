@@ -733,7 +733,7 @@ public class ImportVCardActivity extends ContactsActivity {
         String[] uriStrings = new String[size];
         int i = 0;
         for (VCardFile vcardFile : selectedVCardFileList) {
-            uriStrings[i] = "file://" + vcardFile.getCanonicalPath();
+            uriStrings[i] = "file://" + vcardFile.getCanonicalPath();   
             i++;
         }
         importVCard(uriStrings);
@@ -1011,7 +1011,7 @@ public class ImportVCardActivity extends ContactsActivity {
      */
     private void doScanExternalStorageAndImportVCard() {
         // TODO: should use getExternalStorageState().
-        final File file = Environment.getExternalStorageDirectory();
+        final File file = Environment.getSecondaryStorageDirectory();
         if (!file.exists() || !file.isDirectory() || !file.canRead()) {
             showDialog(R.id.dialog_sdcard_not_found);
         } else {
