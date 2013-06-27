@@ -22,11 +22,13 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.app.LoaderManager.LoaderCallbacks;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.CursorLoader;
 import android.content.IContentService;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -59,6 +61,8 @@ import com.android.contacts.ContactPhotoManager;
 import com.android.contacts.R;
 import com.android.contacts.preference.ContactsPreferences;
 import com.android.contacts.widget.ContextMenuAdapter;
+import com.android.internal.telephony.TelephonyIntents;
+
 
 /**
  * Common base class for various contact-related list fragments.
@@ -151,6 +155,13 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     private Context mContext;
 
     private LoaderManager mLoaderManager;
+
+    private BroadcastReceiver mSIMStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context arg0, Intent arg1) {
+            reloadData();
+        }
+    };
 
     private Handler mDelayedDirectorySearchHandler = new Handler() {
         @Override
@@ -259,6 +270,11 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         super.onCreate(savedState);
         mContactsPrefs = new ContactsPreferences(mContext);
         restoreSavedState(savedState);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+        mContext.registerReceiver(mSIMStateReceiver, filter);
     }
 
     public void restoreSavedState(Bundle savedState) {
@@ -461,6 +477,12 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         super.onStop();
         mContactsPrefs.unregisterChangeListener();
         mAdapter.clearPartitions();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mContext.unregisterReceiver(mSIMStateReceiver);
     }
 
     protected void reloadData() {
