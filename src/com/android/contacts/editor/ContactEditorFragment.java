@@ -332,9 +332,9 @@ public class ContactEditorFragment extends Fragment implements
         }
 
         // If anything was left unsaved, save it now but keep the editor open.
-        if (!getActivity().isChangingConfigurations() && mStatus == Status.EDITING) {
-            save(SaveMode.RELOAD);
-        }
+        //if (!getActivity().isChangingConfigurations() && mStatus == Status.EDITING) {
+        //    save(SaveMode.RELOAD);
+        //}
     }
 
     @Override
