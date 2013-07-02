@@ -65,7 +65,12 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     /** Shows a toogle button for hiding/showing updates. Don't submit with true */
     private static final boolean DEBUG_TRANSITIONS = false;
 
-    /** Shows a alert dialog for contact not found. Don't directly finish */
+    /**
+     * Shows a "No matching contact found" dialog for contact not found
+     * when view vcard from Mms
+     */
+    private boolean mIsFromVcard = false;
+    private static final String VIEW_VCARD = "VIEW_VCARD_FROM_MMS";
     private static final int CONTACT_NOT_FOUND_DIALOG = 0;
 
     private Contact mContactData;
@@ -87,6 +92,11 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     @Override
     protected void onCreate(Bundle savedState) {
         super.onCreate(savedState);
+
+        // Judge if view the vcard from mms to decide whether to
+        // show the CONTACT_NOT_FOUND_DIALOG.
+        mIsFromVcard = getIntent().getBooleanExtra(VIEW_VCARD, false);
+
         if (PhoneCapabilityTester.isUsingTwoPanes(this)) {
             // This activity must not be shown. We have to select the contact in the
             // PeopleActivity instead ==> Create a forward intent and finish
@@ -169,8 +179,12 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         @Override
         public void onContactNotFound() {
 
-            // if contact not found, prompts an alert dialog
-            showDialog(CONTACT_NOT_FOUND_DIALOG);
+            // If contact not found, prompts an alert dialog
+            if (mIsFromVcard) {
+                showDialog(CONTACT_NOT_FOUND_DIALOG);
+            } else {
+                finish();
+            }
         }
 
         @Override
