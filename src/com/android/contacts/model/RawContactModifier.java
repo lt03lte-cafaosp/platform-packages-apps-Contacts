@@ -602,7 +602,7 @@ public class RawContactModifier {
         // Website
         final boolean hasWebisite = extras.containsKey("website");
         final DataKind kindWebsite = accountType.getKindForMimetype(Website.CONTENT_ITEM_TYPE);
-        if (hasWebisite && RawContactModifier.canInsert(state, kindWebsite)) {
+        if (hasWebisite && kindWebsite != null && RawContactModifier.canInsert(state, kindWebsite)) {
             final ValuesDelta child = RawContactModifier.insertChild(state, kindWebsite);
 
             final String website = extras.getString("website");
