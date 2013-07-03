@@ -239,7 +239,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
                 final int inputType = field.inputType;
                 fieldView.setInputType(inputType);
                 if (inputType == InputType.TYPE_CLASS_PHONE) {
-                    PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(mContext, fieldView);
+                    //PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(mContext, fieldView);
                 }
 
                 // Show the "next" button in IME to navigate between text fields
@@ -279,7 +279,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
                         if(inputType == InputType.TYPE_CLASS_PHONE){
                             String newString = str.replace(';','W');
                             newString = newString.replace(',','P');
-                            newString = newString.replaceAll("[^0123456789PWN\\,\\;\\*\\#\\+]",""); 
+                            newString = newString.replaceAll("[^0123456789 PWN\\,\\;\\*\\#\\+]",""); 
                             if(newString.length() != str.length() || (str.contains(";") || str.contains(","))){
                               fieldView.setText(newString);
                               try {
