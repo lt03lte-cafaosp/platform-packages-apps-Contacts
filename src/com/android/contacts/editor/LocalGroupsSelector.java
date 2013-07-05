@@ -66,6 +66,8 @@ public class LocalGroupsSelector extends Button implements OnClickListener,
 
     private OnGroupSelectListener onGroupSelectListener;
 
+    private AddLocalGroupDialog mAddLocalGroupDialog;
+
     private AlertDialog mDialog;
 
     public LocalGroupsSelector(Context context, ValuesDelta entry, String key) {
@@ -110,6 +112,14 @@ public class LocalGroupsSelector extends Button implements OnClickListener,
         DialogManager.setDialog(mDialog);
     }
 
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (mAddLocalGroupDialog != null && mAddLocalGroupDialog.isShowing()) {
+            mAddLocalGroupDialog.dismiss();
+        }
+    }
+
     private AlertDialog getGroupsDialog() {
         groupsAdapter = new GroupsAdapter(mContext);
         final AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
@@ -119,7 +129,10 @@ public class LocalGroupsSelector extends Button implements OnClickListener,
     }
 
     private AlertDialog getNewGroupDialog() {
-        return new AddLocalGroupDialog(mContext, this);
+        if (mAddLocalGroupDialog == null) {
+            mAddLocalGroupDialog = new AddLocalGroupDialog(mContext, this);
+        }
+        return mAddLocalGroupDialog;
     }
 
     private class GroupsAdapter extends CursorAdapter {
