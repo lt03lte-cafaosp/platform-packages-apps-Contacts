@@ -39,6 +39,7 @@ import android.provider.LocalGroups;
 import android.provider.ContactsContract.Data;
 import android.provider.LocalGroups.Group;
 import android.provider.LocalGroups.GroupColumns;
+import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -64,6 +65,8 @@ public class LocalGroupsSelector extends Button implements OnClickListener,
     private String column;
 
     private OnGroupSelectListener onGroupSelectListener;
+    
+    private AlertDialog mNewGroundDialog = null;
 
     public LocalGroupsSelector(Context context, ValuesDelta entry, String key) {
         super(context);
@@ -113,7 +116,11 @@ public class LocalGroupsSelector extends Button implements OnClickListener,
     }
 
     private AlertDialog getNewGroupDialog() {
-        return new AddLocalGroupDialog(mContext, this);
+        if(mNewGroundDialog == null){
+            mNewGroundDialog = new AddLocalGroupDialog(new ContextThemeWrapper(
+                mContext, android.R.style.Theme_Holo_Light), this);
+        }
+        return mNewGroundDialog;
     }
 
     private class GroupsAdapter extends CursorAdapter {
@@ -186,6 +193,15 @@ public class LocalGroupsSelector extends Button implements OnClickListener,
         }
         dialog.dismiss();
     }
+    @Override
+    protected void onDetachedFromWindow() {
+        if(mNewGroundDialog != null){
+            mNewGroundDialog.dismiss();
+        }
+        super.onDetachedFromWindow();
+        
+    }
+
 
     @Override
     public void onAddGroup(String name) {
