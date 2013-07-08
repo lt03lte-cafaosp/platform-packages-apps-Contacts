@@ -1107,6 +1107,8 @@ public class PeopleActivity extends ContactsActivity
         if (mProviderStatus.status == ProviderStatus.STATUS_NORMAL) {
             // Ensure that the mTabPager is visible; we may have made it invisible below.
             contactsUnavailableView.setVisibility(View.GONE);
+            // Invalidate menu item when ProviderWatcher notify Normal status.
+            invalidateOptionsMenu();
             if (mTabPager != null) {
                 mTabPager.setVisibility(View.VISIBLE);
             }
