@@ -1175,7 +1175,13 @@ public class ContactEditorFragment extends Fragment implements
         if (hadChanges) {
             if (saveSucceeded) {
                 if (saveMode != SaveMode.JOIN) {
-                    Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT).show();
+                    if (null != contactLookupUri) {
+                        Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
+                                .show();
+                    } else {
+                        Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)
+                                .show();
+                    }
                 }
             } else {
                 if (result == RESULT_AIR_PLANE_MODE) {
@@ -1190,18 +1196,28 @@ public class ContactEditorFragment extends Fragment implements
                 } else if (result == RESULT_NUMBER_ANR_FAILURE) {
                     Toast.makeText(mContext, R.string.number_anr_too_long, Toast.LENGTH_LONG)
                             .show();
+                    restoreEditingStatus();
+                    return;
                 } else if (result == RESULT_EMAIL_FAILURE) {
                     Toast.makeText(mContext, R.string.email_address_too_long, Toast.LENGTH_LONG)
                             .show();
+                    restoreEditingStatus();
+                    return;
                 } else if (result == RESULT_SIM_FULL_FAILURE) {
                     Toast.makeText(mContext, R.string.sim_card_full, Toast.LENGTH_LONG).show();
                 } else if (result == RESULT_TAG_FAILURE) {
                     Toast.makeText(mContext, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
+                    restoreEditingStatus();
+                    return;
                 } else if (result == RESULT_NO_NUMBER) {
                     Toast.makeText(mContext, R.string.no_phone_number, Toast.LENGTH_SHORT).show();
+                    restoreEditingStatus();
+                    return;
                 } else if (result == RESULT_NUMBER_INVALID) {
                     Toast.makeText(mContext, R.string.invalid_phone_number, Toast.LENGTH_SHORT)
                             .show();
+                    restoreEditingStatus();
+                    return;
                 } else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                             .show();
@@ -1267,6 +1283,16 @@ public class ContactEditorFragment extends Fragment implements
                 }
                 break;
         }
+    }
+
+    /**
+     * If we fail to edit contact, we need to restore the editors data
+     * and its states to beginning.
+     */
+    private void restoreEditingStatus() {
+        mStatus = Status.EDITING;
+        setEnabled(true);
+        bindEditors();
     }
 
     /**
