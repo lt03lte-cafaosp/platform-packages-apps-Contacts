@@ -61,6 +61,8 @@ public class SpeedDialUtils {
 
     private static final String[] numKeys = new String[] {"num2_key","num3_key","num4_key",
         "num5_key","num6_key","num7_key","num8_key","num9_key"};
+    private static final String[] nameKeys = new String[] {"name2_key","name3_key","name4_key",
+        "name5_key","name6_key","name7_key","name8_key","name9_key"};
     private SharedPreferences mPref;
 
     private Context mContext;
@@ -88,6 +90,38 @@ public class SpeedDialUtils {
      */
     public int getContactDataId(int numId) {
         return mPref.getInt(numKeys[numId], 0);
+    }
+
+    /*
+     * set speed number to share preference
+     */
+    public void storeContactDataNumber(int numId, String keyValue) {
+        SharedPreferences.Editor editor = mPref.edit();
+        editor.putString(numKeys[numId], keyValue);
+        editor.commit();
+    }
+
+     /*
+     * set speed name to share preference
+     */
+    public void storeContactDataName(int numId, String keyValue) {
+        SharedPreferences.Editor editor = mPref.edit();
+        editor.putString(nameKeys[numId], keyValue);
+        editor.commit();
+    }
+
+    /*
+     *  get phone number from share preference
+     */
+    public String getContactDataNumber(int numId) {
+        return mPref.getString(numKeys[numId], "");
+    }
+
+    /*
+     *  get name from share preference
+     */
+    public String getContactDataName(int numId) {
+        return mPref.getString(nameKeys[numId], "");
     }
 
     /*
@@ -135,5 +169,54 @@ public class SpeedDialUtils {
          }
 
         return speedDialInfo;
+    }
+
+    public boolean nameIsValid(String contactName, String contactNumber) {
+        boolean nameIsValid = false;
+        if ("".equals(contactNumber)) {
+            return false;
+        }
+        Cursor rawCursor = null;
+        Cursor dataCursor = null;
+        try {
+            rawCursor = mContext.getContentResolver().query(RawContacts.CONTENT_URI, null,
+                    "display_name = ? AND deleted = ?",
+                    new String[] { contactName, String.valueOf(0) }, null);
+            if (null == rawCursor) {
+                return false;
+            }
+            while (rawCursor.moveToNext()) {
+                int rawContactId = rawCursor.getInt(
+                        rawCursor.getColumnIndexOrThrow(RawContacts._ID));
+                dataCursor = mContext.getContentResolver().query(
+                        ContactsContract.Data.CONTENT_URI, null, Data.RAW_CONTACT_ID
+                        + " = ?"
+                        + " AND "
+                        + Data.MIMETYPE
+                        + " = '"
+                        + ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE
+                       + "'", new String[] { String.valueOf(rawContactId) }, null);
+                if (null == dataCursor) {
+                    return false;
+                } else {
+                    while (dataCursor.moveToNext()) {
+                        if (contactNumber.equals(dataCursor.getString(dataCursor
+                                .getColumnIndexOrThrow(Data.DATA1)))) {
+                            nameIsValid = true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // exception happens
+        } finally {
+            if (null != rawCursor) {
+                rawCursor.close();
+            }
+            if (null != dataCursor) {
+                dataCursor.close();
+            }
+        }
+        return nameIsValid;
     }
 }

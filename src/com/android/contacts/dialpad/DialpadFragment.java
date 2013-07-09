@@ -1833,9 +1833,7 @@ public class DialpadFragment extends Fragment
             numId = speedDialUtils.NUM_NINE;
             break;
         }
-        int ContactDataId = speedDialUtils.getContactDataId(numId);
-        Log.d("loky","raw contact id="+ContactDataId);
-        speedNumber = speedDialUtils.getSpeedDialInfo(ContactDataId, speedDialUtils.INFO_NUMBER);
+        speedNumber = speedDialUtils.getContactDataNumber(numId);
         if (speedNumber == null) {
             showNoSpeedNumberDialog(numId);
         } else {
