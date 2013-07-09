@@ -495,7 +495,7 @@ public abstract class ContactBrowseListFragment extends
                     reloadData();
                 } else {
                     // Otherwise, call the listener, which will adjust the filter.
-                    notifyInvalidSelection();
+                    //notifyInvalidSelection();
                 }
                 return;
             } else if (mFilter != null
@@ -653,7 +653,6 @@ public abstract class ContactBrowseListFragment extends
         if (isSearchMode()) {
             return;
         }
-
         ContactListFilter.storeToPreferences(mPrefs, mFilter);
 
         Editor editor = mPrefs.edit();
