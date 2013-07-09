@@ -301,6 +301,11 @@ public class PeopleActivity extends ContactsActivity
         }
         super.onCreate(savedState);
 
+        // register receiver
+        final IntentFilter exportCompleteFilter = new IntentFilter(SimContactsConstants
+                .INTENT_EXPORT_COMPLETE);
+        registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
+
         if (!processIntent(false)) {
             finish();
             return;
@@ -317,9 +322,7 @@ public class PeopleActivity extends ContactsActivity
         if (Log.isLoggable(Constants.PERFORMANCE_TAG, Log.DEBUG)) {
             Log.d(Constants.PERFORMANCE_TAG, "PeopleActivity.onCreate finish");
         }
-        final IntentFilter exportCompleteFilter = new IntentFilter(SimContactsConstants
-            .INTENT_EXPORT_COMPLETE);
-        registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
+
     }
 
     @Override
