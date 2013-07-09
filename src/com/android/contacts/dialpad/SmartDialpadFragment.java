@@ -326,6 +326,7 @@ public class SmartDialpadFragment extends DialpadFragment
         if (mAdapter != null) {
             mAdapter.changeCursor(null);
         }
+        mAddContact.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -758,7 +759,8 @@ public class SmartDialpadFragment extends DialpadFragment
                 photoId = cursor.getLong(QUERY_PHOTO_ID);
             }
 
-            ImageView photo = view.getPhotoView();
+            QuickContactBadge photo = view.getQuickContact();
+            photo.assignContactFromPhone(cursor.getString(QUERY_NUMBER), true);
             ContactPhotoManager.getInstance(mContext).loadThumbnail(photo, photoId, false);
             view.setPresence(null);
 
@@ -769,7 +771,7 @@ public class SmartDialpadFragment extends DialpadFragment
             final ContactListItemView view = new ContactListItemView(getActivity(), null);
             view.setPhotoPosition(PhotoPosition.LEFT);
             view.setTag(new ContactListItemCache());
-            view.setQuickContactEnabled(false);
+            view.setQuickContactEnabled(true);
             return view;
         }
 
