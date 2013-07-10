@@ -21,9 +21,11 @@
 package com.android.contacts.dialpad;
 
 import android.app.DialogFragment;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.database.CharArrayBuffer;
 import android.database.Cursor;
@@ -40,6 +42,7 @@ import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.Settings;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.text.Editable;
@@ -79,6 +82,7 @@ import com.android.contacts.dialpad.DialpadFragment.ErrorDialogFragment;
 import com.android.contacts.dialpad.HanziToPinyin.Token;
 import com.android.contacts.list.ContactListItemView;
 import com.android.contacts.list.ContactListItemView.PhotoPosition;
+import com.android.contacts.model.account.SimAccountType;
 import com.android.contacts.widget.multiwaveview.GlowPadView;
 import com.android.contacts.R;
 import com.android.contacts.widget.TextWithHighlighting;
@@ -104,6 +108,9 @@ public class SmartDialpadFragment extends DialpadFragment
             ("photo_id"),
             ("lookup"),
     };
+    private static final int AIRPLANE_MODE_ON_VALUE = 1;
+    private static final int AIRPLANE_MODE_OFF_VALUE = 0;
+    private static final String WITHOUT_SIM_FLAG = "no_sim";
     private static final int QUERY_CONTACT_ID = 0;
     private static final int QUERY_NUMBER = 1;
     private static final int QUERY_DISPLAY_NAME = 2;
@@ -170,6 +177,13 @@ public class SmartDialpadFragment extends DialpadFragment
                 setDialButtonLongClicked(true);
                 mDownEvent = null;
             }
+        }
+    };
+
+    private BroadcastReceiver mAirplaneStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context arg0, Intent arg1) {
+            setQueryFilter();
         }
     };
 
@@ -266,6 +280,20 @@ public class SmartDialpadFragment extends DialpadFragment
             mAddContact.setVisibility(View.INVISIBLE);
         }
         setQueryFilter();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        getActivity().registerReceiver(mAirplaneStateReceiver, filter);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unregisterReceiver(mAirplaneStateReceiver);
     }
 
     @Override
@@ -409,6 +437,8 @@ public class SmartDialpadFragment extends DialpadFragment
             }
             if (mCursor != null && !mCursor.isClosed() && mCursor.getCount() > 0) {
                 mCountButton.setVisibility(View.VISIBLE);
+                mCountView.setText(mCursor.getCount() + "");
+                mCountView.invalidate();
             }
             mCancel.setVisibility(View.GONE);
             listScrollTop();
@@ -506,6 +536,15 @@ public class SmartDialpadFragment extends DialpadFragment
         final ContentResolver resolver = getActivity().getContentResolver();
         Builder builder = CONTENT_SMART_DIALER_FILTER_URI.buildUpon();
         builder.appendQueryParameter("filter", filter);
+        // Do not show contacts in SIM card when airmode is on
+        boolean isAirMode = Settings.System.getInt(
+                getActivity().getContentResolver(),Settings.System.AIRPLANE_MODE_ON,
+                        AIRPLANE_MODE_OFF_VALUE) == AIRPLANE_MODE_ON_VALUE;
+        if (isAirMode) {
+            builder.appendQueryParameter(
+                   RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE)
+                           .appendQueryParameter(WITHOUT_SIM_FLAG, "true");
+        }
         mCursor = resolver.query(builder.build(), CONTACTS_SUMMARY_FILTER_NUMBER_PROJECTION, null,
                 null, null);
         // Bring on "Add to contacts" in UI thread when there is no match in
