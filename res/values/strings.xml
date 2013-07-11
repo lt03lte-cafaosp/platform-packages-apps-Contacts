@@ -310,6 +310,11 @@
     <!-- Toast displayed when saving a contact failed. [CHAR LIMIT=NONE] -->
     <string name="contactSavedErrorToast">Couldn\'t save contact changes.</string>
 
+    <!-- Toast displayed when assign speed dial number failed. [CHAR LIMIT=NONE] -->
+    <string name="assignSpeedDialFailToast">
+        The number has already been assigned to a speed dial key, please select another number.
+    </string>
+
     <!-- Toast displayed when saving a contact to sim card failed -->
     <string name="contactSavedToSimCardError">Error, Loading Sim Contacts.</string>
     <string name="airplane_mode_on">Error, Airplane mode is on.</string>

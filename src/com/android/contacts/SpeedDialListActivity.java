@@ -53,6 +53,7 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 public class SpeedDialListActivity extends ListActivity implements OnItemClickListener,
                        OnCreateContextMenuListener {
@@ -220,8 +221,9 @@ public class SpeedDialListActivity extends ListActivity implements OnItemClickLi
                     c = getContentResolver().query(uriRet, null, null, null, null);
                     if (null != c && 0 != c.getCount()) {
                         c.moveToFirst();
-                        mContactDataNumber[numId] = c.getString(
+                        String number = c.getString(
                                 c.getColumnIndexOrThrow(Data.DATA1));
+                        String name = "";
                         int rawContactId = c.getInt(c.getColumnIndexOrThrow("raw_contact_id"));
                         String where = "_id = " + rawContactId;
                         c = getContentResolver().query(
@@ -229,8 +231,16 @@ public class SpeedDialListActivity extends ListActivity implements OnItemClickLi
                                         new String[]{"display_name"}, where, null, null);
                         if (null != c && 0 != c.getCount()) {
                             c.moveToFirst();
-                            mContactDataName[numId] = c.getString(
+                            name = c.getString(
                                     c.getColumnIndexOrThrow("display_name"));
+                            if (!okToSet(number, name)) {
+                                Toast.makeText(this, R.string.assignSpeedDialFailToast,
+                                        Toast.LENGTH_LONG).show();
+                                return ;
+                            } else {
+                                mContactDataName[numId] = name;
+                                mContactDataNumber[numId] = number;
+                            }
                         }
                     } else {
                         mContactDataNumber[numId] = "";
@@ -248,6 +258,20 @@ public class SpeedDialListActivity extends ListActivity implements OnItemClickLi
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private boolean okToSet(String number, String name) {
+        boolean isCheckOk = true;
+        for (String phoneNumber: mContactDataNumber) {
+            if (number.equals(phoneNumber)) {
+                for (String phoneName: mContactDataName) {
+                    if (name.equals(phoneName)) {
+                        isCheckOk = false;
+                    }
+                }
+            }
+        }
+        return isCheckOk;
     }
 
     @Override
