@@ -113,6 +113,7 @@
     <string name="contactSavedToast" msgid="7152589189385441091">"此联系人已保存。"</string>
     <string name="contactDeletedToast">"此联系人已删除。"</string>
     <string name="contactSavedErrorToast" msgid="3207250533172944892">"无法保存联系人更改。"</string>
+    <string name="assignSpeedDialFailToast">此号码已分配了快速拨号键，请选择其它号码。</string>
     <string name="contactSavedToSimCardError">"发生错误，正在载入SIM卡联系人。"</string>
     <string name="airplane_mode_on">"发生错误，当前处于飞行模式。"</string>
     <string name="number_anr_too_long">"发生错误，电话号码过长。"</string>
