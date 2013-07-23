@@ -201,19 +201,16 @@ public class ContactDetailDisplayUtils {
     /**
      * Sets the starred state of this contact.
      */
-    public static void configureStarredMenuItem(MenuItem starredMenuItem, boolean isDirectoryEntry,
+    public static void configureStarredMenuItem(ImageView star, boolean isDirectoryEntry,
             boolean isUserProfile, boolean isStarred) {
         // Check if the starred state should be visible
         if (!isDirectoryEntry && !isUserProfile) {
-            starredMenuItem.setVisible(true);
             final int resId = isStarred
                     ? R.drawable.btn_star_on_normal_holo_dark
                     : R.drawable.btn_star_off_normal_holo_dark;
-            starredMenuItem.setIcon(resId);
-            starredMenuItem.setChecked(isStarred);
-            starredMenuItem.setTitle(isStarred ? R.string.menu_removeStar : R.string.menu_addStar);
+            star.setImageResource(resId);
         } else {
-            starredMenuItem.setVisible(false);
+            star.setVisibility(View.INVISIBLE);
         }
     }
 
