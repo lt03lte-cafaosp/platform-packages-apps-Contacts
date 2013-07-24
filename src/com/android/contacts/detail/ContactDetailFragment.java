@@ -116,6 +116,7 @@ import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.StructuredPostalUtils;
 import com.android.contacts.util.UiClosables;
 import com.android.internal.telephony.ITelephony;
+import com.android.internal.telephony.PhoneConstants;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
@@ -141,6 +142,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         static final int SET_DEFAULT = 2;
         static final int EDIT_BEFORE_CALL = 3;
         static final int VIDEOCALL = 4;    // add for new feature: csvt call prefix
+        static final int IPCALL = 5; // add for new feature: ip call prefix
     }
 
     private static final String KEY_CONTACT_URI = "contactUri";
@@ -167,7 +169,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     private String mDefaultCountryIso;
     private boolean mContactHasSocialUpdates;
     private boolean mShowStaticPhoto = true;
-
+    private static final int MAX_NUM_LENGTH = 3; // add limit length to show IP call item
     private final QuickFix[] mPotentialQuickFixes = new QuickFix[] {
             new MakeLocalCopyQuickFix(),
             new AddToMyContactsQuickFix()
@@ -1955,6 +1957,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         entry.click(view, mListener);
     }
 
+
     @Override
     public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, view, menuInfo);
@@ -1990,8 +1993,13 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         } else if (!isUniqueMimeType) {
             menu.add(ContextMenu.NONE, ContextMenuIds.SET_DEFAULT,
                     ContextMenu.NONE, getString(R.string.set_default));
-            }
+        }
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedMimeType)) {
+            // add limit length to show IP call item
+            if (selectedEntry.data.length() > MAX_NUM_LENGTH) {
+                menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL,
+                        ContextMenu.NONE, getString(R.string.ipcall));
+            }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
             if (isVTSupported()){
@@ -2020,6 +2028,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 return true;
             case ContextMenuIds.CLEAR_DEFAULT:
                 clearDefaultContactMethod(mListView.getItemIdAtPosition(menuInfo.position));
+                return true;
+            case ContextMenuIds.IPCALL:
+                callViaIP(menuInfo.position);
                 return true;
             case ContextMenuIds.EDIT_BEFORE_CALL:
                 callByEdit(menuInfo.position);
@@ -2051,6 +2062,13 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         if (TextUtils.isEmpty(textToCopy)) return;
 
         ClipboardUtils.copyText(getActivity(), detailViewEntry.typeString, textToCopy, true);
+    }
+
+    private void callViaIP(int viewEntryPosition) {
+        DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
+        Intent callIntent = new Intent(detailViewEntry.intent);
+        callIntent.putExtra(PhoneConstants.IP_CALL, true);
+        mContext.startActivity(callIntent);
     }
 
     private void callByEdit(int viewEntryPosition) {
