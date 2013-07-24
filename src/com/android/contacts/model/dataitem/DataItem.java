@@ -23,6 +23,7 @@ import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.Identity;
 import android.provider.ContactsContract.CommonDataKinds.Im;
+import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.CommonDataKinds.Nickname;
 import android.provider.ContactsContract.CommonDataKinds.Note;
 import android.provider.ContactsContract.CommonDataKinds.Organization;
@@ -84,6 +85,8 @@ public class DataItem {
             return new IdentityDataItem(values);
         } else if (Photo.CONTENT_ITEM_TYPE.equals(mimeType)) {
             return new PhotoDataItem(values);
+        } else if (LocalGroup.CONTENT_ITEM_TYPE.equals(mimeType)) {
+            return new LocalGroupDataItem(values);
         }
 
         // generic

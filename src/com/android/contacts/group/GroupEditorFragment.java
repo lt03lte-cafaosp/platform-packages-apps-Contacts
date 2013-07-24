@@ -310,7 +310,9 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
 
     private void selectAccountAndCreateGroup() {
         final List<AccountWithDataSet> accounts =
-                AccountTypeManager.getInstance(mContext).getAccounts(true /* writeable */);
+            AccountTypeManager.getInstance(mContext).getAccounts(true,
+                AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_LOCAL);
+
         // No Accounts available
         if (accounts.isEmpty()) {
             Log.e(TAG, "No accounts were found.");
