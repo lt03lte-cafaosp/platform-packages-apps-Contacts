@@ -851,4 +851,13 @@
 
     <!-- Description when picture in the contact detail view is selected. [CHAR LIMIT=NONE] -->
     <string name="contact_detail_picture_description">Picture. Select to change</string>
+
+    <string name="description_videocall">Video call <xliff:g id="name">%1$s</xliff:g></string>
+
+    <!-- String describing the text for a  Video call number in quick contact.
+
+        Note: AccessibilityServices use this attribute to announce what the view represents.
+              This is especially valuable for views without textual representation like ImageView.
+    -->
+    <string name="description_dial_vt">Dial vt <xliff:g id="name">%1$s</xliff:g></string>
 </resources>
