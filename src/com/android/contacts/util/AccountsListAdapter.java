@@ -81,7 +81,8 @@ public final class AccountsListAdapter extends BaseAdapter {
             return new ArrayList<AccountWithDataSet>(mAccountTypes.getAccounts(true, AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_LOCAL));
         }
         final List<AccountWithDataSet> writableAccountList = mAccountTypes.getAccounts(
-            accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE);
+            accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE
+                || accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE_WITHOUT_SIM);
         List<AccountWithDataSet> deletedList = new ArrayList<AccountWithDataSet>();
 
         if (accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE_WITHOUT_SIM) {

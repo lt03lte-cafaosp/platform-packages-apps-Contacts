@@ -68,6 +68,7 @@ import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.RawContacts;
+import android.provider.ContactsContract.RawContactsEntity;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.telephony.MSimTelephonyManager;
@@ -263,6 +264,8 @@ public class MultiPickContactActivity extends ListActivity implements
     // but what we want is that different instance may have different mode.
     private int mMode;
 
+    private String mAction;
+
     //Whether the list view use Fast Scroll.
     private boolean mNeedFastScroll;
 
@@ -333,6 +336,7 @@ public class MultiPickContactActivity extends ListActivity implements
         Log.d(TAG, "onCreate");
         Intent intent = getIntent();
         String action = intent.getAction();
+        mAction = action;
         if (Intent.ACTION_DELETE.equals(action)) {
             mMode = MODE_DEFAULT_CONTACT;
             setTitle(R.string.menu_deleteContact);
@@ -875,8 +879,16 @@ public class MultiPickContactActivity extends ListActivity implements
             default:
                 throw new IllegalArgumentException("getUriToQuery: Incorrect mode: " + mMode);
         }
-        return uri.buildUpon()
-                .appendQueryParameter(ContactCounts.ADDRESS_BOOK_INDEX_EXTRAS, "true").build();
+
+        //If action is delete, the restricted contacts will be hidden.
+        if (Intent.ACTION_DELETE.equals(mAction)) {
+            return uri.buildUpon()
+                    .appendQueryParameter(ContactCounts.ADDRESS_BOOK_INDEX_EXTRAS, "true").appendQueryParameter(RawContactsEntity.FOR_EXPORT_ONLY, "1")
+                    .build();
+        } else {
+            return uri.buildUpon()
+                    .appendQueryParameter(ContactCounts.ADDRESS_BOOK_INDEX_EXTRAS, "true").build();
+        }
     }
 
     /**

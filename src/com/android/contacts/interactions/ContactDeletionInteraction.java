@@ -32,6 +32,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Contacts.Entity;
+import android.util.Log;
 
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.R;
@@ -272,19 +273,29 @@ public class ContactDeletionInteraction extends Fragment
     }
 
     private void showDialog(int messageId, final Uri contactUri) {
-        mDialog = new AlertDialog.Builder(getActivity())
-                .setIconAttribute(android.R.attr.alertDialogIcon)
-                .setMessage(messageId)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(android.R.string.ok,
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int whichButton) {
-                            doDeleteContact(contactUri);
+        //If contacts is readonly, don't delete it.
+        if (messageId == R.string.readOnlyContactWarning) {
+            Log.d("CDI","showDialog setNeutralButton");
+            mDialog = new AlertDialog.Builder(getActivity())
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
+                    .setMessage(messageId)
+                    .setNeutralButton(android.R.string.cancel, null)
+                    .create();
+        } else {
+            mDialog = new AlertDialog.Builder(getActivity())
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
+                    .setMessage(messageId)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                doDeleteContact(contactUri);
+                            }
                         }
-                    }
-                )
-                .create();
+                    )
+                    .create();
+        }
 
         if (messageId == R.string.deleteConfirmation) {
             mDialog.setTitle(R.string.deleteConfirmation_title);
