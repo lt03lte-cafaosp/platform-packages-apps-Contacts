@@ -34,6 +34,7 @@ import android.view.View.OnClickListener;
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
 import com.android.contacts.R;
+import com.android.contacts.SimContactsConstants;
 import com.android.contacts.editor.ContactEditorFragment;
 import com.android.contacts.editor.ContactEditorFragment.SaveMode;
 import com.android.contacts.common.model.AccountTypeManager;
@@ -62,6 +63,7 @@ public class ContactEditorActivity extends ContactsActivity
     private boolean mFinishActivityOnSaveCompleted;
 
     private DialogManager mDialogManager = new DialogManager(this);
+
 
     @Override
     public void onCreate(Bundle savedState) {
@@ -132,9 +134,10 @@ public class ContactEditorActivity extends ContactsActivity
             mFragment.setIntentExtras(intent.getExtras());
         } else if (ACTION_SAVE_COMPLETED.equals(action)) {
             mFragment.onSaveCompleted(true,
-                    intent.getIntExtra(ContactEditorFragment.SAVE_MODE_EXTRA_KEY, SaveMode.CLOSE),
-                    intent.getBooleanExtra(ContactSaveService.EXTRA_SAVE_SUCCEEDED, false),
-                    intent.getData());
+                intent.getIntExtra(ContactEditorFragment.SAVE_MODE_EXTRA_KEY, SaveMode.CLOSE),
+                intent.getBooleanExtra(ContactSaveService.EXTRA_SAVE_SUCCEEDED, false),
+                intent.getData(),
+                intent.getIntExtra(ContactSaveService.SAVE_CONTACT_RESULT, 0));
         } else if (ACTION_JOIN_COMPLETED.equals(action)) {
             mFragment.onJoinCompleted(intent.getData());
         }
@@ -254,5 +257,20 @@ public class ContactEditorActivity extends ContactsActivity
     @Override
     public DialogManager getDialogManager() {
         return mDialogManager;
+    }
+
+    public static int getSubscription(String accountType, String accountName){
+        int subscription = -1;
+        if (accountType == null || accountName == null)
+            return subscription;
+        if (accountType.equals(SimContactsConstants.ACCOUNT_TYPE_SIM)) {
+            if (accountName.equals(SimContactsConstants.SIM_NAME))
+                subscription = SimContactsConstants.SUB_1;
+            else if (accountName.equals(SimContactsConstants.SIM_NAME_1))
+                subscription = SimContactsConstants.SUB_1;
+            else if (accountName.equals(SimContactsConstants.SIM_NAME_2))
+                subscription = SimContactsConstants.SUB_2;
+        }
+        return subscription;
     }
 }
