@@ -22,6 +22,8 @@ import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,6 +37,8 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
@@ -52,7 +56,7 @@ import com.android.contacts.util.PhoneCapabilityTester;
 
 import java.util.ArrayList;
 
-public class ContactDetailActivity extends ContactsActivity {
+public class ContactDetailActivity extends ContactsActivity implements View.OnClickListener {
     private static final String TAG = "ContactDetailActivity";
 
     /** Shows a toogle button for hiding/showing updates. Don't submit with true */
@@ -65,6 +69,13 @@ public class ContactDetailActivity extends ContactsActivity {
     private ContactLoaderFragment mLoaderFragment;
 
     private Handler mHandler = new Handler();
+
+    // add for UX_Enhance_Contacts details view
+    private ImageView mBack;
+    private TextView mName;
+    private ImageView mStar;
+    private ImageView mPhoto;
+    private boolean mStarred;
 
     @Override
     protected void onCreate(Bundle savedState) {
@@ -96,6 +107,7 @@ public class ContactDetailActivity extends ContactsActivity {
         }
 
         setContentView(R.layout.contact_detail_activity);
+        initView();
 
         mContactDetailLayoutController = new ContactDetailLayoutController(this, savedState,
                 getFragmentManager(), null, findViewById(R.id.contact_detail_container),
@@ -109,6 +121,7 @@ public class ContactDetailActivity extends ContactsActivity {
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_TITLE
                     | ActionBar.DISPLAY_SHOW_HOME);
             actionBar.setTitle("");
+            actionBar.hide();
         }
 
         Log.i(TAG, getIntent().getData().toString());
@@ -123,62 +136,6 @@ public class ContactDetailActivity extends ContactsActivity {
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.star, menu);
-        if (DEBUG_TRANSITIONS) {
-            final MenuItem toggleSocial =
-                    menu.add(mLoaderFragment.getLoadStreamItems() ? "less" : "more");
-            toggleSocial.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-            toggleSocial.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    mLoaderFragment.toggleLoadStreamItems();
-                    invalidateOptionsMenu();
-                    return false;
-                }
-            });
-        }
-        return true;
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        final MenuItem starredMenuItem = menu.findItem(R.id.menu_star);
-        starredMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                // Toggle "starred" state
-                // Make sure there is a contact
-                if (mLookupUri != null) {
-                    // Read the current starred value from the UI instead of using the last
-                    // loaded state. This allows rapid tapping without writing the same
-                    // value several times
-                    final boolean isStarred = starredMenuItem.isChecked();
-
-                    // To improve responsiveness, swap out the picture (and tag) in the UI already
-                    ContactDetailDisplayUtils.configureStarredMenuItem(starredMenuItem,
-                            mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
-                            !isStarred);
-
-                    // Now perform the real save
-                    Intent intent = ContactSaveService.createSetStarredIntent(
-                            ContactDetailActivity.this, mLookupUri, !isStarred);
-                    ContactDetailActivity.this.startService(intent);
-                }
-                return true;
-            }
-        });
-        // If there is contact data, update the starred state
-        if (mContactData != null) {
-            ContactDetailDisplayUtils.configureStarredMenuItem(starredMenuItem,
-                    mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
-                    mContactData.getStarred());
-        }
-        return true;
-    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -226,7 +183,7 @@ public class ContactDetailActivity extends ContactsActivity {
                     mContactData = result;
                     mLookupUri = result.getLookupUri();
                     invalidateOptionsMenu();
-                    setupTitle();
+                    setupBar();
                     mContactDetailLayoutController.setContactData(mContactData);
                 }
             });
@@ -252,15 +209,29 @@ public class ContactDetailActivity extends ContactsActivity {
     /**
      * Setup the activity title and subtitle with contact name and company.
      */
-    private void setupTitle() {
+    private void setupBar() {
         CharSequence displayName = ContactDetailDisplayUtils.getDisplayName(this, mContactData);
         String company =  ContactDetailDisplayUtils.getCompany(this, mContactData);
-
-        ActionBar actionBar = getActionBar();
-        actionBar.setTitle(displayName);
-        actionBar.setSubtitle(company);
-
         final StringBuilder talkback = new StringBuilder();
+
+        mName.setText(displayName);
+
+        byte[] photoBytes = mContactData.getPhotoBinaryData();
+        if (photoBytes != null) {
+            final Bitmap photo = BitmapFactory.decodeByteArray(photoBytes, 0,
+                    photoBytes.length);
+
+            mPhoto.setImageBitmap(photo);
+        } else {
+            mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        }
+        // If there is contact data, update the starred state
+        if (mContactData != null) {
+            ContactDetailDisplayUtils.configureStarredMenuItem(mStar,
+                    mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
+                    mContactData.getStarred());
+            mStarred = mContactData.getStarred();
+        }
         if (!TextUtils.isEmpty(displayName)) {
             talkback.append(displayName);
         }
@@ -320,5 +291,48 @@ public class ContactDetailActivity extends ContactsActivity {
          * otherwise.
          */
         public boolean handleKeyDown(int keyCode);
+    }
+
+    // add for UX_Enhance_Contacts details view
+    private void initView() {
+        mName = ((TextView) this.findViewById(R.id.name));
+        mName.setOnClickListener(this);
+        mBack = ((ImageView) this.findViewById(R.id.back));
+        mBack.setOnClickListener(this);
+        mStar = ((ImageView) this.findViewById(R.id.star));
+        mStar.setOnClickListener(this);
+        mPhoto = ((ImageView) this.findViewById(R.id.photo));
+    }
+
+    // add for UX_Enhance_Contacts details view
+    public void onClick(View v) {
+        int id = v.getId();
+        switch (id) {
+            case R.id.back:
+            case R.id.name:
+                finish();
+                break;
+            case R.id.star:
+                if (mLookupUri != null && null != mContactData) {
+                    // Read the current starred value from the UI instead of
+                    // using the last
+                    // loaded state. This allows rapid tapping without writing
+                    // the same
+                    // value several times
+                    mStarred = !mStarred;
+
+                    // To improve responsiveness, swap out the picture (and tag)
+                    // in the UI already
+                    ContactDetailDisplayUtils.configureStarredMenuItem(mStar,
+                            mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
+                            mStarred);
+
+                    // Now perform the real save
+                    Intent intent = ContactSaveService.createSetStarredIntent(
+                            ContactDetailActivity.this, mLookupUri, mStarred);
+                    ContactDetailActivity.this.startService(intent);
+                }
+                break;
+        }
     }
 }
