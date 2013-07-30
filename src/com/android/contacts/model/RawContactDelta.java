@@ -36,7 +36,7 @@ import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.test.NeededForTesting;
-import com.android.contacts.SimContactsConstants;
+import com.android.contacts.common.SimContactsConstants;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
