@@ -203,7 +203,11 @@ public class TextFieldsEditorView extends LabeledEditorView {
         boolean hidePossible = false;
 
         int fieldCount = kind.fieldList.size();
-        mFieldEditTexts = new EditText[fieldCount];
+        if (LocalGroup.CONTENT_ITEM_TYPE.equals(kind.mimeType)) {
+            localGroupsSelectors = new LocalGroupsSelector[fieldCount];
+        } else {
+            mFieldEditTexts = new EditText[fieldCount];
+        }
         for (int index = 0; index < fieldCount; index++) {
             final EditField field = kind.fieldList.get(index);
             if (LocalGroup.CONTENT_ITEM_TYPE.equals(kind.mimeType)) {
@@ -374,10 +378,11 @@ public class TextFieldsEditorView extends LabeledEditorView {
         super.onRestoreInstanceState(ss.getSuperState());
 
         mHideOptional = ss.mHideOptional;
-
-        int numChildren = Math.min(mFieldEditTexts.length, ss.mVisibilities.length);
-        for (int i = 0; i < numChildren; i++) {
-            mFieldEditTexts[i].setVisibility(ss.mVisibilities[i]);
+        if (mFieldEditTexts != null) {
+            int numChildren = Math.min(mFieldEditTexts.length, ss.mVisibilities.length);
+            for (int i = 0; i < numChildren; i++) {
+                mFieldEditTexts[i].setVisibility(ss.mVisibilities[i]);
+            }
         }
     }
 
