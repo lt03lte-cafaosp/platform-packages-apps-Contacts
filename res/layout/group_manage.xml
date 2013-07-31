@@ -91,6 +91,13 @@
                 android:text="@string/button_delete" />
 
             <Button
+                android:id="@+id/btn_move"
+                android:layout_width="0dip"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/button_moveto" />
+
+            <Button
                 android:id="@+id/btn_cancel"
                 android:layout_width="0dip"
                 android:layout_height="match_parent"

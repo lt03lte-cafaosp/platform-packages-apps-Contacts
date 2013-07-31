@@ -754,6 +754,7 @@
     <string name="noMember">No member in this group.</string>
     <string name="title_group_edit">Group edit</string>
     <string name="button_delete">Remove</string>
+    <string name="button_moveto">Move</string>
     <string name="button_cancel">Cancel</string>
     <string name="summary_add_members">Add contacts to the group</string>
     <string name="title_members_list">Members of the group</string>

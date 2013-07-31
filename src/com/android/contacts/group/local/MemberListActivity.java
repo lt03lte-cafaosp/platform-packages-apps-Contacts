@@ -29,11 +29,14 @@
 
 package com.android.contacts.group.local;
 
+import android.app.AlertDialog;
 import android.app.TabActivity;
 import android.content.AsyncQueryHandler;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.database.ContentObserver;
@@ -53,6 +56,8 @@ import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Contacts.Photo;
 import android.provider.ContactsContract.Data;
+import android.provider.LocalGroups;
+import android.provider.LocalGroups.GroupColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -117,6 +122,8 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
 
     private Button deleteBtn;
 
+    private Button moveBtn;
+
     private Button cancelBtn;
 
     private DeleteMembersThread mDeleteMembersTask;
@@ -133,9 +140,13 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
     private class DeleteMembersThread extends Thread {
         public static final int TASK_RUNNING = 1;
         public static final int TASK_CANCEL = 2;
+        public static final int OPERATION_DELETE = 1;
+        public static final int OPERATION_MOVE = 2;
         private static final int BUFFER_LENGTH = 499;
         private Bundle mRemoveSet = null;
         private int status = TASK_RUNNING;
+        private int mOperation = OPERATION_DELETE;
+        private int mGroupId;
 
         public DeleteMembersThread(Bundle removeSet) {
             super();
@@ -147,6 +158,14 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
 
         public void setStatus(int status) {
             this.status = status;
+        }
+
+        public void setOperation(int operation) {
+            this.mOperation = operation;
+        }
+
+        public void setGroupId(int groupId) {
+            this.mGroupId = groupId;
         }
 
         private void deleteMembers(ArrayList<ContentProviderOperation> list, ContentResolver cr) {
@@ -172,11 +191,21 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
             Iterator<String> it = keySet.iterator();
             int i = 0;
             while (it.hasNext() && status == TASK_RUNNING) {
-                builder = ContentProviderOperation.newDelete(Data.CONTENT_URI);
-                builder.withSelection(Data.RAW_CONTACT_ID + "=? and " + Data.MIMETYPE
-                    + "=?", new String[] {
-                    it.next(), LocalGroup.CONTENT_ITEM_TYPE
-                });
+                if (OPERATION_DELETE == mOperation) {
+                    builder = ContentProviderOperation.newDelete(Data.CONTENT_URI);
+                    builder.withSelection(Data.RAW_CONTACT_ID + "=? and " + Data.MIMETYPE
+                            + "=?", new String[] {
+                            it.next(), LocalGroup.CONTENT_ITEM_TYPE
+                    });
+                } else {
+                    builder = ContentProviderOperation.newUpdate(Data.CONTENT_URI);
+                    builder.withSelection(Data.RAW_CONTACT_ID + "=? and " + Data.MIMETYPE
+                            + "=?", new String[] {
+                            it.next(), LocalGroup.CONTENT_ITEM_TYPE
+                    });
+                    builder.withValue(LocalGroup.DATA1, mGroupId);
+                }
+
                 removeList.add(builder.build());
                 if (++i % BUFFER_LENGTH == 0) {
                    deleteMembers(removeList, cr);
@@ -219,8 +248,10 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
 
         toolsBar = findViewById(R.id.tool_bar);
         deleteBtn = (Button) toolsBar.findViewById(R.id.btn_delete);
+        moveBtn = (Button) toolsBar.findViewById(R.id.btn_move);
         cancelBtn = (Button) toolsBar.findViewById(R.id.btn_cancel);
         deleteBtn.setOnClickListener(this);
+        moveBtn.setOnClickListener(this);
         cancelBtn.setOnClickListener(this);
 
         removeSet = new Bundle();
@@ -502,8 +533,57 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
         } else if (v == deleteBtn) {
             removeContactsFromGroup();
             mAdapter.refresh();
+        } else if (v == moveBtn) {
+            chooseGroup();
         }
 
+    }
+
+    private void chooseGroup() {
+        final Cursor cursor = this.getContentResolver().query(LocalGroups.CONTENT_URI,
+                new String[] { GroupColumns._ID, GroupColumns.TITLE }, null, null, null);
+        int index = -1;
+        int count = -1;
+        if (cursor != null && cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                count++;
+                if (uri.getLastPathSegment().equals(cursor.getString(0))) {
+                    index = count;
+                    break;
+                }
+            }
+        }
+        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                cursor.moveToPosition(which);
+                moveContactstoGroup(cursor.getInt(0));
+                dialog.dismiss();
+            }
+        };
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setSingleChoiceItems(cursor, index, GroupColumns.TITLE, listener)
+                .setTitle(R.string.group_selector)
+                .show();
+        dialog.setOnDismissListener(new OnDismissListener() {
+            public void onDismiss(DialogInterface dialog) {
+                if (cursor != null && !cursor.isClosed())
+                    cursor.close();
+            }
+        });
+    }
+
+    private void moveContactstoGroup(int groupId) {
+        if (removeSet != null && removeSet.size() > 0) {
+            Bundle bundleData = (Bundle) removeSet.clone();
+            if (mDeleteMembersTask != null) {
+                mDeleteMembersTask.setStatus(DeleteMembersThread.TASK_CANCEL);
+                mDeleteMembersTask = null;
+            }
+            mDeleteMembersTask = new DeleteMembersThread(bundleData);
+            mDeleteMembersTask.setOperation(DeleteMembersThread.OPERATION_MOVE);
+            mDeleteMembersTask.setGroupId(groupId);
+            mDeleteMembersTask.start();
+        }
     }
 
     private void removeContactsFromGroup() {
@@ -514,6 +594,7 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
                 mDeleteMembersTask = null;
             }
             mDeleteMembersTask = new DeleteMembersThread(bundleData);
+            mDeleteMembersTask.setOperation(DeleteMembersThread.OPERATION_DELETE);
             mDeleteMembersTask.start();
         }
     }
