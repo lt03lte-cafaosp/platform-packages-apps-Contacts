@@ -1236,7 +1236,13 @@ public class ContactEditorFragment extends Fragment implements
         if (hadChanges) {
             if (saveSucceeded) {
                 if (saveMode != SaveMode.JOIN) {
-                    Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT).show();
+                    if (null != contactLookupUri) {
+                        Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
+                                .show();
+                    } else {
+                        Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)
+                                .show();
+                    }
                 }
             } else {
                 Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG).show();
