@@ -272,6 +272,7 @@
     <string name="noMember">"该群组中没有成员。"</string>
     <string name="title_group_edit">编辑群组</string>
     <string name="button_delete">移除</string>
+    <string name="button_moveto">移动</string>
     <string name="button_cancel">取消</string>
     <string name="summary_add_members">从通讯簿中添加联系人到该群组中</string>
     <string name="title_members_list">群组成员</string>
