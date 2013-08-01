@@ -424,7 +424,8 @@ public class ContactSaveService extends IntentService {
                 sb.append(")");
 
                 if (first) {
-                    throw new IllegalStateException("Version consistency failed for a new contact");
+                    //throw new IllegalStateException("Version consistency failed for a new contact");
+                    Toast.makeText(ContactSaveService.this, "Version consistency failed for a new contact", Toast.LENGTH_SHORT).show();
                 }
 
                 final EntityDeltaList newState = EntityDeltaList.fromQuery(
