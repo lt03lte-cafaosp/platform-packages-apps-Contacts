@@ -327,4 +327,7 @@
     <string name="fail_reason_import_vcard">I/O 錯誤，無法匯入vCard <xliff:g id="name">%1$s</xliff:g></string>
     <string name="menu_export_database" msgid="2659719297530170820">"匯出資料庫檔案"</string>
     <string name="contact_detail_picture_description" msgid="6083230522651287030">"圖片 (選取即可變更)"</string>
+    <string name="private_num">"私人號碼"</string>
+    <string name="payphone">"公用電話"</string>
+    <string name="voicemail">"語音留言"</string>
 </resources>

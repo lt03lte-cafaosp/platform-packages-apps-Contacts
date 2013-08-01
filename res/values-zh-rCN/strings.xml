@@ -366,4 +366,7 @@
     <string name="delete_locale_group_dialog_message">您确定要删除此群组吗?</string>
     <string name="menu_export_database" msgid="2659719297530170820">"导出数据库文件"</string>
     <string name="contact_detail_picture_description" msgid="6083230522651287030">"照片（选择即可更换）"</string>
+    <string name="private_num">"私人号码"</string>
+    <string name="payphone">"公用电话"</string>
+    <string name="voicemail">"语音信箱"</string>
 </resources>
