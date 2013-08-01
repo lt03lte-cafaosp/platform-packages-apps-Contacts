@@ -350,6 +350,7 @@ public abstract class PhotoSelectionHandler implements OnClickListener {
         final String croppedPhotoPath = ContactPhotoUtils.pathForCroppedPhoto(mContext, photoFile);
         final Uri croppedPhotoUri = Uri.fromFile(new File(croppedPhotoPath));
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT, null);
+        intent.putExtra("needFileUri",true);
         intent.setType("image/*");
         ContactPhotoUtils.addGalleryIntentExtras(intent, croppedPhotoUri, mPhotoPickSize);
         return intent;
