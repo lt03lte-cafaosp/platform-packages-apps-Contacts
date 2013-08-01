@@ -100,6 +100,7 @@ import com.android.contacts.R;
 import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.SimContactsOperation;
 import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
+import com.android.internal.telephony.CallerInfo;
 import com.android.contacts.activities.PeopleActivity;
 import com.android.contacts.common.list.AccountFilterActivity;
 import com.android.contacts.common.list.ContactListFilter;
@@ -237,6 +238,7 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private static final int DIALOG_DEL_CALL = 1;
 
+    static final String SUBSCRIPTION = "Subscription";
     private ContactItemListAdapter mAdapter;
     private QueryHandler mQueryHandler;
     private Bundle mChoiceSet;
@@ -250,8 +252,11 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private ProgressDialog mProgressDialog;
     private Drawable mDrawableIncoming;
+    private Drawable mDrawableCsvtIncoming;
     private Drawable mDrawableOutgoing;
+    private Drawable mDrawableCsvtOutgoing;
     private Drawable mDrawableMissed;
+    private Drawable mDrawableCsvtMissed;
     private CharSequence[] mLabelArray;
     private SimContactsOperation mSimContactsOperation;
 
@@ -260,6 +265,7 @@ public class MultiPickContactActivity extends ListActivity implements
     private Context mContext;
     private Intent mIntent;
     private AccountManager accountManager;
+    private int mSubscription = -1;
 
     private static final String[] COLUMN_NAMES = new String[] {
         "name",
@@ -314,7 +320,18 @@ public class MultiPickContactActivity extends ListActivity implements
             mMode = MODE_DEFAULT_PHONE;
         } else if (ACTION_MULTI_PICK_EMAIL.equals(action)) {
             mMode = MODE_DEFAULT_EMAIL;
-        } else if (ACTION_MULTI_PICK_SIM.equals(action)) {
+        } else if (ACTION_MULTI_PICK_CALL.equals(action)) {
+            mMode = MODE_DEFAULT_CALL;
+            setTitle(R.string.delete_call_title);
+            mDrawableIncoming = getResources().getDrawable(
+                    R.drawable.ic_call_log_list_incoming_call);
+            mDrawableOutgoing = getResources().getDrawable(
+                    R.drawable.ic_call_log_list_outgoing_call);
+            mDrawableMissed = getResources().getDrawable(
+                    R.drawable.ic_call_log_list_missed_call);
+            mLabelArray = getResources().getTextArray(com.android.internal.R.array.phoneTypes);
+            mSubscription = intent.getIntExtra(SUBSCRIPTION, -1);
+        }else if (ACTION_MULTI_PICK_SIM.equals(action)) {
             mMode = MODE_DEFAULT_SIM;
         }
 
@@ -425,6 +442,7 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private String getOKString() {
+
         return getString(R.string.btn_ok) + "(" + mChoiceSet.size() + ")";
     }
 
@@ -465,6 +483,13 @@ public class MultiPickContactActivity extends ListActivity implements
                         .setNegativeButton(android.R.string.cancel, null)
                         .setPositiveButton(android.R.string.ok,
                                 new DeleteClickListener()).create();
+            }
+           case DIALOG_DEL_CALL:{
+                return new AlertDialog.Builder(this).setTitle(R.string.title_del_call)
+                        .setIcon(android.R.drawable.ic_dialog_alert).setMessage(
+                                R.string.delete_call_alert).setNegativeButton(
+                                android.R.string.cancel, null).setPositiveButton(
+                                android.R.string.ok, new DeleteClickListener()).create();
             }
            case R.id.dialog_import_sim_contact_confirmation: {
                 return new AlertDialog.Builder(this)
@@ -618,7 +643,10 @@ public class MultiPickContactActivity extends ListActivity implements
             CharSequence title = null;
             CharSequence message = null;
 
-            if (isPickSim()) {
+            if(isPickCall()){
+                title = getString(R.string.delete_call_title);
+                message = getString(R.string.delete_call_message);
+            }else if(isPickSim()){
                 title = getString(R.string.import_sim_contacts_title);
                 message = getString(R.string.import_sim_contacts_message);
             } else {
@@ -877,6 +905,14 @@ public class MultiPickContactActivity extends ListActivity implements
             case MODE_DEFAULT_SIM:
             case MODE_SEARCH_SIM:
                 return null;
+            case MODE_DEFAULT_CALL:
+                // Add a subscription judgement, if selection = -1 that means
+                // need query both cards.
+                String selection = null;
+                if (-1 != mSubscription) {
+                    selection = Calls.SUBSCRIPTION + "=" + mSubscription;
+                }
+                return selection;
             default:
                 return null;
         }
@@ -990,6 +1026,29 @@ public class MultiPickContactActivity extends ListActivity implements
     private String getMultiSimName(int subscription) {
         return Settings.System.getString(getContentResolver(),
                 Settings.System.MULTI_SIM_NAME[subscription]);
+    }
+
+    private CharSequence getDisplayNumber(CharSequence number, CharSequence formattedNumber) {
+        if (TextUtils.isEmpty(number)) {
+            return "";
+        }
+        if (number.equals(CallerInfo.UNKNOWN_NUMBER)) {
+            return getString(R.string.unknown);
+        }
+        if (number.equals(CallerInfo.PRIVATE_NUMBER)) {
+            return getString(R.string.private_num);
+        }
+        if (number.equals(CallerInfo.PAYPHONE_NUMBER)) {
+            return getString(R.string.payphone);
+        }
+        if (PhoneNumberUtils.isVoiceMailNumber(number.toString())) {
+            return getString(R.string.voicemail);
+        }
+        if (TextUtils.isEmpty(formattedNumber)) {
+            return number;
+        } else {
+            return formattedNumber;
+        }
     }
 
     private boolean isPickContact() {
@@ -1164,6 +1223,94 @@ public class MultiPickContactActivity extends ListActivity implements
                 cache.email = cursor.getString(EMAIL_COLUMN_ADDRESS);
                 ((TextView) view.findViewById(R.id.pick_contact_name)).setText(cache.name);
                 ((TextView) view.findViewById(R.id.pick_contact_number)).setText(cache.email);
+            } else if (isPickCall()) {
+                cache.id = cursor.getLong(ID_COLUMN_INDEX);
+                String number = cursor.getString(NUMBER_COLUMN_INDEX);
+
+                //add string convert for 'unknow' to display
+                if (CallerInfo.UNKNOWN_NUMBER.equals(number)){
+                    number = getResources().getString(R.string.unknown);
+                }
+                String callerName = cursor.getString(CALLER_NAME_COLUMN_INDEX);
+                int callerNumberType = cursor.getInt(CALLER_NUMBERTYPE_COLUMN_INDEX);
+                String callerNumberLabel = cursor.getString(CALLER_NUMBERLABEL_COLUMN_INDEX);
+                int subscription = cursor.getInt(PHONE_SUBSCRIPTION_COLUMN_INDEX);
+                long date = cursor.getLong(DATE_COLUMN_INDEX);
+                long duration = cursor.getLong(DURATION_COLUMN_INDEX);
+                int type = cursor.getInt(CALL_TYPE_COLUMN_INDEX);
+
+                ImageView callType = (ImageView) view.findViewById(R.id.call_type_icon);
+                TextView dateText = (TextView) view.findViewById(R.id.date);
+                TextView durationText = (TextView) view.findViewById(R.id.duration);
+                TextView subSlotText = (TextView) view.findViewById(R.id.subscription);
+                TextView numberLableText = (TextView) view.findViewById(R.id.label);
+                TextView numberText = (TextView) view.findViewById(R.id.number);
+                TextView callerNameText = (TextView) view.findViewById(R.id.line1);
+
+                // only for monkey test, callType can not be null in normal behaviour
+                if(callType == null){
+                    return;
+                }
+
+                callType.setVisibility(View.VISIBLE);
+                // Set the icon
+                switch (type) {
+                    case Calls.INCOMING_TYPE:
+                        callType.setImageDrawable(mDrawableIncoming);
+                        break;
+
+                    case Calls.OUTGOING_TYPE:
+                        callType.setImageDrawable(mDrawableOutgoing);
+                        break;
+
+
+                    case Calls.MISSED_TYPE:
+                        callType.setImageDrawable(mDrawableMissed);
+                        break;
+                    default:
+                        callType.setVisibility(View.INVISIBLE);
+                        break;
+                }
+
+                // set the number
+                if (!TextUtils.isEmpty(callerName)) {
+                    callerNameText.setText(callerName);
+                    callerNameText.setVisibility(View.VISIBLE);
+
+                    numberText.setVisibility(View.GONE);
+                    numberText.setText(null);
+                } else {
+                    callerNameText.setVisibility(View.GONE);
+                    callerNameText.setText(null);
+
+                    numberText.setVisibility(View.VISIBLE);
+                    numberText.setText(getDisplayNumber(number, null));
+                }
+
+                CharSequence numberLabel = null;
+                if (!PhoneNumberUtils.isUriNumber(number)) {
+                    numberLabel = Phone.getDisplayLabel(context, callerNumberType,
+                            callerNumberLabel,
+                            mLabelArray);
+                }
+                if (!TextUtils.isEmpty(numberLabel)) {
+                    numberLableText.setText(numberLabel);
+                    numberLableText.setVisibility(View.VISIBLE);
+                } else {
+                    numberLableText.setText(null);
+                    numberLableText.setVisibility(View.INVISIBLE);
+                }
+
+                // set date
+                dateText.setText(DateUtils.getRelativeTimeSpanString(date,
+                        System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS,
+                        DateUtils.FORMAT_ABBREV_RELATIVE));
+
+                // set duration
+                durationText.setText(DateUtils.formatElapsedTime(duration));
+
+                // set slot
+                subSlotText.setText(getMultiSimName(subscription));
             }
 
             CheckBox checkBox = (CheckBox) view.findViewById(R.id.pick_contact_check);
@@ -1182,8 +1329,10 @@ public class MultiPickContactActivity extends ListActivity implements
         @Override
         public View newView(Context context, Cursor cursor, ViewGroup parent) {
             View v = null;
-
-            v = mInflater.inflate(R.layout.pick_contact_item, parent, false);
+            if (isPickCall())
+                v = mInflater.inflate(R.layout.pick_calls_item, parent, false);
+            else
+                v = mInflater.inflate(R.layout.pick_contact_item, parent, false);
             ContactItemCache cache = new ContactItemCache();
             v.setTag(cache);
             return v;

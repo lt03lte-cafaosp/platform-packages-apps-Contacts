@@ -861,4 +861,13 @@
               This is especially valuable for views without textual representation like ImageView.
     -->
     <string name="description_dial_vt">Dial vt <xliff:g id="name">%1$s</xliff:g></string>
+
+    <!-- String used to display calls from private numbers in the call log -->
+    <string name="private_num">Private number</string>
+
+    <!-- String used to display calls from pay phone in the call log -->
+    <string name="payphone">Pay phone</string>
+
+    <!-- String used for displaying calls to the voicemail number in the call log -->
+    <string name="voicemail">Voicemail</string>
 </resources>
