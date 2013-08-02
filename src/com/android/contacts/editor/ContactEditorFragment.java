@@ -269,6 +269,20 @@ public class ContactEditorFragment extends Fragment implements
     private ListPopupWindow mAggregationSuggestionPopup;
 
     private String currentAccountTpye;
+    private static final int RESULT_UNCHANGED = 0;
+    private static final int RESULT_SUCCESS = 1;
+    private static final int RESULT_FAILURE = 2;
+    private static final int RESULT_NO_NUMBER = 3;
+    private static final int RESULT_SIM_FAILURE = 4;
+    private static final int RESULT_EMAIL_FAILURE = 5;
+    private static final int RESULT_NUMBER_ANR_FAILURE = 6;
+    private static final int RESULT_SIM_FULL_FAILURE = 7;
+    private static final int RESULT_TAG_FAILURE = 8;
+    private static final int RESULT_NUMBER_INVALID = 9;
+
+    // Only for accessing SIM card
+    // when device is in the "AirPlane" mode.
+    private static final int RESULT_AIR_PLANE_MODE = 10;
 
     private static final class AggregationSuggestionAdapter extends BaseAdapter {
         private final Activity mActivity;
@@ -1245,7 +1259,32 @@ public class ContactEditorFragment extends Fragment implements
                     }
                 }
             } else {
-                Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG).show();
+                if (result == RESULT_AIR_PLANE_MODE) {
+                    // Access SIM card in the "AirPlane"
+                    // mode prompt a toast to alert user.
+                    Toast.makeText(mContext, R.string.airplane_mode_on, Toast.LENGTH_LONG).show();
+                } else if (result == RESULT_SIM_FAILURE) {
+                    Toast.makeText(mContext, R.string.contactSavedToSimCardError,
+                            Toast.LENGTH_LONG).show();
+                } else if (result == RESULT_NUMBER_ANR_FAILURE) {
+                    Toast.makeText(mContext, R.string.number_anr_too_long, Toast.LENGTH_LONG)
+                            .show();
+                } else if (result == RESULT_EMAIL_FAILURE) {
+                    Toast.makeText(mContext, R.string.email_address_too_long, Toast.LENGTH_LONG)
+                            .show();
+                } else if (result == RESULT_SIM_FULL_FAILURE) {
+                    Toast.makeText(mContext, R.string.sim_card_full, Toast.LENGTH_LONG).show();
+                } else if (result == RESULT_TAG_FAILURE) {
+                    Toast.makeText(mContext, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
+                } else if (result == RESULT_NO_NUMBER) {
+                    Toast.makeText(mContext, R.string.no_phone_number, Toast.LENGTH_SHORT).show();
+                } else if (result == RESULT_NUMBER_INVALID) {
+                    Toast.makeText(mContext, R.string.invalid_phone_number, Toast.LENGTH_SHORT)
+                            .show();
+                } else {
+                    Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
+                            .show();
+                }
             }
         }
         switch (saveMode) {
