@@ -45,8 +45,10 @@ import android.view.MenuItem;
 import com.android.contacts.R;
 
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Calendar;
 import javax.crypto.BadPaddingException;
@@ -55,6 +57,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class XCloudManager {
@@ -189,6 +192,7 @@ public class XCloudManager {
         Cursor cursor = context.getContentResolver().query(sMasterUri, null, null, null, null);
         int columnIndex = cursor
                 .getColumnIndex(AESUtils.getInstance().encrypt(AUTO_CONTACT_MASTER));
+
         try {
             if (cursor != null && cursor.moveToNext() && -1 != columnIndex) {
                 String value = cursor.getString(columnIndex);
@@ -273,13 +277,16 @@ public class XCloudManager {
             }
             try {
                 KeyGenerator kgen = KeyGenerator.getInstance("AES");
-                kgen.init(128, new SecureRandom(passGen(timestamp).getBytes()));
+                SecureRandom sr = SecureRandom.getInstance( "SHA1PRNG", "Crypto" );
+                sr.setSeed(passGen(timestamp).getBytes());
+                kgen.init(128, sr);
                 SecretKey secretKey = kgen.generateKey();
                 byte[] enCodeFormat = secretKey.getEncoded();
                 SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");
                 Cipher cipher = Cipher.getInstance("AES");
                 byte[] byteContent = content.getBytes("utf-8");
-                cipher.init(Cipher.ENCRYPT_MODE, key);
+                cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(
+                        new byte[cipher.getBlockSize()]));
                 byte[] bytes = cipher.doFinal(byteContent);
                 String result = byte2Hex(bytes);
                 return result;
@@ -295,6 +302,10 @@ public class XCloudManager {
                 e.printStackTrace();
             } catch (BadPaddingException e) {
                 e.printStackTrace();
+            } catch (NoSuchProviderException e) {
+                e.printStackTrace();
+            } catch (InvalidAlgorithmParameterException e) {
+                e.printStackTrace();
             }
             return null;
         }
@@ -306,13 +317,15 @@ public class XCloudManager {
         public String decrypt(String content, long timestamp) {
             try {
                 KeyGenerator kgen = KeyGenerator.getInstance("AES");
-                kgen.init(128, new SecureRandom(passGen(timestamp)
-                        .getBytes()));
+                SecureRandom sr = SecureRandom.getInstance( "SHA1PRNG", "Crypto" );
+                sr.setSeed(passGen(timestamp).getBytes());
+                kgen.init(128, sr);
                 SecretKey secretKey = kgen.generateKey();
                 byte[] enCodeFormat = secretKey.getEncoded();
                 SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");
                 Cipher cipher = Cipher.getInstance("AES");
-                cipher.init(Cipher.DECRYPT_MODE, key);
+                cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(
+                        new byte[cipher.getBlockSize()]));
                 byte[] bytes = cipher.doFinal(hex2Byte(content));
                 String result = new String(bytes, "UTF-8");
                 return result;
@@ -327,6 +340,10 @@ public class XCloudManager {
             } catch (BadPaddingException e) {
                 e.printStackTrace();
             } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            } catch (NoSuchProviderException e) {
+                e.printStackTrace();
+            } catch (InvalidAlgorithmParameterException e) {
                 e.printStackTrace();
             }
             return null;
