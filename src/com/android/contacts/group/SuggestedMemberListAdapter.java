@@ -305,7 +305,9 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
             clear();
 
             // Add all the suggested members to this adapter
-            addAll(suggestionsList);
+            for (SuggestedMember member : suggestionsList) {
+                add(member);
+            }
 
             notifyDataSetChanged();
         }
