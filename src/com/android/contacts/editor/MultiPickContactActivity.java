@@ -45,6 +45,7 @@ import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
+import android.content.DialogInterface.OnKeyListener;
 import android.content.Intent;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
@@ -53,6 +54,8 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.net.Uri.Builder;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.provider.CallLog;
@@ -238,6 +241,9 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private static final int DIALOG_DEL_CALL = 1;
 
+    // Handle message of delete termination toast.
+    private static final int DELETE_TERMINATION_TOAST = 1;
+
     static final String SUBSCRIPTION = "Subscription";
     private ContactItemListAdapter mAdapter;
     private QueryHandler mQueryHandler;
@@ -352,6 +358,18 @@ public class MultiPickContactActivity extends ListActivity implements
         filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         registerReceiver(mBroadcastReceiver, filter);
     }
+
+    // Give a toast show to tell user delete termination.
+    Handler mHandler = new Handler() {
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+            case DELETE_TERMINATION_TOAST:
+                Toast.makeText(mContext, R.string.delete_termination, Toast.LENGTH_SHORT).show();
+                break;
+            }
+          super.handleMessage(msg);
+        }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -507,7 +525,7 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private class DeleteContactsThread extends Thread
-            implements OnCancelListener, DialogInterface.OnClickListener {
+            implements DialogInterface.OnClickListener,DialogInterface.OnKeyListener {
 
         boolean mCanceled = false;
         private String name = null;
@@ -599,6 +617,11 @@ public class MultiPickContactActivity extends ListActivity implements
             mOpsContacts = null;
             Log.d(TAG, "DeleteContactsThread run, progress:" + mProgressDialog.getProgress());
             mProgressDialog.dismiss();
+
+            // Send message to show delete termination toast.
+            Message msg = new Message();
+            msg.what = DELETE_TERMINATION_TOAST;
+            mHandler.sendMessage(msg);
             finish();
         }
 
@@ -618,15 +641,17 @@ public class MultiPickContactActivity extends ListActivity implements
              }
         }
 
-        public void onCancel(DialogInterface dialog) {
-            mCanceled = true;
-            if (DEBUG) {
-                Log.d(TAG, "DeleteContactsThread onCancel, progress:"
-                + mProgressDialog.getProgress());
+        public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_SEARCH:
+                case KeyEvent.KEYCODE_CALL:
+                    return true;
+                case KeyEvent.KEYCODE_BACK:
+                    mCanceled = true;
+                    return true;
+                default:
+                    return false;
             }
-            Log.d(TAG, "DeleteContactsThread onCancel, progress:" + mProgressDialog.getProgress());
-            //  Give a toast show to tell user delete termination
-            Toast.makeText(mContext, R.string.delete_termination, Toast.LENGTH_SHORT).show();
         }
 
         public void onClick(DialogInterface dialog, int which) {
@@ -661,26 +686,14 @@ public class MultiPickContactActivity extends ListActivity implements
                 thread = new DeleteContactsThread();
             }
 
-            DialogInterface.OnKeyListener keyListener = new DialogInterface.OnKeyListener() {
-                public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-                    switch (keyCode) {
-                        case KeyEvent.KEYCODE_SEARCH:
-                        case KeyEvent.KEYCODE_CALL:
-                            return true;
-                        default:
-                            return false;
-                    }
-                }
-            };
-
             mProgressDialog = new ProgressDialog(MultiPickContactActivity.this);
             mProgressDialog.setTitle(title);
             mProgressDialog.setMessage(message);
             mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
             mProgressDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
             getString(R.string.btn_cancel), (OnClickListener)thread);
-            mProgressDialog.setOnCancelListener((OnCancelListener)thread);
-            mProgressDialog.setOnKeyListener(keyListener);
+            mProgressDialog.setOnKeyListener((OnKeyListener)thread);
+
             mProgressDialog.setProgress(0);
             mProgressDialog.setMax(mChoiceSet.size());
 
@@ -1513,7 +1526,7 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private class ImportAllSimContactsThread extends Thread
-        implements OnCancelListener, DialogInterface.OnClickListener {
+        implements DialogInterface.OnClickListener,DialogInterface.OnKeyListener{
         private int mSubscription = 0;
         boolean mCanceled = false;
 
@@ -1551,8 +1564,17 @@ public class MultiPickContactActivity extends ListActivity implements
             finish();
         }
 
-        public void onCancel(DialogInterface dialog) {
-            mCanceled = true;
+        public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_SEARCH:
+                case KeyEvent.KEYCODE_CALL:
+                    return true;
+                case KeyEvent.KEYCODE_BACK:
+                    mCanceled = true;
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         public void onClick(DialogInterface dialog, int which) {
