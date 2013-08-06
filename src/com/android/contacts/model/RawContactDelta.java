@@ -519,6 +519,12 @@ public class RawContactDelta implements Parcelable {
                 values.put(SimContactsConstants.STR_ANRS, anr);
             }
         } else {
+            // if new values is null ,we should merge them form before.
+            if (null == newName) newName = name;
+            if (null == newNumber) newNumber = number;
+            if (null == newEmail) newEmail = email;
+            if (null == newAnr) newAnr = anr;
+
             values.put(SimContactsConstants.STR_TAG, name);
             values.put(SimContactsConstants.STR_NUMBER, number);
             values.put(SimContactsConstants.STR_EMAILS, email);
