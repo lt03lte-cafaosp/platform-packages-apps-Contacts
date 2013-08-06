@@ -16,6 +16,8 @@
 
 package com.android.contacts.activities;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -24,11 +26,14 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
+import android.content.ContentProviderOperation;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -180,6 +185,7 @@ public class PeopleActivity extends ContactsActivity
     public boolean isLocalGroupsShown;
     private MenuItem switchGroupsMenu;
     private MenuItem addGroupMenu;
+    private AccountManager mAccountManager;
 
     /**
      * Showing a list of Contacts. Also used for showing search results in search mode.
@@ -306,6 +312,8 @@ public class PeopleActivity extends ContactsActivity
         }
         super.onCreate(savedState);
 
+        mAccountManager = AccountManager.get(this);
+        createPhoneAccount();
         if (!processIntent(false)) {
             finish();
             return;
@@ -325,6 +333,89 @@ public class PeopleActivity extends ContactsActivity
         final IntentFilter exportCompleteFilter = new IntentFilter(SimContactsConstants
             .INTENT_EXPORT_COMPLETE);
         registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
+    }
+
+    /**
+     * Creating phone account in database when local account exist
+     */
+    private void createPhoneAccount() {
+        final String type = SimContactsConstants.ACCOUNT_TYPE_PHONE;
+        final String name = SimContactsConstants.PHONE_NAME;
+        if (hasLocalAccount(name, type)) {
+            // Move database operations to the thread. When change system
+            // language, contact database will rebuild index, then query will
+            // block the main thread.
+            new Thread() {
+                public void run() {
+                    updateAccountVisible(getContentResolver(), new Account(
+                            name, type));
+                };
+            }.start();
+        }
+    }
+
+    /**
+     * Judging whether system exist a local account.
+     * @param accoutName account name
+     * @param accountType account Type
+     * @return whether exist local account.
+     */
+    private boolean hasLocalAccount(String accoutName, String accountType) {
+        Account accounts[] = getPhoneAccounts();
+        for (Account account : accounts) {
+            if (account.name.equals(accoutName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Getting An array of Account matches phone account.
+     * @return
+     */
+    protected Account[] getPhoneAccounts() {
+        return mAccountManager
+                .getAccountsByType(SimContactsConstants.ACCOUNT_TYPE_PHONE);
+    }
+
+    /**
+     * Updating the account is visible When an account exists.
+     * @param resolver
+     * @param account
+     */
+    private static void updateAccountVisible(ContentResolver resolver,
+            Account account) {
+        final Uri settingsUri = ContactsContract.Settings.CONTENT_URI.buildUpon()
+                .appendQueryParameter(ContactsContract.Settings.ACCOUNT_NAME, account.name)
+                .appendQueryParameter(ContactsContract.Settings.ACCOUNT_TYPE, account.type)
+                .build();
+        final Cursor cursor = resolver.query(settingsUri, new String[] {
+                ContactsContract.Settings.SHOULD_SYNC,
+                ContactsContract.Settings.UNGROUPED_VISIBLE }, null, null, null);
+        // Inserting the phone account into database when database has no phone
+        // account.
+        if (null != cursor) {
+            if (0 == cursor.getCount()) {
+                final ContentValues values = new ContentValues();
+                values.put(ContactsContract.Settings.ACCOUNT_NAME, account.name);
+                values.put(ContactsContract.Settings.ACCOUNT_TYPE, account.type);
+                values.put(ContactsContract.Settings.SHOULD_SYNC, 1);
+                values.put(ContactsContract.Settings.UNGROUPED_VISIBLE, 1);
+                final ArrayList<ContentProviderOperation> operationList =
+                        new ArrayList<ContentProviderOperation>();
+                final ContentProviderOperation.Builder builder = ContentProviderOperation
+                        .newInsert(ContactsContract.Settings.CONTENT_URI);
+                builder.withValues(values);
+                operationList.add(builder.build());
+                try {
+                    resolver.applyBatch(ContactsContract.AUTHORITY, operationList);
+                } catch (Exception e) {
+                    Log.e(TAG, "e=" + e.toString());
+                }
+            }
+            cursor.close();
+        }
     }
 
     @Override
