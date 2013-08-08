@@ -370,4 +370,8 @@
     <string name="private_num">"私人号码"</string>
     <string name="payphone">"公用电话"</string>
     <string name="voicemail">"语音信箱"</string>
+
+    <string name="add_to_white">加入白名单</string>
+    <string name="add_to_black">加入黑名单</string>
+
 </resources>

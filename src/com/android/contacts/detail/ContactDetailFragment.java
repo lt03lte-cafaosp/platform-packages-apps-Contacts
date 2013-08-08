@@ -23,6 +23,9 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.net.ParseException;
@@ -147,10 +150,15 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         static final int EDIT_BEFORE_CALL = 3;
         static final int VIDEOCALL = 4;    // add for new feature: csvt call prefix
         static final int IPCALL = 5; // add for new feature: ip call prefix
+
+        static final int ADD_TO_BLACKLIST = 6;
+        static final int ADD_TO_WHITELIST = 7;
     }
 
     private static final String KEY_CONTACT_URI = "contactUri";
     private static final String KEY_LIST_STATE = "liststate";
+    private static final String FIREWALL_APK_NAME = "com.android.firewall";
+    private static final String FIREWALL_BLACK_WHITE_LIST = "com.android.firewall.FirewallListPage";
 
     private Context mContext;
     private View mView;
@@ -605,6 +613,30 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     } else {
                         entry.intent = null;
                     }
+
+                    // white and black listintent
+                    Bundle blackbundle = new Bundle();
+                    blackbundle.putString("name", "");// optional
+                    blackbundle.putString("number", entry.data);
+                    blackbundle.putString("mode", "blacklist");
+
+                    Intent blackintent = new Intent();
+                    blackintent.setClassName(FIREWALL_APK_NAME, FIREWALL_BLACK_WHITE_LIST);
+                    blackintent.setAction(Intent.ACTION_INSERT);
+                    blackintent.putExtras(blackbundle);
+                    entry.blackintent = blackintent;
+
+                    Bundle whitebundle = new Bundle();
+                    whitebundle.putString("name", "");// optional
+                    whitebundle.putString("number", entry.data);
+                    whitebundle.putInt("personid", 0);// optional
+                    whitebundle.putString("mode", "whitelist");
+
+                    Intent whiteintent = new Intent();
+                    whiteintent.setClassName(FIREWALL_APK_NAME, FIREWALL_BLACK_WHITE_LIST);
+                    whiteintent.setAction(Intent.ACTION_INSERT);
+                    whiteintent.putExtras(whitebundle);
+                    entry.whiteintent = whiteintent;
 
                     // Remember super-primary phone
                     if (isSuperPrimary) mPrimaryPhoneUri = entry.uri;
@@ -1248,6 +1280,10 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         public Intent intent;
         public Intent secondaryIntent = null;
         public Intent thirdIntent = null;
+
+        public Intent whiteintent;
+        public Intent blackintent;
+
         public ArrayList<Long> ids = new ArrayList<Long>();
         public int collapseCount = 0;
 
@@ -1977,6 +2013,20 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         } else {
             menu.setHeaderTitle(selectedEntry.data);
         }
+
+        menu.setHeaderTitle(selectedEntry.data);
+
+        if (Phone.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
+            if (isFirewalltalled(mContext)) {
+                menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                        ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                        selectedEntry.blackintent);
+                menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                        ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
+                        selectedEntry.whiteintent);
+            }
+        }
+
         menu.add(ContextMenu.NONE, ContextMenuIds.COPY_TEXT,
                 ContextMenu.NONE, getString(R.string.copy_text));
 
@@ -2020,6 +2070,19 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         }
      }
 
+    private boolean isFirewalltalled(Context context) {
+        boolean installed = false;
+        try {
+            ApplicationInfo info = context.getPackageManager().getApplicationInfo(
+                    FIREWALL_APK_NAME, PackageManager.GET_PROVIDERS);
+            installed = info != null;
+        } catch (NameNotFoundException e) {
+            installed = false;
+        }
+        Log.d(TAG,"Is Firewall installed ? " + installed);
+        return installed;
+    }
+
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo menuInfo;
@@ -2049,6 +2112,10 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             case ContextMenuIds.VIDEOCALL:
                 videocall(menuInfo.position);
                 return true;
+            case ContextMenuIds.ADD_TO_BLACKLIST:
+                return false;
+            case ContextMenuIds.ADD_TO_WHITELIST:
+                return false;
             default:
                 throw new IllegalArgumentException("Unknown menu option " + item.getItemId());
         }
