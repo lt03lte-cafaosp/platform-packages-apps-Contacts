@@ -870,4 +870,7 @@
 
     <!-- String used for displaying calls to the voicemail number in the call log -->
     <string name="voicemail">Voicemail</string>
+
+    <string name="add_to_white">Add to whitelist</string>
+    <string name="add_to_black">Add to blacklist</string>
 </resources>
