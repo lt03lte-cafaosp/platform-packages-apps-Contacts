@@ -1487,6 +1487,9 @@ public class ContactEditorFragment extends Fragment implements
                 if (type1.accountType == null) {
                     return 1;
                 }
+                if (type2.accountType == null) {
+                    return -1;
+                }
                 value = type1.accountType.compareTo(type2.accountType);
                 if (value != 0) {
                     return value;
