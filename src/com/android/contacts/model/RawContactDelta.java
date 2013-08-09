@@ -431,6 +431,8 @@ public class RawContactDelta implements Parcelable {
 
         if (names != null && names.size() > 0) {
             nameValuesDelta = names.get(0);
+            names.get(0).put(StructuredName.DISPLAY_NAME, nameValuesDelta
+                    .getAsString(StructuredName.DISPLAY_NAME));
             names.get(0).putNull(StructuredName.GIVEN_NAME);
             names.get(0).putNull(StructuredName.FAMILY_NAME);
             names.get(0).putNull(StructuredName.PREFIX);
