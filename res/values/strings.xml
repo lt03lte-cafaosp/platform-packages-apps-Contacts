@@ -873,4 +873,6 @@
 
     <string name="add_to_white">Add to whitelist</string>
     <string name="add_to_black">Add to blacklist</string>
+
+    <string name="menu_copyTo">"Copy to "</string>
 </resources>

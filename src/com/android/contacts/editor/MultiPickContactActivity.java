@@ -277,18 +277,15 @@ public class MultiPickContactActivity extends ListActivity implements
         "name",
         "number",
         "emails",
-        // Need frameworks support anr
-        // "anrs",
+        "anrs",
         "_id"
     };
 
     public static final int SIM_COLUMN_DISPLAY_NAME = 0;
     public static final int SIM_COLUMN_NUMBER = 1;
     public static final int SIM_COLUMN_EMAILS = 2;
-    // Need frameworks support anr
-    // public static final int SIM_COLUMN_ANRS = 3;
-    // public static final int SIM_COLUMN_ID = 4;
-    public static final int SIM_COLUMN_ID = 3;
+    public static final int SIM_COLUMN_ANRS = 3;
+    public static final int SIM_COLUMN_ID = 4;
 
     /**
      * control of whether show the contacts in SIM card, if intent has this
@@ -421,7 +418,7 @@ public class MultiPickContactActivity extends ListActivity implements
             ContactItemCache cache = (ContactItemCache) v.getTag();
             if (isPickContact()) {
                 value = new String[] {
-                        cache.lookupKey
+                        cache.lookupKey, String.valueOf(cache.id)
                 };
             } else if (isPickPhone()) {
                 value = new String[] {cache.name, cache.number, cache.type,
@@ -429,9 +426,7 @@ public class MultiPickContactActivity extends ListActivity implements
             } else if (isPickEmail()) {
                 value = new String[] { cache.name, cache.email };
             } else if (isPickSim()) {
-                // Need frameworks support anr
-                // value = new String[] {cache.name, cache.number, cache.email, cache.anrs};
-                value = new String[] {cache.name, cache.number, cache.email};
+                value = new String[] {cache.name, cache.number, cache.email, cache.anrs};
             }
             mChoiceSet.putStringArray(String.valueOf(id), value);
             if (!isSearchMode()) {
@@ -1100,7 +1095,7 @@ public class MultiPickContactActivity extends ListActivity implements
             if (isPickContact()) {
                 id = String.valueOf(cursor.getLong(SUMMARY_ID_COLUMN_INDEX));
                 value = new String[] {
-                        cursor.getString(SUMMARY_LOOKUP_KEY_COLUMN_INDEX)
+                        cursor.getString(SUMMARY_LOOKUP_KEY_COLUMN_INDEX), id
                 };
             } else if (isPickPhone()) {
                 id = String.valueOf(cursor.getLong(PHONE_COLUMN_ID));
@@ -1125,10 +1120,8 @@ public class MultiPickContactActivity extends ListActivity implements
                 String name = cursor.getString(SIM_COLUMN_DISPLAY_NAME);
                 String number = cursor.getString(SIM_COLUMN_NUMBER);
                 String email = cursor.getString(SIM_COLUMN_EMAILS);
-                // Need frameworks support anr
-                // String anrs = cursor.getString(SIM_COLUMN_ANRS);
-                // value = new String[] {name, number, email, anrs};
-                value = new String[] {name, number, email};
+                String anrs = cursor.getString(SIM_COLUMN_ANRS);
+                value = new String[] {name, number, email, anrs};
             }
             if (DEBUG) {
                 Log.d(TAG, "isSelected: " + isSelected + ", id: " + id);
@@ -1186,8 +1179,7 @@ public class MultiPickContactActivity extends ListActivity implements
         String label;
         String contact_id;
         String email;
-        // Need frameworks support anr
-        // String anrs;
+        String anrs;
     }
 
     private final class ContactItemListAdapter extends CursorAdapter implements SectionIndexer {
@@ -1226,8 +1218,7 @@ public class MultiPickContactActivity extends ListActivity implements
                 cache.name = cursor.getString(SIM_COLUMN_DISPLAY_NAME);
                 cache.number = cursor.getString(SIM_COLUMN_NUMBER);
                 cache.email = cursor.getString(SIM_COLUMN_EMAILS);
-                // Need frameworks support anr
-                // cache.anrs = cursor.getString(SIM_COLUMN_ANRS);
+                cache.anrs = cursor.getString(SIM_COLUMN_ANRS);
                 ((TextView) view.findViewById(R.id.pick_contact_name)).setText(cache.name);
                 ((TextView) view.findViewById(R.id.pick_contact_number)).setText(cache.number);
             } else if (isPickEmail()) {
@@ -1591,27 +1582,23 @@ public class MultiPickContactActivity extends ListActivity implements
         final String name = values[0];
         final String phoneNumber = values[1];
         final String emailAddresses = values[2];
-        // Need frameworks support anr
-        // final String anrs = values[3];
+        final String anrs = values[3];
         final String[] emailAddressArray;
-        final String[] anrArray = null;
+        String[] anrArray = null;
         if (!TextUtils.isEmpty(emailAddresses)) {
             emailAddressArray = emailAddresses.split(",");
         } else {
             emailAddressArray = null;
         }
-        // Need frameworks support anr
-        // if (!TextUtils.isEmpty(anrs)) {
-        //     anrArray = anrs.split(",");
-        // } else {
-        //     anrArray = null;
-        // }
+        if (!TextUtils.isEmpty(anrs)) {
+            anrArray = anrs.split(",");
+        } else {
+            anrArray = null;
+        }
         if (DEBUG) {
             log(" actuallyImportOneSimContact: name= " + name +
                 ", phoneNumber= " + phoneNumber +", emails= "+ emailAddresses
-                // Need frameworks support anr
-                // +", anrs= "+ anrs + ", account is " + account);
-                +", account is " + account);
+                +", anrs= "+ anrs + ", account is " + account);
         }
         final ArrayList<ContentProviderOperation> operationList =
             new ArrayList<ContentProviderOperation>();

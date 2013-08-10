@@ -34,14 +34,18 @@ import android.content.Loader;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.ContactsContract;
-import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.Email;
-import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.CommonDataKinds.Organization;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.SipAddress;
+import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -56,13 +60,20 @@ import android.widget.Toast;
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.R;
 import com.android.contacts.activities.ContactDetailActivity.FragmentKeyListener;
+import com.android.contacts.common.MoreContactUtils;
+import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.list.ShortcutIntentBuilder;
 import com.android.contacts.common.list.ShortcutIntentBuilder.OnShortcutIntentCreatedListener;
 import com.android.contacts.model.Contact;
-import com.android.contacts.model.RawContact;
 import com.android.contacts.model.ContactLoader;
+import com.android.contacts.model.RawContact;
+import com.android.contacts.model.dataitem.DataItem;
+import com.android.contacts.model.dataitem.EmailDataItem;
+import com.android.contacts.model.dataitem.PhoneDataItem;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.google.common.base.Objects;
+
+import java.util.ArrayList;
 
 /**
  * This is an invisible worker {@link Fragment} that loads the contact details for the contact card.
@@ -323,6 +334,83 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
 
         final MenuItem createContactShortcutMenu = menu.findItem(R.id.menu_create_contact_shortcut);
         createContactShortcutMenu.setVisible(mOptionsMenuCanCreateShortcut);
+
+        String accoutName = null;
+        String accoutType = null;
+        if (mContactData != null) {
+            final RawContact rawContact = (RawContact) mContactData.getRawContacts().get(0);
+            accoutName = rawContact.getAccountName();
+            accoutType = rawContact.getAccountTypeString();
+        }
+
+        final MenuItem copyToPhoneMenu = menu.findItem(R.id.menu_copy_to_phone);
+        final MenuItem copyToSim1Menu = menu.findItem(R.id.menu_copy_to_sim1);
+        final MenuItem copyToSim2Menu = menu.findItem(R.id.menu_copy_to_sim2);
+
+        copyToPhoneMenu.setVisible(false);
+        copyToSim1Menu.setVisible(false);
+        copyToSim2Menu.setVisible(false);
+
+        if (!TextUtils.isEmpty(accoutType)) {
+            if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(accoutType)) {
+                copyToPhoneMenu.setVisible(true);
+                copyToPhoneMenu.setTitle("" + getString(R.string.menu_copyTo)
+                        + getString(R.string.phoneLabelsGroup) + "<"
+                        + SimContactsConstants.PHONE_NAME + ">");
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    if (SimContactsConstants.SIM_NAME_1.equals(accoutName)
+                            && hasEnabledIccCard(SimContactsConstants.SUB_2)) {
+                        copyToSim2Menu.setTitle("" + getString(R.string.menu_copyTo)
+                                + getString(R.string.account_sim) + "<"
+                                + SimContactsConstants.SIM_NAME_2 + ">");
+                        copyToSim2Menu.setVisible(true);
+                    }
+                    if (SimContactsConstants.SIM_NAME_2.equals(accoutName)
+                            && hasEnabledIccCard(SimContactsConstants.SUB_1)) {
+                        copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo)
+                                + getString(R.string.account_sim) + "<"
+                                + SimContactsConstants.SIM_NAME_1 + ">");
+                        copyToSim1Menu.setVisible(true);
+                    }
+                } else {
+                    // do nothing, only display copy to phone
+                }
+
+            } else if (SimContactsConstants.ACCOUNT_TYPE_PHONE.equals(accoutType)) {
+                copyToPhoneMenu.setVisible(false);
+
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    if (hasEnabledIccCard(SimContactsConstants.SUB_1)) {
+                        copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo)
+                                + getString(R.string.account_sim) + "<"
+                                + SimContactsConstants.SIM_NAME_1 + ">");
+                        copyToSim1Menu.setVisible(true);
+                    }
+                    if (hasEnabledIccCard(SimContactsConstants.SUB_2)) {
+                        copyToSim2Menu.setTitle("" + getString(R.string.menu_copyTo)
+                                + getString(R.string.account_sim) + "<"
+                                + SimContactsConstants.SIM_NAME_2 + ">");
+                        copyToSim2Menu.setVisible(true);
+                    }
+                } else {
+                    if (TelephonyManager.getDefault().hasIccCard()
+                            && TelephonyManager.getDefault().getSimState()
+                                == TelephonyManager.SIM_STATE_READY) {
+                        copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo)
+                                + getString(R.string.account_sim) + "<"
+                                + SimContactsConstants.SIM_NAME + ">");
+                        copyToSim1Menu.setVisible(true);
+                    }
+                }
+            }
+
+        }
+    }
+
+    private boolean hasEnabledIccCard(int subscription) {
+        return MSimTelephonyManager.getDefault().hasIccCard(subscription)
+                && MSimTelephonyManager.getDefault().getSimState(subscription)
+                        == TelephonyManager.SIM_STATE_READY;
     }
 
     public boolean isContactOptionsChangeEnabled() {
@@ -362,6 +450,24 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             case R.id.menu_send_via_sms: {
                 if (mContactData == null) return false;
                 sendContactViaSMS();
+                return true;
+            }
+            case R.id.menu_copy_to_phone: {
+                if (mContactData == null)
+                    return false;
+                copyToPhone();
+                return true;
+            }
+            case R.id.menu_copy_to_sim1: {
+                if (mContactData == null)
+                    return false;
+                copyToCard(0);
+                return true;
+            }
+            case R.id.menu_copy_to_sim2: {
+                if (mContactData == null)
+                    return false;
+                copyToCard(1);
                 return true;
             }
             case R.id.menu_share: {
@@ -407,6 +513,205 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             }
         }
         return false;
+    }
+
+    private void copyToPhone() {
+        // Get name string
+        String name = mContactData.getDisplayName();
+        if (TextUtils.isEmpty(name)) {
+            name = "";
+        }
+        String phoneNumber = "";
+        String anrNumber = "";
+        String email = "";
+
+        for (RawContact rawContact : mContactData.getRawContacts()) {
+            for (DataItem dataItem : rawContact.getDataItems()) {
+                if (dataItem.getMimeType() == null)
+                    continue;
+                if (dataItem instanceof PhoneDataItem) {
+                    // Get phone string
+                    PhoneDataItem phoneNum = (PhoneDataItem) dataItem;
+                    final String number = phoneNum.getNumber();
+                    if (!TextUtils.isEmpty(number)) {
+                        if (Phone.TYPE_MOBILE == phoneNum.getType()) {
+                            phoneNumber = number;
+                        } else {
+                            if (!anrNumber.equals("")) {
+                                anrNumber += ",";
+                            } else {
+                                anrNumber += number;
+                            }
+                        }
+                    }
+                } else if (dataItem instanceof EmailDataItem) {
+                    // Get email string
+                    EmailDataItem emailData = (EmailDataItem) dataItem;
+                    final String address = emailData.getData();
+                    if (!TextUtils.isEmpty(address)) {
+                        email = address;
+                    }
+                }
+            }
+
+        }
+
+        String[] value = new String[] {
+                name, phoneNumber, email, anrNumber
+        };
+        MoreContactUtils
+                .insertToPhone(value, mContext.getContentResolver(), -1 /* PHONE account */);
+    }
+
+    private Handler mHandler = null;
+
+    private void copyToCard(final int sub) {
+        final int MSG_COPY_DONE = 0;
+        final int MSG_COPY_FAILURE = 1;
+        final int MSG_CARD_NO_SPACE = 2;
+        final int MSG_NO_EMPTY_EMAIL = 3;
+        if (mHandler == null) {
+            mHandler = new Handler() {
+                public void handleMessage(Message msg) {
+                    switch (msg.what) {
+                        case MSG_COPY_DONE:
+                            Toast.makeText(mContext, R.string.copy_done, Toast.LENGTH_SHORT)
+                                    .show();
+                            break;
+                        case MSG_COPY_FAILURE:
+                            Toast.makeText(mContext, R.string.copy_failure, Toast.LENGTH_SHORT)
+                                    .show();
+                            break;
+                        case MSG_CARD_NO_SPACE:
+                            Toast.makeText(mContext, R.string.card_no_space, Toast.LENGTH_SHORT)
+                                    .show();
+                            break;
+                        case MSG_NO_EMPTY_EMAIL:
+                            Toast.makeText(mContext, R.string.no_empty_email_in_usim,
+                                    Toast.LENGTH_SHORT).show();
+                            break;
+                    }
+                }
+            };
+        }
+
+        new Thread(new Runnable() {
+            public void run() {
+                synchronized (this) {
+                    int adnCountInSimContact = 1;
+                    int anrCountInSimContact = 1;
+                    if (!MoreContactUtils.canSaveAnr(sub)) {
+                        anrCountInSimContact = 0;
+                    }
+                    int totalEmptyAdn = MoreContactUtils.getSimFreeCount(mContext, sub);
+                    int totalEmptyAnr = MoreContactUtils.getSpareAnrCount(sub);
+                    int totalEmptyEmail = MoreContactUtils.getSpareEmailCount(sub);
+
+                    Message msg = Message.obtain();
+                    if (totalEmptyAdn <= 0) {
+                        msg.what = MSG_CARD_NO_SPACE;
+                        mHandler.sendMessage(msg);
+                        return;
+                    }
+
+                    int numEntitySize = adnCountInSimContact + anrCountInSimContact;
+                    int emptyNumTotal = totalEmptyAdn + totalEmptyAnr;
+
+                    // Get name string
+                    String strName = mContactData.getDisplayName();
+
+                    ArrayList<String> arrayNumber = new ArrayList<String>();
+                    ArrayList<String> arrayEmail = new ArrayList<String>();
+
+                    for (RawContact rawContact : mContactData.getRawContacts()) {
+                        for (DataItem dataItem : rawContact.getDataItems()) {
+                            if (dataItem.getMimeType() == null)
+                                continue;
+                            if (dataItem instanceof PhoneDataItem) {
+                                // Get phone string
+                                PhoneDataItem phoneNum = (PhoneDataItem) dataItem;
+                                final String number = phoneNum.getNumber();
+                                if (!TextUtils.isEmpty(number) && emptyNumTotal-- > 0) {
+                                    arrayNumber.add(number);
+                                }
+                            } else if (dataItem instanceof EmailDataItem) {
+                                // Get email string
+                                EmailDataItem emailData = (EmailDataItem) dataItem;
+                                final String address = emailData.getData();
+                                if (!TextUtils.isEmpty(address) && totalEmptyEmail-- > 0) {
+                                    arrayEmail.add(address);
+                                }
+                            }
+                        }
+                    }
+
+                    int nameCount = (strName != null && !strName.equals("")) ? 1 : 0;
+                    int groupNumCount = (arrayNumber.size() % numEntitySize) != 0 ? (arrayNumber
+                            .size() / numEntitySize + 1) : (arrayNumber.size() / numEntitySize);
+                    int groupEmailCount = arrayEmail.size();
+
+                    int groupCount = Math.max(groupEmailCount, Math.max(nameCount, groupNumCount));
+
+                    ArrayList<UsimEntity> results = new ArrayList<UsimEntity>();
+                    for (int i = 0; i < groupCount; i++) {
+                        results.add(new UsimEntity());
+                    }
+
+                    UsimEntity value;
+                    for (int i = 0; i < groupNumCount; i++) {
+                        value = results.get(i);
+                        ArrayList<String> numberItem = new ArrayList<String>();
+                        for (int j = 0; j < numEntitySize; j++) {
+                            if ((i * numEntitySize + j) < arrayNumber.size()) {
+                                numberItem.add(arrayNumber.get(i * numEntitySize + j));
+                            }
+                        }
+                        value.putNumberList(numberItem);
+                    }
+
+                    for (int i = 0; i < groupEmailCount; i++) {
+                        value = results.get(i);
+                        value.putEmail(arrayEmail.get(i));
+                    }
+
+                    ArrayList<String> emptyList = new ArrayList<String>();
+                    Uri itemUri = null;
+                    if (totalEmptyEmail < 0 && MoreContactUtils.canSaveEmail(sub)) {
+                        Message e_msg = Message.obtain();
+                        e_msg.what = MSG_NO_EMPTY_EMAIL;
+                        mHandler.sendMessage(e_msg);
+                    }
+
+                    String strEmail = null;
+                    for (int i = 0; i < groupCount; i++) {
+                        value = results.get(i);
+                        if (value.containsNumber()) {
+                            arrayNumber = (ArrayList<String>) value.getNumberList();
+                        } else {
+                            arrayNumber = emptyList;
+                        }
+
+                        if (value.containsEmail()) {
+                            strEmail = (String) value.getEmail();
+                        } else {
+                            strEmail = null;
+                        }
+                        String strNum = arrayNumber.size() > 0 ? arrayNumber.get(0) : null;
+                        String strAnrNum = arrayNumber.size() > 1 ? arrayNumber.get(1) : null;
+                        itemUri = MoreContactUtils.insertToCard(mContext, strName, strNum,
+                                strEmail, strAnrNum, sub);
+                    }
+                    if (itemUri != null) {
+                        msg.what = MSG_COPY_DONE;
+                        mHandler.sendMessage(msg);
+                    } else {
+                        msg.what = MSG_COPY_FAILURE;
+                        mHandler.sendMessage(msg);
+                    }
+                }
+            }
+        }).start();
+
     }
 
     /**
@@ -539,6 +844,35 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
         intent.putExtra("sms_body", name + phone + email + postal + organization + sipAddress);
         intent.setType("vnd.android-dir/mms-sms");
         mContext.startActivity(intent);
+    }
+
+    class UsimEntity {
+        private ArrayList<String> mNumberList = new ArrayList<String>();
+        private String mEmail = null;
+
+        public String getEmail() {
+            return mEmail;
+        }
+
+        public ArrayList<String> getNumberList() {
+            return mNumberList;
+        }
+
+        public void putEmail(String email) {
+            mEmail = email;
+        }
+
+        public void putNumberList(ArrayList<String> list) {
+            mNumberList = list;
+        }
+
+        public boolean containsEmail() {
+            return mEmail != null;
+        }
+
+        public boolean containsNumber() {
+            return !mNumberList.isEmpty();
+        }
     }
 
     private void doPickRingtone() {

@@ -330,4 +330,6 @@
     <string name="private_num">"私人號碼"</string>
     <string name="payphone">"公用電話"</string>
     <string name="voicemail">"語音留言"</string>
+
+    <string name="menu_copyTo">複制到</string>
 </resources>

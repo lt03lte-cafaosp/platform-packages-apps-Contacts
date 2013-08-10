@@ -374,4 +374,5 @@
     <string name="add_to_white">加入白名单</string>
     <string name="add_to_black">加入黑名单</string>
 
+    <string name="menu_copyTo">复制到</string>
 </resources>
