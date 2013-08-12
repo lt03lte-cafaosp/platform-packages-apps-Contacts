@@ -714,7 +714,9 @@ public class MultiPickContactActivity extends ListActivity implements
         int id = v.getId();
         switch (id) {
             case R.id.btn_ok:
-                if (!isSearchMode()) {
+                if (isSearchMode()) {
+                    exitSearchMode(true);
+                }
                     if (mMode == MODE_DEFAULT_CONTACT) {
                         if (Intent.ACTION_GET_CONTENT.equals(getIntent().getAction())) {
                             Intent intent = new Intent();
@@ -758,9 +760,6 @@ public class MultiPickContactActivity extends ListActivity implements
                             }
                         }
                     }
-                } else {
-                    exitSearchMode(true);
-                }
                 break;
             case R.id.btn_cancel:
                 if (!isSearchMode()) {
