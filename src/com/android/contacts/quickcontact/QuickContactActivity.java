@@ -686,6 +686,8 @@ public class QuickContactActivity extends Activity {
                     close(false);
                 }
             };
+            // Defer the action to make the window properly repaint
+            new Handler().post(startAppRunnable);
         }
     };
 }
