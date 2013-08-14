@@ -32,7 +32,10 @@ import com.android.contacts.common.CallUtil;
 import com.android.contacts.ContactsUtils;
 import com.android.contacts.R;
 import com.android.contacts.common.MoreContactUtils;
+import com.android.contacts.common.model.AccountTypeManager;
+import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.AccountType.EditType;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.model.dataitem.DataItem;
 import com.android.contacts.common.model.dataitem.DataKind;
 import com.android.contacts.model.dataitem.EmailDataItem;
@@ -278,7 +281,11 @@ public class DataAction implements Action {
         if (mAlternateIconRes == 0) return null;
 
         final String resourcePackageName = mKind.resourcePackageName;
-        if (resourcePackageName == null) {
+        AccountType accountType =
+                AccountTypeManager.getInstance(mContext).getAccountType(
+                SimAccountType.ACCOUNT_TYPE, null);
+        if (resourcePackageName == null
+                || accountType.resourcePackageName.equals(resourcePackageName)) {
             return mContext.getResources().getDrawable(mAlternateIconRes);
         }
 
