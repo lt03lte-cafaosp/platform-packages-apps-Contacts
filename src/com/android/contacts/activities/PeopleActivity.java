@@ -120,6 +120,8 @@ import com.android.contacts.util.DialogManager;
 import com.android.contacts.util.HelpUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.common.util.UriUtils;
+import com.android.contacts.common.vcard.ExportVCardActivity;
+import com.android.contacts.common.vcard.VCardCommonArguments;
 import com.android.contacts.util.XCloudManager;
 import com.android.contacts.widget.TransitionAnimationView;
 
@@ -154,6 +156,9 @@ public class PeopleActivity extends ContactsActivity
     private static final int SUBACTIVITY_NEW_GROUP = 4;
     private static final int SUBACTIVITY_EDIT_GROUP = 5;
     private static final int SUBACTIVITY_ACCOUNT_FILTER = 6;
+    // This values must be consistent with ImportExportDialogFragment.SUBACTIVITY_EXPORT_CONTACTS.
+    // This values is set 100,That is avoid to conflict with other new subactivity.
+    private static final int SUBACTIVITY_EXPORT_CONTACTS = 100;
 
     private final DialogManager mDialogManager = new DialogManager(this);
 
@@ -1946,6 +1951,28 @@ public class PeopleActivity extends ContactsActivity
                 }
                 break;
 
+            case SUBACTIVITY_EXPORT_CONTACTS:
+                if (resultCode == RESULT_OK) {
+                    Bundle result = data.getExtras().getBundle("result");
+                    Set<String> keySet = result.keySet();
+                    Iterator<String> it = keySet.iterator();
+                    String selExport = "";
+                    while (it.hasNext()) {
+                        String id = it.next();
+                        if (selExport.equals("")) {
+                            selExport += id;
+                        } else {
+                            selExport = selExport + "," + id;
+                        }
+                    }
+                    selExport = "_id IN (" + selExport + ")";
+                    Intent exportIntent = new Intent(this, ExportVCardActivity.class);
+                    exportIntent.putExtra("SelExport", selExport);
+                    exportIntent.putExtra(VCardCommonArguments.ARG_CALLING_ACTIVITY,
+                            PeopleActivity.class.getName());
+                    this.startActivity(exportIntent);
+                }
+                break;
 // TODO fix or remove multipicker code
 //                else if (resultCode == RESULT_CANCELED && mMode == MODE_PICK_MULTIPLE_PHONES) {
 //                    // Finish the activity if the sub activity was canceled as back key is used
