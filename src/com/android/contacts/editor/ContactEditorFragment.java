@@ -1278,18 +1278,37 @@ public class ContactEditorFragment extends Fragment implements
                 } else if (result == RESULT_NUMBER_ANR_FAILURE) {
                     Toast.makeText(mContext, R.string.number_anr_too_long, Toast.LENGTH_LONG)
                             .show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
                 } else if (result == RESULT_EMAIL_FAILURE) {
                     Toast.makeText(mContext, R.string.email_address_too_long, Toast.LENGTH_LONG)
                             .show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
                 } else if (result == RESULT_SIM_FULL_FAILURE) {
                     Toast.makeText(mContext, R.string.sim_card_full, Toast.LENGTH_LONG).show();
                 } else if (result == RESULT_TAG_FAILURE) {
                     Toast.makeText(mContext, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
                 } else if (result == RESULT_NO_NUMBER) {
                     Toast.makeText(mContext, R.string.no_phone_number, Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    bindEditors();
+                    return;
                 } else if (result == RESULT_NUMBER_INVALID) {
                     Toast.makeText(mContext, R.string.invalid_phone_number, Toast.LENGTH_SHORT)
                             .show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
                 } else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                             .show();
