@@ -768,6 +768,7 @@
     <string name="all_call_log">All call logs</string>
     <string name="title_slot_change">Multi SIM change</string>
     <string name="delete_call_title">Delete call logs</string>
+    <string name="select_call_title">Select call logs</string>
     <string name="delete_call_message">Deleting call logs ...</string>
     <string name="delete_call_alert">Sure to delete the call logs selected?</string>
     <string name="title_del_call">Delete</string>

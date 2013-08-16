@@ -255,6 +255,8 @@ public class MultiPickContactActivity extends ListActivity implements
     private TextView mSelectAllLabel;
     private CheckBox mSelectAllCheckBox;
     private static int mMode;
+    private boolean mSelectCallLog;
+    public static final String KEY_SELECT_CALLLOG = "selectcalllog";
 
     private ProgressDialog mProgressDialog;
     private Drawable mDrawableIncoming;
@@ -334,6 +336,10 @@ public class MultiPickContactActivity extends ListActivity implements
                     R.drawable.ic_call_log_list_missed_call);
             mLabelArray = getResources().getTextArray(com.android.internal.R.array.phoneTypes);
             mSubscription = intent.getIntExtra(SUBSCRIPTION, -1);
+            if (intent.getBooleanExtra(KEY_SELECT_CALLLOG, false)) {
+                mSelectCallLog = true;
+                setTitle(R.string.select_call_title);
+            }
         }else if (ACTION_MULTI_PICK_SIM.equals(action)) {
             mMode = MODE_DEFAULT_SIM;
         }
@@ -427,6 +433,10 @@ public class MultiPickContactActivity extends ListActivity implements
                 value = new String[] { cache.name, cache.email };
             } else if (isPickSim()) {
                 value = new String[] {cache.name, cache.number, cache.email, cache.anrs};
+            } else if (isPickCall()) {
+                if (mSelectCallLog) {
+                    value = new String[] {cache.name, cache.number};
+                }
             }
             mChoiceSet.putStringArray(String.valueOf(id), value);
             if (!isSearchMode()) {
@@ -736,7 +746,16 @@ public class MultiPickContactActivity extends ListActivity implements
                     finish();
                 } else if (mMode == MODE_DEFAULT_CALL) {
                         if (mChoiceSet.size() > 0) {
-                            showDialog(DIALOG_DEL_CALL);
+                            if (mSelectCallLog) {
+                                Intent intent = new Intent();
+                                Bundle bundle = new Bundle();
+                                bundle.putBundle(RESULT_KEY, mChoiceSet);
+                                intent.putExtras(bundle);
+                                this.setResult(RESULT_OK, intent);
+                                finish();
+                            } else {
+                                showDialog(DIALOG_DEL_CALL);
+                            }
                         }
                     }
                 } else {
@@ -1111,10 +1130,15 @@ public class MultiPickContactActivity extends ListActivity implements
                 String email = cursor.getString(EMAIL_COLUMN_ADDRESS);
                 value = new String[] {name, email, id};
             } else if (isPickCall()) {
-                id = String.valueOf(cursor.getLong(ID_COLUMN_INDEX));
-                value = new String[] {
-                        id
-                };
+                if (mSelectCallLog) {
+                    id = String.valueOf(cursor.getLong(ID_COLUMN_INDEX));
+                    String number = cursor.getString(NUMBER_COLUMN_INDEX);
+                    String name = cursor.getString(CALLER_NAME_COLUMN_INDEX);
+                    value = new String[] {name, number};
+                } else {
+                    id = String.valueOf(cursor.getLong(ID_COLUMN_INDEX));
+                    value = new String[] {id};
+                }
             } else if (isPickSim()) {
                 id = String.valueOf(cursor.getLong(SIM_COLUMN_ID));
                 String name = cursor.getString(SIM_COLUMN_DISPLAY_NAME);
@@ -1229,6 +1253,8 @@ public class MultiPickContactActivity extends ListActivity implements
                 ((TextView) view.findViewById(R.id.pick_contact_number)).setText(cache.email);
             } else if (isPickCall()) {
                 cache.id = cursor.getLong(ID_COLUMN_INDEX);
+                cache.name = cursor.getString(CALLER_NAME_COLUMN_INDEX);
+                cache.number = cursor.getString(NUMBER_COLUMN_INDEX);
                 String number = cursor.getString(NUMBER_COLUMN_INDEX);
 
                 //add string convert for 'unknow' to display
