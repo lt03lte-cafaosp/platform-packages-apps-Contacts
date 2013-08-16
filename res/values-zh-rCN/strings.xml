@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--  Copyright (C) 2006 The Android Open Source Project
       Copyright (C) 2013 The Linux Foundation. All Rights Reserved.
+      Not a Contribution.
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -363,6 +364,13 @@
     <string name="menu_auto_sync_to_baidu_cloud">自动同步到百度云</string>
     <!-- The menu item to filter the list of sync_to_baidu_cloud -->
     <string name="menu_sync_to_baidu_cloud">立即同步到百度云</string>
+    <!-- add for MemoryStatusActivity -->
+    <string name="menu_memory_status">"存储器状态"</string>
+    <string name="memory_status_title">"存储器状态"</string>
+    <string name="memory_size">"容量"</string>
+    <string name="memory_available">"可用"</string>
+    <string name="memory_used">"已用"</string>
+    <string name="calculating_status_now">正在计算存储状态…</string>
 
     <string name="delete_locale_group_dialog_message">您确定要删除此群组吗?</string>
     <string name="menu_export_database" msgid="2659719297530170820">"导出数据库文件"</string>

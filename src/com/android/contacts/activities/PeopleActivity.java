@@ -1805,6 +1805,11 @@ public class PeopleActivity extends ContactsActivity
                 startActivity(intent);
                 return true;
             }
+            case R.id.menu_memory_status: {
+                final Intent intent = new Intent(this, MemoryStatusActivity.class);
+                startActivity(intent);
+                return true;
+            }
             case R.id.menu_switch_group: {
                 isLocalGroupsShown = !isLocalGroupsShown;
                 updateGroupsMenu();
