@@ -286,6 +286,7 @@
     <string name="all_call_log">"所有通话记录"</string>
     <string name="title_slot_change">SIM卡选择</string>
     <string name="delete_call_title">"删除通话记录"</string>
+    <string name="select_call_title">"选择通话记录"</string>
     <string name="delete_call_message">"正在删除..."</string>
     <string name="delete_call_alert">"确定要删除选中的通话记录吗?"</string>
     <string name="title_del_call">删除</string>
