@@ -1399,7 +1399,7 @@ public class MultiPickContactActivity extends ListActivity implements
                 } else if (cursor.getCount() > mChoiceSet.size()) {
                     mSelectAllCheckBox.setChecked(false);
                 } else {
-                    mSelectAllCheckBox.setChecked(false);
+                    mSelectAllCheckBox.setChecked(true);
                 }
             }
 
