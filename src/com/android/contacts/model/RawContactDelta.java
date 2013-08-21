@@ -431,8 +431,6 @@ public class RawContactDelta implements Parcelable {
 
         if (names != null && names.size() > 0) {
             nameValuesDelta = names.get(0);
-            names.get(0).put(StructuredName.DISPLAY_NAME, nameValuesDelta
-                    .getAsString(StructuredName.DISPLAY_NAME));
             names.get(0).putNull(StructuredName.GIVEN_NAME);
             names.get(0).putNull(StructuredName.FAMILY_NAME);
             names.get(0).putNull(StructuredName.PREFIX);
@@ -521,12 +519,6 @@ public class RawContactDelta implements Parcelable {
                 values.put(SimContactsConstants.STR_ANRS, anr);
             }
         } else {
-            // if new values is null ,we should merge them form before.
-            if (null == newName) newName = name;
-            if (null == newNumber) newNumber = number;
-            if (null == newEmail) newEmail = email;
-            if (null == newAnr) newAnr = anr;
-
             values.put(SimContactsConstants.STR_TAG, name);
             values.put(SimContactsConstants.STR_NUMBER, number);
             values.put(SimContactsConstants.STR_EMAILS, email);
