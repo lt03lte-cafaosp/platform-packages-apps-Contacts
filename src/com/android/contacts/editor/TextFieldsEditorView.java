@@ -445,4 +445,11 @@ public class TextFieldsEditorView extends LabeledEditorView {
         mExpansionViewContainer.setEnabled(false);
         mExpansionView.setVisibility(View.INVISIBLE);
     }
+
+    /**
+     * use for sim card is USIM or CSIM.
+     */
+    public void setLabelReadOnly(boolean readOnly){
+        mLabelReadOnly = readOnly;
+    }
 }

@@ -385,7 +385,7 @@ public class RawContactEditorView extends BaseRawContactEditorView {
                             // add the TYPE_HOME number view.
                             kind.typeList.add(typeHome);
                         }
-                       // section.setLabelReadOnly(true);
+                        section.setLabelReadOnly(true);
                     }
                 }
                 section.setEnabled(isEnabled());
