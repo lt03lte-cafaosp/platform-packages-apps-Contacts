@@ -88,6 +88,8 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
     private EditorListener mListener;
     protected int mMinLineItemHeight;
 
+    protected boolean mLabelReadOnly;
+
     /**
      * A marker in the spinner adapter of the currently selected custom type.
      */
@@ -201,7 +203,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
      */
     private void setupLabelButton(boolean shouldExist) {
         if (shouldExist) {
-            mLabel.setEnabled(!mReadOnly && isEnabled());
+            mLabel.setEnabled(!mLabelReadOnly && isEnabled());
             mLabel.setVisibility(View.VISIBLE);
         } else {
             mLabel.setVisibility(View.GONE);
@@ -246,7 +248,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-        mLabel.setEnabled(!mReadOnly && enabled);
+        mLabel.setEnabled(!mLabelReadOnly && enabled);
         mDelete.setEnabled(!mReadOnly && enabled);
     }
 
@@ -360,7 +362,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
         // Display label selector if multiple types available
         final boolean hasTypes = RawContactModifier.hasEditTypes(kind);
         setupLabelButton(hasTypes);
-        mLabel.setEnabled(!readOnly && isEnabled());
+        mLabel.setEnabled(!mLabelReadOnly && isEnabled());
         if (hasTypes) {
             mType = RawContactModifier.getCurrentType(entry, kind);
             rebuildLabel();
