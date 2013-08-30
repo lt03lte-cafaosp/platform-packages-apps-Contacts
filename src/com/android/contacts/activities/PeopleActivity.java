@@ -16,24 +16,40 @@
 
 package com.android.contacts.activities;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
+import android.content.ContentProviderOperation;
+import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.os.UserManager;
+import android.os.SystemProperties;
 import android.preference.PreferenceActivity;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.Intents;
 import android.provider.ContactsContract.ProviderStatus;
 import android.provider.ContactsContract.QuickContact;
+import android.provider.LocalGroups.Group;
 import android.provider.Settings;
+import android.preference.PreferenceManager;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -47,6 +63,9 @@ import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListPopupWindow;
 import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
@@ -60,12 +79,16 @@ import com.android.contacts.detail.ContactDetailUpdatesFragment;
 import com.android.contacts.detail.ContactLoaderFragment;
 import com.android.contacts.detail.ContactLoaderFragment.ContactLoaderFragmentListener;
 import com.android.contacts.common.dialog.ClearFrequentsDialog;
+import com.android.contacts.common.editor.SelectAccountDialogFragment;
 import com.android.contacts.group.GroupBrowseListFragment;
 import com.android.contacts.group.GroupBrowseListFragment.OnGroupBrowserActionListener;
 import com.android.contacts.group.GroupDetailFragment;
+import com.android.contacts.group.local.AddLocalGroupDialog;
 import com.android.contacts.interactions.ContactDeletionInteraction;
 import com.android.contacts.common.interactions.ImportExportDialogFragment;
+import com.android.contacts.common.interactions.ImportExportDialogFragment.ExportToSimThread;
 import com.android.contacts.list.ContactBrowseListFragment;
+import com.android.contacts.common.list.AccountFilterActivity;
 import com.android.contacts.common.list.ContactEntryListFragment;
 import com.android.contacts.common.list.ContactListFilter;
 import com.android.contacts.common.list.ContactListFilterController;
@@ -81,21 +104,32 @@ import com.android.contacts.list.OnContactBrowserActionListener;
 import com.android.contacts.list.OnContactsUnavailableActionListener;
 import com.android.contacts.list.ProviderStatusWatcher;
 import com.android.contacts.list.ProviderStatusWatcher.ProviderStatusListener;
+import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.model.Contact;
+import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.preference.ContactsPreferenceActivity;
 import com.android.contacts.preference.DisplayOptionsPreferenceFragment;
+import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.util.AccountFilterUtil;
 import com.android.contacts.util.AccountPromptUtils;
+import com.android.contacts.common.util.AccountsListAdapter;
+import com.android.contacts.common.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.common.util.Constants;
 import com.android.contacts.util.DialogManager;
 import com.android.contacts.util.HelpUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.common.util.UriUtils;
+import com.android.contacts.common.vcard.ExportVCardActivity;
+import com.android.contacts.common.vcard.VCardCommonArguments;
+import com.android.contacts.util.XCloudManager;
 import com.android.contacts.widget.TransitionAnimationView;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -108,7 +142,7 @@ public class PeopleActivity extends ContactsActivity
         ContactListFilterController.ContactListFilterListener, ProviderStatusListener {
 
     private static final String TAG = "PeopleActivity";
-
+    public static String EDITABLE_KEY = "search_contacts";
     /** Shows a toogle button for hiding/showing updates. Don't submit with true */
     private static final boolean DEBUG_TRANSITIONS = false;
 
@@ -122,6 +156,9 @@ public class PeopleActivity extends ContactsActivity
     private static final int SUBACTIVITY_NEW_GROUP = 4;
     private static final int SUBACTIVITY_EDIT_GROUP = 5;
     private static final int SUBACTIVITY_ACCOUNT_FILTER = 6;
+    // This values must be consistent with ImportExportDialogFragment.SUBACTIVITY_EXPORT_CONTACTS.
+    // This values is set 100,That is avoid to conflict with other new subactivity.
+    private static final int SUBACTIVITY_EXPORT_CONTACTS = 100;
 
     private final DialogManager mDialogManager = new DialogManager(this);
 
@@ -150,6 +187,10 @@ public class PeopleActivity extends ContactsActivity
     private ProviderStatusWatcher.Status mProviderStatus;
 
     private boolean mOptionsMenuContactsAvailable;
+    public boolean isLocalGroupsShown;
+    private MenuItem switchGroupsMenu;
+    private MenuItem addGroupMenu;
+    private AccountManager mAccountManager;
 
     /**
      * Showing a list of Contacts. Also used for showing search results in search mode.
@@ -164,6 +205,7 @@ public class PeopleActivity extends ContactsActivity
     private TransitionAnimationView mPeopleActivityView;
     private TransitionAnimationView mContactDetailsView;
     private TransitionAnimationView mGroupDetailsView;
+    private View mAddGroupImageView;
 
     /** ViewPager for swipe, used only on the phone (i.e. one-pane mode) */
     private ViewPager mTabPager;
@@ -175,6 +217,7 @@ public class PeopleActivity extends ContactsActivity
     private boolean mEnableDebugMenuOptions;
 
     private final Handler mHandler = new Handler();
+    private ExportToSimThread mExportThread = null;
 
     /**
      * True if this activity instance is a re-created one.  i.e. set true after orientation change.
@@ -198,9 +241,25 @@ public class PeopleActivity extends ContactsActivity
      */
     private boolean mCurrentFilterIsValid;
 
+    private boolean isImportExportDialogDismissed = false;
+
     /** Sequential ID assigned to each instance; used for logging */
     private final int mInstanceId;
     private static final AtomicInteger sNextInstanceId = new AtomicInteger();
+
+    // TODO: we need to refactor the export code in future release.
+    // QRD enhancement: contacts list for multi contact pick
+    private ArrayList<String[]> mContactList;
+    private final BroadcastReceiver mExportToSimCompleteListener = new BroadcastReceiver (){
+        public void onReceive(Context context, Intent intent){
+            String action = intent.getAction();
+
+            if (action.equals(SimContactsConstants.INTENT_EXPORT_COMPLETE)){
+                ImportExportDialogFragment.destroyExportToSimThread();
+                mExportThread = null;
+            }
+        }
+    };
 
     public PeopleActivity() {
         mInstanceId = sNextInstanceId.getAndIncrement();
@@ -258,6 +317,8 @@ public class PeopleActivity extends ContactsActivity
         }
         super.onCreate(savedState);
 
+        mAccountManager = AccountManager.get(this);
+        createPhoneAccount();
         if (!processIntent(false)) {
             finish();
             return;
@@ -273,6 +334,92 @@ public class PeopleActivity extends ContactsActivity
         getWindow().setBackgroundDrawableResource(R.color.background_primary);
         if (Log.isLoggable(Constants.PERFORMANCE_TAG, Log.DEBUG)) {
             Log.d(Constants.PERFORMANCE_TAG, "PeopleActivity.onCreate finish");
+        }
+        final IntentFilter exportCompleteFilter = new IntentFilter(SimContactsConstants
+            .INTENT_EXPORT_COMPLETE);
+        registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
+    }
+
+    /**
+     * Creating phone account in database when local account exist
+     */
+    private void createPhoneAccount() {
+        final String type = SimContactsConstants.ACCOUNT_TYPE_PHONE;
+        final String name = SimContactsConstants.PHONE_NAME;
+        if (hasLocalAccount(name, type)) {
+            // Move database operations to the thread. When change system
+            // language, contact database will rebuild index, then query will
+            // block the main thread.
+            new Thread() {
+                public void run() {
+                    updateAccountVisible(getContentResolver(), new Account(
+                            name, type));
+                };
+            }.start();
+        }
+    }
+
+    /**
+     * Judging whether system exist a local account.
+     * @param accoutName account name
+     * @param accountType account Type
+     * @return whether exist local account.
+     */
+    private boolean hasLocalAccount(String accoutName, String accountType) {
+        Account accounts[] = getPhoneAccounts();
+        for (Account account : accounts) {
+            if (account.name.equals(accoutName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Getting An array of Account matches phone account.
+     * @return
+     */
+    protected Account[] getPhoneAccounts() {
+        return mAccountManager
+                .getAccountsByType(SimContactsConstants.ACCOUNT_TYPE_PHONE);
+    }
+
+    /**
+     * Updating the account is visible When an account exists.
+     * @param resolver
+     * @param account
+     */
+    private static void updateAccountVisible(ContentResolver resolver,
+            Account account) {
+        final Uri settingsUri = ContactsContract.Settings.CONTENT_URI.buildUpon()
+                .appendQueryParameter(ContactsContract.Settings.ACCOUNT_NAME, account.name)
+                .appendQueryParameter(ContactsContract.Settings.ACCOUNT_TYPE, account.type)
+                .build();
+        final Cursor cursor = resolver.query(settingsUri, new String[] {
+                ContactsContract.Settings.SHOULD_SYNC,
+                ContactsContract.Settings.UNGROUPED_VISIBLE }, null, null, null);
+        // Inserting the phone account into database when database has no phone
+        // account.
+        if (null != cursor) {
+            if (0 == cursor.getCount()) {
+                final ContentValues values = new ContentValues();
+                values.put(ContactsContract.Settings.ACCOUNT_NAME, account.name);
+                values.put(ContactsContract.Settings.ACCOUNT_TYPE, account.type);
+                values.put(ContactsContract.Settings.SHOULD_SYNC, 1);
+                values.put(ContactsContract.Settings.UNGROUPED_VISIBLE, 1);
+                final ArrayList<ContentProviderOperation> operationList =
+                        new ArrayList<ContentProviderOperation>();
+                final ContentProviderOperation.Builder builder = ContentProviderOperation
+                        .newInsert(ContactsContract.Settings.CONTENT_URI);
+                builder.withValues(values);
+                operationList.add(builder.build());
+                try {
+                    resolver.applyBatch(ContactsContract.AUTHORITY, operationList);
+                } catch (Exception e) {
+                    Log.e(TAG, "e=" + e.toString());
+                }
+            }
+            cursor.close();
         }
     }
 
@@ -491,11 +638,20 @@ public class PeopleActivity extends ContactsActivity
         mOptionsMenuContactsAvailable = false;
         mProviderStatusWatcher.stop();
         super.onPause();
+
+        dismissDialog(ImportExportDialogFragment.TAG);
+        dismissDialog(SelectAccountDialogFragment.TAG);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        if (isImportExportDialogDismissed && !ImportExportDialogFragment.isMenuItemClicked()) {
+            ImportExportDialogFragment.show(getFragmentManager(), areContactsAvailable(),
+                    PeopleActivity.class);
+            isImportExportDialogDismissed = false;
+        }
 
         mProviderStatusWatcher.start();
         updateViewConfiguration(true);
@@ -530,7 +686,36 @@ public class PeopleActivity extends ContactsActivity
             mContactListFilterController.removeListener(this);
         }
 
+        unregisterReceiver(mExportToSimCompleteListener);
         super.onDestroy();
+    }
+
+    private void dismissDialog(String tag) {
+
+        // when this activity lose focus,dismiss the dialog
+        Fragment dialogFragment = getFragmentManager().findFragmentByTag(tag);
+        if (dialogFragment != null) {
+            if(dialogFragment instanceof DialogFragment) {
+                ((DialogFragment)dialogFragment).dismiss();
+                if (ImportExportDialogFragment.TAG.equals(tag)) {
+                    isImportExportDialogDismissed = true;
+                }
+            }
+        } else if (ImportExportDialogFragment.TAG.equals(tag)) {
+            isImportExportDialogDismissed = false;
+        }
+    }
+
+    private void showAddLocalGroupDialog() {
+        new AddLocalGroupDialog(this, new AddLocalGroupDialog.AddGroupListener() {
+            @Override
+            public void onAddGroup(String name) {
+                Group group = new Group();
+                group.setTitle(name);
+                group.save(getContentResolver());
+                mGroupsFragment.updateGroupData();
+            };
+        }).show();
     }
 
     private void configureFragments(boolean fromRequest) {
@@ -1034,6 +1219,8 @@ public class PeopleActivity extends ContactsActivity
         if (mProviderStatus.status == ProviderStatus.STATUS_NORMAL) {
             // Ensure that the mTabPager is visible; we may have made it invisible below.
             contactsUnavailableView.setVisibility(View.GONE);
+            // Invalidate menu item when ProviderWatcher notify status is normal.
+            invalidateOptionsMenu();
             if (mTabPager != null) {
                 mTabPager.setVisibility(View.VISIBLE);
             }
@@ -1421,12 +1608,25 @@ public class PeopleActivity extends ContactsActivity
         if (!mOptionsMenuContactsAvailable) {
             return false;
         }
-
+        if (SystemProperties.getBoolean("persist.env.baidu.xcloud", true)) {
+            XCloudManager.getInstance().updateMenuState(menu, this);
+        } else {
+            final MenuItem autoSyncToXCloudSwitcher = menu.findItem(
+                R.id.menu_auto_sync_to_baidu_cloud);
+            final MenuItem syncToXCloud = menu.findItem(R.id.menu_sync_to_baidu_cloud);
+            if (autoSyncToXCloudSwitcher != null) {
+                autoSyncToXCloudSwitcher.setVisible(false);
+            }
+            if (syncToXCloud != null) {
+                syncToXCloud.setVisible(false);
+            }
+        }
         // Get references to individual menu items in the menu
         final MenuItem addContactMenu = menu.findItem(R.id.menu_add_contact);
         final MenuItem contactsFilterMenu = menu.findItem(R.id.menu_contacts_filter);
+        switchGroupsMenu = menu.findItem(R.id.menu_switch_group);
 
-        MenuItem addGroupMenu = menu.findItem(R.id.menu_add_group);
+        addGroupMenu = menu.findItem(R.id.menu_add_group);
 
         final MenuItem clearFrequentsMenu = menu.findItem(R.id.menu_clear_frequents);
         final MenuItem helpMenu = menu.findItem(R.id.menu_help);
@@ -1436,32 +1636,33 @@ public class PeopleActivity extends ContactsActivity
             addContactMenu.setVisible(false);
             addGroupMenu.setVisible(false);
             contactsFilterMenu.setVisible(false);
+            switchGroupsMenu.setVisible(false);
             clearFrequentsMenu.setVisible(false);
             helpMenu.setVisible(false);
+            makeMenuItemVisible(menu, R.id.menu_delete, false);
         } else {
             switch (mActionBarAdapter.getCurrentTab()) {
                 case TabState.FAVORITES:
                     addContactMenu.setVisible(false);
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
+                    switchGroupsMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(hasFrequents());
                     break;
                 case TabState.ALL:
                     addContactMenu.setVisible(true);
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(true);
+                    switchGroupsMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
                     break;
                 case TabState.GROUPS:
-                    // Do not display the "new group" button if no accounts are available
-                    if (areGroupWritableAccountsAvailable()) {
-                        addGroupMenu.setVisible(true);
-                    } else {
-                        addGroupMenu.setVisible(false);
-                    }
                     addContactMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
+                    switchGroupsMenu.setVisible(true);
+                    // Do not display the "new group" button if no accounts are available
+                    updateGroupsMenu();
                     break;
             }
             HelpUtils.prepareHelpMenuItem(this, helpMenu, R.string.help_url_people_main);
@@ -1500,6 +1701,10 @@ public class PeopleActivity extends ContactsActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (SystemProperties.getBoolean("persist.env.baidu.xcloud", true)) {
+            if(XCloudManager.getInstance().handleXCouldRelatedMenuItem(item, this))
+                return true;
+        }
         switch (item.getItemId()) {
             case android.R.id.home: {
                 // The home icon on the action bar is pressed
@@ -1552,12 +1757,33 @@ public class PeopleActivity extends ContactsActivity
                 return true;
             }
             case R.id.menu_add_group: {
-                createNewGroup();
+                if (isLocalGroupsShown) {
+                    showAddLocalGroupDialog();
+                } else {
+                    createNewGroupWithAccountDisambiguation();
+                }
+                return true;
+            }
+            // QRD enhancement: multi contact delete
+            case R.id.menu_delete: {
+                final Intent intent = new Intent(Intent.ACTION_DELETE, Contacts.CONTENT_URI);
+                intent.putExtra(EDITABLE_KEY, mActionBarAdapter.getQueryString());
+
+                ContactListFilter filter = ContactListFilter.restoreDefaultPreferences(
+                    PreferenceManager.getDefaultSharedPreferences(this));
+                intent.putExtra(AccountFilterActivity.KEY_EXTRA_CONTACT_LIST_FILTER, filter);
+
+                startActivity(intent);
                 return true;
             }
             case R.id.menu_import_export: {
-                ImportExportDialogFragment.show(getFragmentManager(), areContactsAvailable(),
-                        PeopleActivity.class);
+                if (!ImportExportDialogFragment.isExportingToSIM()) {
+                    ImportExportDialogFragment.show(getFragmentManager(), areContactsAvailable(),
+                            PeopleActivity.class);
+                } else {
+                    new ImportExportDialogFragment().showExportToSIMProgressDialog(
+                        PeopleActivity.this);
+                }
                 return true;
             }
             case R.id.menu_clear_frequents: {
@@ -1579,6 +1805,17 @@ public class PeopleActivity extends ContactsActivity
                 startActivity(intent);
                 return true;
             }
+            case R.id.menu_memory_status: {
+                final Intent intent = new Intent(this, MemoryStatusActivity.class);
+                startActivity(intent);
+                return true;
+            }
+            case R.id.menu_switch_group: {
+                isLocalGroupsShown = !isLocalGroupsShown;
+                updateGroupsMenu();
+                mGroupsFragment.updateGroupData();
+                return true;
+            }
         }
         return false;
     }
@@ -1587,6 +1824,58 @@ public class PeopleActivity extends ContactsActivity
         final Intent intent = new Intent(this, GroupEditorActivity.class);
         intent.setAction(Intent.ACTION_INSERT);
         startActivityForResult(intent, SUBACTIVITY_NEW_GROUP);
+    }
+
+    private void updateGroupsMenu() {
+        if (areGroupWritableAccountsAvailable() || isLocalGroupsShown) {
+            addGroupMenu.setVisible(true);
+        } else {
+            addGroupMenu.setVisible(false);
+        }
+        switchGroupsMenu
+            .setTitle(isLocalGroupsShown ? R.string.title_switch_group_remote
+                : R.string.title_switch_group_local);
+        switchGroupsMenu
+            .setIcon(isLocalGroupsShown ? R.drawable.ic_remote_group_holo_dark
+                : R.drawable.ic_location_group_holo_dark);
+    }
+
+
+    private void createNewGroupWithAccountDisambiguation() {
+        final List<AccountWithDataSet> accounts =
+            AccountTypeManager.getInstance(this).getAccounts(true,
+                AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_LOCAL);
+        if (accounts.size() <= 1 || mAddGroupImageView == null) {
+            // No account to choose or no control to anchor the popup-menu to
+            // ==> just go straight to the editor which will disambig if necessary
+            final Intent intent = new Intent(this, GroupEditorActivity.class);
+            intent.setAction(Intent.ACTION_INSERT);
+            startActivityForResult(intent, SUBACTIVITY_NEW_GROUP);
+            return;
+        }
+
+        final ListPopupWindow popup = new ListPopupWindow(this, null);
+        popup.setWidth(getResources().getDimensionPixelSize(R.dimen.account_selector_popup_width));
+        popup.setAnchorView(mAddGroupImageView);
+        // Create a list adapter with all writeable accounts (assume that the writeable accounts all
+        // allow group creation).
+        final AccountsListAdapter adapter = new AccountsListAdapter(this,
+            AccountListFilter.ACCOUNTS_GROUP_WRITABLE);
+        popup.setAdapter(adapter);
+        popup.setOnItemClickListener(new OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                popup.dismiss();
+                AccountWithDataSet account = adapter.getItem(position);
+                final Intent intent = new Intent(PeopleActivity.this, GroupEditorActivity.class);
+                intent.setAction(Intent.ACTION_INSERT);
+                intent.putExtra(Intents.Insert.ACCOUNT, account);
+                intent.putExtra(Intents.Insert.DATA_SET, account.dataSet);
+                startActivityForResult(intent, SUBACTIVITY_NEW_GROUP);
+            }
+        });
+        popup.setModal(true);
+        popup.show();
     }
 
     @Override
@@ -1635,7 +1924,60 @@ public class PeopleActivity extends ContactsActivity
                 if (resultCode == RESULT_OK) {
                     mAllFragment.onPickerResult(data);
                 }
+                break;
 
+            case ImportExportDialogFragment.SUBACTIVITY_MULTI_PICK_CONTACT:
+                if (resultCode == RESULT_OK) {
+                    mContactList = new ArrayList<String[]>();
+                    Bundle b = data.getExtras();
+                    Bundle choiceSet = b.getBundle("result");
+                    Set<String> set = choiceSet.keySet();
+                    Iterator<String> i = set.iterator();
+                    while (i.hasNext()) {
+                        String contactInfo[] = choiceSet.getStringArray(i.next());
+                        mContactList.add(contactInfo);
+                    }
+                    Log.d(TAG, "return " + mContactList.size() + " contacts");
+                    if (!mContactList.isEmpty()) {
+                        if (!ImportExportDialogFragment.isExportingToSIM()) {
+                            ImportExportDialogFragment.destroyExportToSimThread();
+                            mExportThread =
+                                new ImportExportDialogFragment().createExportToSimThread(
+                                ImportExportDialogFragment.ExportToSimThread.TYPE_SELECT,
+                                ImportExportDialogFragment.mExportSub,mContactList,
+                                PeopleActivity.this);
+                            mExportThread.start();
+                        }
+                        else {
+                            Log.d(TAG, "ImportExportDialogFragment.SUBACTIVITY_MULTI_PICK_CONTACT");
+                        }
+                    } else {
+                    }
+                }
+                break;
+
+            case SUBACTIVITY_EXPORT_CONTACTS:
+                if (resultCode == RESULT_OK) {
+                    Bundle result = data.getExtras().getBundle("result");
+                    Set<String> keySet = result.keySet();
+                    Iterator<String> it = keySet.iterator();
+                    String selExport = "";
+                    while (it.hasNext()) {
+                        String id = it.next();
+                        if (selExport.equals("")) {
+                            selExport += id;
+                        } else {
+                            selExport = selExport + "," + id;
+                        }
+                    }
+                    selExport = "_id IN (" + selExport + ")";
+                    Intent exportIntent = new Intent(this, ExportVCardActivity.class);
+                    exportIntent.putExtra("SelExport", selExport);
+                    exportIntent.putExtra(VCardCommonArguments.ARG_CALLING_ACTIVITY,
+                            PeopleActivity.class.getName());
+                    this.startActivity(exportIntent);
+                }
+                break;
 // TODO fix or remove multipicker code
 //                else if (resultCode == RESULT_CANCELED && mMode == MODE_PICK_MULTIPLE_PHONES) {
 //                    // Finish the activity if the sub activity was canceled as back key is used

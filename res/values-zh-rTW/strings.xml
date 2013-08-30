@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--  Copyright (C) 2006 The Android Open Source Project
+      Copyright (C) 2013 The Linux Foundation. All Rights Reserved.
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="contactStorageToast">"聯絡人存儲空間不可用!"</string>
     <string name="people" msgid="1048457247435785074">"使用者"</string>
     <string name="contactsList" msgid="8661624236494819731">"聯絡人"</string>
     <string name="shortcutContact" msgid="749243779392912958">"聯絡人"</string>
@@ -59,6 +61,8 @@
     <string name="separatorJoinAggregateSuggestions" msgid="2831414448851313345">"建議聯絡人"</string>
     <string name="separatorJoinAggregateAll" msgid="7939932265026181043">"所有聯絡人"</string>
     <string name="contactsJoinedMessage" msgid="7208148163607047389">"已合併聯絡人"</string>
+    <string name="deleteConfirmation_title" msgid="1418215926447642260">"要刪除聯絡人嗎？"</string>
+    <string name="importConfirmation_title" msgid="1418215926447642260">"要導入聯絡人嗎？"</string>
     <string name="menu_set_ring_tone" msgid="8728345772068064946">"設定電話鈴聲"</string>
     <string name="menu_redirect_calls_to_vm" msgid="4181789196416396656">"將所有來電轉到語音信箱"</string>
     <string name="readOnlyContactWarning" msgid="7808825687289848259">"您無法刪除唯讀帳戶的聯絡人，但可在聯絡人清單中隱藏這些聯絡人。"</string>
@@ -87,7 +91,16 @@
     <string name="addPeopleToGroup" msgid="7879585947222263516">"如要新增成員，請編輯群組。"</string>
     <string name="savingContact" msgid="4075751076741924939">"正在儲存聯絡人…"</string>
     <string name="contactSavedToast" msgid="7152589189385441091">"聯絡人已儲存。"</string>
+    <string name="contactDeletedToast">"此聯絡人已刪除。"</string>
     <string name="contactSavedErrorToast" msgid="3207250533172944892">"無法儲存聯絡人變更。"</string>
+    <string name="contactSavedToSimCardError">"發生錯誤。正在載入SIM卡聯絡人。"</string>
+    <string name="airplane_mode_on">"發生錯誤，當前處於飛行模式。"</string>
+    <string name="number_anr_too_long">"發生錯誤，電話號碼過長。"</string>
+    <string name="email_address_too_long">"發生錯誤，郵箱地址過長。"</string>
+    <string name="sim_card_full">"發生錯誤，SIM卡已滿。"</string>
+    <string name="tag_too_long">"發生錯誤，聯絡人姓名過長。"</string>
+    <string name="no_phone_number">請輸入手機號碼。</string>
+    <string name="invalid_phone_number">"發生錯誤，電話號碼不合法。"</string>
     <string name="groupSavedToast" msgid="1168756874239833756">"群組已儲存。"</string>
     <string name="groupSavedErrorToast" msgid="7984466936615304740">"無法儲存群組變更。"</string>
   <plurals name="listTotalPhoneContacts">
@@ -110,12 +123,22 @@
   </plurals>
     <string name="contactsAllLabel" msgid="6479708629170672169">"所有聯絡人"</string>
     <string name="contactsGroupsLabel" msgid="2841971472518003524">"群組"</string>
+    <string name="unknown" msgid="740067747858270469">"不明"</string>
+    <string name="simContacts_LoadingTimeout" msgid="6700035985448642408">"載入超時，請重試"</string>
     <string name="callBack" msgid="5498224409038809224">"回播電話"</string>
     <string name="callAgain" msgid="3197312117049874778">"重撥"</string>
     <string name="returnCall" msgid="8171961914203617813">"回電"</string>
+    <string name="call_duration_active">通話時長:</string>
+    <string name="call_duration_call_out">呼叫時長:</string>
+    <string name="add_contact_dlg_title" msgid="2896685845822146494">"添加聯絡人"</string>
     <string name="add_contact_dlg_message_fmt" msgid="7986472669444326576">"要將「<xliff:g id="EMAIL">%s</xliff:g>」加到通訊錄嗎？"</string>
     <string name="description_contact_photo" msgid="3387458082667894062">"聯絡人相片"</string>
     <string name="description_plus_button" msgid="515164827856229880">"加號"</string>
+    <string name="no_sdcard_title" product="nosdcard" msgid="8543619259870877473">"無存儲設備"</string>
+    <string name="no_sdcard_title" product="default" msgid="5911758680339949273">"無 SD 卡"</string>
+    <string name="searching_vcard_title" msgid="4970508055399376813">"正在搜索 vCard"</string>
+    <string name="scanning_sdcard_failed_title" product="nosdcard">"無法掃描存儲設備"</string>
+    <string name="scanning_sdcard_failed_title" product="default">"無法掃描 SD 卡"</string>
     <string name="exporting_contact_list_progress" msgid="560522409559101193">"第 <xliff:g id="CURRENT_NUMBER">%s</xliff:g> 位聯絡人，共 <xliff:g id="TOTAL_NUMBER">%s</xliff:g> 位"</string>
     <string name="search_settings_description" msgid="2675223022992445813">"您的聯絡人姓名"</string>
     <string name="quickcontact_missing_app" msgid="358168575340921552">"找不到可以處理這個動作的應用程式。"</string>
@@ -210,6 +233,8 @@
     <string name="copy_text" msgid="3257145021583508761">"複製到剪貼簿"</string>
     <string name="set_default" msgid="4417505153468300351">"設為預設值"</string>
     <string name="clear_default" msgid="7193185801596678067">"清除預設值"</string>
+    <string name="ipcall">"通過IP電話撥號"</string>
+    <string name="edit_before_call">"撥號前編輯號碼"</string>
     <string name="toast_text_copied" msgid="5143776250008541719">"文字已複製"</string>
     <string name="cancel_confirmation_dialog_message" msgid="5885724679874403115">"確定要捨棄變更？"</string>
     <string name="call_type_and_date" msgid="747163730039311423">"<xliff:g id="CALL_TYPE">%1$s</xliff:g> <xliff:g id="CALL_SHORT_DATE">%2$s</xliff:g>"</string>
@@ -228,6 +253,83 @@
     <string name="keep_local" msgid="1258761699192993322">"儲存在本機中"</string>
     <string name="add_account" msgid="8201790677994503186">"新增帳戶"</string>
     <string name="add_new_account" msgid="5748627740680940264">"新增帳戶"</string>
+    <string name="label_groups">"群組"</string>
+    <string name="title_group_name">"群組名稱"</string>
+    <string name="title_group_add">"新建群組"</string>
+    <string name="menu_option_delete">"刪除群組"</string>
+    <string name="group_selector">"點擊選擇群組"</string>
+    <string name="title_group_picker">"群組選擇"</string>
+    <string name="noGroupsHelpText">"沒有本地群組。"</string>
+    <string name="group_list_head">所有群組</string>
+    <string name="menu_option_add">"添加群組"</string>
+    <string name="toast_not_add">一些非本地賬戶的聯絡人不能被添加到群組中！</string>
+    <string name="noMember">"該群組中沒有成員。"</string>
+    <string name="title_group_edit">編輯群組</string>
+    <string name="button_delete">移除</string>
+    <string name="button_cancel">取消</string>
+    <string name="summary_add_members">從通訊簿中添加聯絡人到該群組中</string>
+    <string name="title_members_list">群組成員</string>
+    <string name="title_add_members">添加成員</string>
+    <string name="contactsLocalGroupsLabel">"本地群組"</string>
+    <string name="select_all">"全選"</string>
+    <string name="btn_ok">"確定"</string>
+    <string name="btn_cancel">"取消"</string>
+
+    <string name="all_call_log">"所有通話記錄"</string>
+    <string name="title_slot_change">SIM卡選擇</string>
+    <string name="delete_call_title">"刪除通話記錄"</string>
+    <string name="delete_call_message">"正在删除..."</string>
+    <string name="delete_call_alert">"確定要刪除選中的通話記錄嗎?"</string>
+    <string name="title_del_call">删除</string>
+
+    <string name="import_sim_contacts_title">"導入聯絡人"</string>
+    <string name="import_sim_contacts_message">"正在導入..."</string>
+
+    <string name="menu_sendViaSMS">通過簡訊發送聯絡人</string>
+    <string name="title_switch_group_remote">"遠端群組。"</string>
+    <string name="title_switch_group_local">"本地群組"</string>
+    <!-- Choose Sim Card to Import -->
+    <string name="import_from_sim_select">"選擇SIM卡進行導入"</string>
+
+    <!--Export to Sim Card -->
+    <string name="export_finished">"導出結束"</string>
+    <string name="export_to_sim">"導出到 SIM 卡"</string>
+    <string name="no_contact_selected">"沒有選擇導出的聯絡人"</string>
+    <string name="exporting">"正在導出"</string>
+    <string name="export_failed">"導出失敗"</string>
+    <string name="ContactMultiDeleteConfirmation">"將會刪除這些聯絡人。"</string>
+    <string name="delete_contacts_title">"删除聯絡人"</string>
+    <string name="delete_contacts_message">"正在删除..."</string>
+    <string name="ContactMultiImportConfirmation">"將會導入這些聯絡人。"</string>
+    <string name="dialog_title">提示</string>
+    <string name="error_group_exist">不能添加重名的群組</string>
+    <string name="reading_vcard_files">讀取Vcard文件</string>
+
+    <!-- for speed dial -->
+    <string name="is_set_speed">數字鍵<xliff:g id="number">%s</xliff:g>未設置快速撥號，是否設置？\n</string>
+    <string name="set_speed_dial">快速撥號設置</string>
+    <string name="not_set">(未設定)</string>
+
+    <string name="videocall">"可視電話"</string>
+    <!-- this is for the read-only contact when edit it failed-->
+    <string name="not_edit_read_only_contact">無法修改只讀聯繫人.</string>
+
+    <string name="not_attach_photo_to_account">無法爲此類型賬戶設置頭像。</string>
+
+    <!-- Import from sim card -->
+    <string name="import_finish">導入完成</string>
+    <string name="import_stop">導入停止</string>
+
+    <!-- Operate failt prompted -->
+    <string name="saveContact_failt">操作失敗！</string>
+
+    <!--The failed reason shown when importting some a vCard file -->
+    <string name="fail_reason_import_vcard">I/O 錯誤，無法匯入vCard <xliff:g id="name">%1$s</xliff:g></string>
     <string name="menu_export_database" msgid="2659719297530170820">"匯出資料庫檔案"</string>
     <string name="contact_detail_picture_description" msgid="6083230522651287030">"圖片 (選取即可變更)"</string>
+    <string name="private_num">"私人號碼"</string>
+    <string name="payphone">"公用電話"</string>
+    <string name="voicemail">"語音留言"</string>
+
+    <string name="menu_copyTo">複制到</string>
 </resources>
