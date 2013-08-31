@@ -69,6 +69,7 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListPopupWindow;
@@ -638,6 +639,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     whiteintent.setAction(Intent.ACTION_INSERT);
                     whiteintent.putExtras(whitebundle);
                     entry.whiteintent = whiteintent;
+
+                    if (mHasPhone) {
+                        entry.mSlot1Intent = CallUtil.getSlotIntent(entry.data,
+                                MSimConstants.SUB1);
+                        entry.mSlot2Intent = CallUtil.getSlotIntent(entry.data,
+                                MSimConstants.SUB2);
+                    } else {
+                        entry.mSlot1Intent = null;
+                        entry.mSlot2Intent = null;
+                    }
 
                     // Remember super-primary phone
                     if (isSuperPrimary) mPrimaryPhoneUri = entry.uri;
@@ -1285,6 +1296,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         public Intent whiteintent;
         public Intent blackintent;
 
+        public Intent mSlot1Intent = null;
+        public Intent mSlot2Intent = null;
+
         public ArrayList<Long> ids = new ArrayList<Long>();
         public int collapseCount = 0;
 
@@ -1512,7 +1526,14 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         public final View thirdActionViewContainer;
         public final View secondaryActionDivider;
         public final View thirdActionDivider;
+        public final View fourthActionDivider;
         public final View primaryIndicator;
+        public final View layoutSub1;
+        public final View layoutSub2;
+        public final ImageButton callButtonSub1;
+        public final ImageButton callButtonSub2;
+        public final ImageView callIconSub1;
+        public final ImageView callIconSub2;
 
         public DetailViewCache(View view,
                 OnClickListener primaryActionClickListener,
@@ -1524,7 +1545,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
 
             actionsViewContainer = view.findViewById(R.id.actions_view_container);
-            actionsViewContainer.setOnClickListener(primaryActionClickListener);
+            if (MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
+                actionsViewContainer.setOnClickListener(primaryActionClickListener);
+            } else {
+                actionsViewContainer.setOnClickListener(null);
+            }
             primaryActionView = view.findViewById(R.id.primary_action_view);
 
             secondaryActionViewContainer = view.findViewById(
@@ -1544,6 +1569,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     R.id.third_action_button);
 
             thirdActionDivider = view.findViewById(R.id.vertical_divider_1);
+
+            layoutSub1 = view.findViewById(R.id.layout_sub1);
+            callButtonSub1 = (ImageButton) view.findViewById(R.id.call_button_sub1);
+            callIconSub1 = (ImageView) view.findViewById(R.id.call_icon_sub1);
+
+            fourthActionDivider = view.findViewById(R.id.divider_sub2);
+
+            layoutSub2 = view.findViewById(R.id.layout_sub2);
+            callButtonSub2 = (ImageButton) view.findViewById(R.id.call_button_sub2);
+            callIconSub2 = (ImageView) view.findViewById(R.id.call_icon_sub2);
         }
     }
 
@@ -1851,6 +1886,34 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 views.thirdActionDivider.setVisibility(View.GONE);
             }
 
+            if (entry.mSlot1Intent != null && entry.mSlot2Intent != null) {
+                views.callButtonSub1.setImageResource(
+                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                views.callButtonSub1.setTag(entry);
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                    views.callButtonSub1.setOnClickListener(mFourthActionClickListener);
+                }
+
+                views.callButtonSub2.setImageResource(
+                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                views.callButtonSub2.setTag(entry);
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
+                    views.callButtonSub2.setOnClickListener(mFifthActionClickListener);
+                }
+
+                MoreContactUtils.controlCallIconDisplay(mContext, views.layoutSub1,
+                        views.callButtonSub1, views.callIconSub1, views.layoutSub2,
+                        views.callButtonSub2, views.callIconSub2, views.fourthActionDivider);
+            } else {
+                views.layoutSub1.setVisibility(View.GONE);
+                views.callButtonSub1.setVisibility(View.GONE);
+                views.callIconSub1.setVisibility(View.GONE);
+                views.layoutSub2.setVisibility(View.GONE);
+                views.callButtonSub2.setVisibility(View.GONE);
+                views.callIconSub2.setVisibility(View.GONE);
+                views.fourthActionDivider.setVisibility(View.GONE);
+            }
+
             // Right and left padding should not have "pressed" effect.
             view.setPadding(
                     entry.isInSubSection()
@@ -1925,6 +1988,34 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 if (entry == null || !(entry instanceof DetailViewEntry)) return;
                 final DetailViewEntry detailViewEntry = (DetailViewEntry) entry;
                 final Intent intent = detailViewEntry.thirdIntent;
+                if (intent == null) return;
+                mListener.onItemClicked(intent);
+            }
+        };
+
+        private final OnClickListener mFourthActionClickListener = new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mListener == null) return;
+                if (view == null) return;
+                final ViewEntry entry = (ViewEntry) view.getTag();
+                if (entry == null || !(entry instanceof DetailViewEntry)) return;
+                final DetailViewEntry detailViewEntry = (DetailViewEntry) entry;
+                final Intent intent = detailViewEntry.mSlot1Intent;
+                if (intent == null) return;
+                mListener.onItemClicked(intent);
+            }
+        };
+
+        private final OnClickListener mFifthActionClickListener = new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mListener == null) return;
+                if (view == null) return;
+                final ViewEntry entry = (ViewEntry) view.getTag();
+                if (entry == null || !(entry instanceof DetailViewEntry)) return;
+                final DetailViewEntry detailViewEntry = (DetailViewEntry) entry;
+                final Intent intent = detailViewEntry.mSlot2Intent;
                 if (intent == null) return;
                 mListener.onItemClicked(intent);
             }
