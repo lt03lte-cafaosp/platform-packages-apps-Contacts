@@ -713,8 +713,14 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
     }
 
     private void addMember(Member member) {
+        // If the contact was just removed during this session, remove it from
+        // the list of members to remove
+        if (mListMembersToRemove.contains(member)) {
+            mListMembersToRemove.remove(member);
+        } else {
+            mListMembersToAdd.add(member);
+        }
         // Update the display list
-        mListMembersToAdd.add(member);
         mListToDisplay.add(member);
         mMemberListAdapter.notifyDataSetChanged();
 
