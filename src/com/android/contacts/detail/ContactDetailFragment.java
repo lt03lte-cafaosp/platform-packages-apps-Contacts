@@ -39,7 +39,6 @@ import android.os.SystemProperties;
 import android.provider.CalendarContract;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
-import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.Im;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
@@ -107,6 +106,7 @@ import com.android.contacts.model.dataitem.EmailDataItem;
 import com.android.contacts.model.dataitem.EventDataItem;
 import com.android.contacts.model.dataitem.GroupMembershipDataItem;
 import com.android.contacts.model.dataitem.ImDataItem;
+import com.android.contacts.model.dataitem.LocalGroupDataItem;
 import com.android.contacts.model.dataitem.NicknameDataItem;
 import com.android.contacts.model.dataitem.NoteDataItem;
 import com.android.contacts.model.dataitem.OrganizationDataItem;
@@ -116,13 +116,13 @@ import com.android.contacts.model.dataitem.SipAddressDataItem;
 import com.android.contacts.model.dataitem.StructuredNameDataItem;
 import com.android.contacts.model.dataitem.StructuredPostalDataItem;
 import com.android.contacts.model.dataitem.WebsiteDataItem;
-import com.android.contacts.model.dataitem.LocalGroupDataItem;
 import com.android.contacts.util.DataStatus;
 import com.android.contacts.util.DateUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.StructuredPostalUtils;
 import com.android.contacts.util.UiClosables;
 import com.android.internal.telephony.ITelephony;
+import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.PhoneConstants;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
@@ -149,7 +149,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         static final int SET_DEFAULT = 2;
         static final int EDIT_BEFORE_CALL = 3;
         static final int VIDEOCALL = 4;    // add for new feature: csvt call prefix
-        static final int IPCALL = 5; // add for new feature: ip call prefix
+        static final int IPCALL1 = 5;
+        static final int IPCALL2 = 8; // add for new feature: ip call prefix
 
         static final int ADD_TO_BLACKLIST = 6;
         static final int ADD_TO_WHITELIST = 7;
@@ -1929,7 +1930,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }
         };
 
-
         @Override
         public int getCount() {
             return mAllEntries.size();
@@ -2061,8 +2061,18 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedMimeType)) {
             // add limit length to show IP call item
             if (selectedEntry.data.length() > MAX_NUM_LENGTH) {
-                menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL,
-                        ContextMenu.NONE, getString(R.string.ipcall));
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                    String sub1Name = MoreContactUtils.getSimSpnName(MSimConstants.SUB1);
+                    menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL1, ContextMenu.NONE,
+                            mContext.getString(com.android.contacts.common.R.string
+                            .ip_call_by_slot, sub1Name));
+                }
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
+                    String sub2Name = MoreContactUtils.getSimSpnName(MSimConstants.SUB2);
+                    menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL2, ContextMenu.NONE,
+                            mContext.getString(com.android.contacts.common.R.string
+                            .ip_call_by_slot, sub2Name));
+                }
             }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
@@ -2106,8 +2116,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             case ContextMenuIds.CLEAR_DEFAULT:
                 clearDefaultContactMethod(mListView.getItemIdAtPosition(menuInfo.position));
                 return true;
-            case ContextMenuIds.IPCALL:
-                callViaIP(menuInfo.position);
+            case ContextMenuIds.IPCALL1:
+                ipCallBySlot(menuInfo.position, MSimConstants.SUB1);
+                return true;
+            case ContextMenuIds.IPCALL2:
+                ipCallBySlot(menuInfo.position, MSimConstants.SUB2);
                 return true;
             case ContextMenuIds.EDIT_BEFORE_CALL:
                 callByEdit(menuInfo.position);
@@ -2151,11 +2164,17 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         ClipboardUtils.copyText(getActivity(), detailViewEntry.typeString, textToCopy, true);
     }
 
-    private void callViaIP(int viewEntryPosition) {
-        DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
-        Intent callIntent = new Intent(detailViewEntry.intent);
-        callIntent.putExtra(PhoneConstants.IP_CALL, true);
-        mContext.startActivity(callIntent);
+    private void ipCallBySlot(int viewEntryPosition, int subscription) {
+        if (MoreContactUtils.isIPNumberExist(mContext, subscription)) {
+            DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
+            Intent callIntent = new Intent(detailViewEntry.intent);
+            callIntent.putExtra(PhoneConstants.IP_CALL, true);
+            callIntent.putExtra(MSimConstants.SUBSCRIPTION_KEY, subscription);
+            callIntent.putExtra(MoreContactUtils.DIAL_WIDGET_SWITCHED, subscription);
+            mContext.startActivity(callIntent);
+        } else {
+            MoreContactUtils.showNoIPNumberDialog(mContext, subscription);
+        }
     }
 
     private void callByEdit(int viewEntryPosition) {
