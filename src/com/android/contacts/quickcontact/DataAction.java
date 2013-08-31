@@ -32,7 +32,10 @@ import com.android.contacts.common.CallUtil;
 import com.android.contacts.ContactsUtils;
 import com.android.contacts.R;
 import com.android.contacts.common.MoreContactUtils;
+import com.android.contacts.common.model.AccountTypeManager;
+import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.AccountType.EditType;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.model.dataitem.DataItem;
 import com.android.contacts.common.model.dataitem.DataKind;
 import com.android.contacts.model.dataitem.EmailDataItem;
@@ -59,9 +62,12 @@ public class DataAction implements Action {
     private CharSequence mSubtitle;
     private Intent mIntent;
     private Intent mAlternateIntent;
+    private Intent m2AlternateIntent;
     private int mAlternateIconDescriptionRes;
+    private int m2AlternateIconDescriptionRes;
     private int mAlternateIconRes;
     private int mPresence = -1;
+    private int m2AlternateIconRes;
 
     private Uri mDataUri;
     private long mDataId;
@@ -116,14 +122,21 @@ public class DataAction implements Action {
                     final Intent smsIntent = hasSms ? new Intent(Intent.ACTION_SENDTO,
                             Uri.fromParts(CallUtil.SCHEME_SMSTO, number, null)) : null;
 
+                    final Intent videocallIntent = getVTCallIntent(number);
                     // Configure Icons and Intents. Notice actionIcon is already set to the phone
                     if (hasPhone && hasSms) {
                         mIntent = phoneIntent;
                         mAlternateIntent = smsIntent;
                         mAlternateIconRes = kind.iconAltRes;
                         mAlternateIconDescriptionRes = kind.iconAltDescriptionRes;
+                        m2AlternateIntent = videocallIntent;
+                        m2AlternateIconRes = R.drawable.ic_contact_quick_contact_call_video;
+                        m2AlternateIconDescriptionRes = R.string.video_chat;
                     } else if (hasPhone) {
                         mIntent = phoneIntent;
+                        m2AlternateIntent = videocallIntent;
+                        m2AlternateIconRes = R.drawable.sym_action_videochat_holo_light;
+                        m2AlternateIconDescriptionRes = R.string.videocall;
                     } else if (hasSms) {
                         mIntent = smsIntent;
                     }
@@ -268,7 +281,11 @@ public class DataAction implements Action {
         if (mAlternateIconRes == 0) return null;
 
         final String resourcePackageName = mKind.resourcePackageName;
-        if (resourcePackageName == null) {
+        AccountType accountType =
+                AccountTypeManager.getInstance(mContext).getAccountType(
+                SimAccountType.ACCOUNT_TYPE, null);
+        if (resourcePackageName == null
+                || accountType.resourcePackageName.equals(resourcePackageName)) {
             return mContext.getResources().getDrawable(mAlternateIconRes);
         }
 
@@ -277,9 +294,21 @@ public class DataAction implements Action {
     }
 
     @Override
+    public Drawable get2AlternateIcon() {
+        if (m2AlternateIconRes == 0) return null;
+        return mContext.getResources().getDrawable(m2AlternateIconRes);
+    }
+
+    @Override
     public String getAlternateIconDescription() {
         if (mAlternateIconDescriptionRes == 0) return null;
         return mContext.getResources().getString(mAlternateIconDescriptionRes);
+    }
+
+    @Override
+    public String get2AlternateIconDescription() {
+        if (m2AlternateIconDescriptionRes == 0) return null;
+        return mContext.getResources().getString(m2AlternateIconDescriptionRes);
     }
 
     @Override
@@ -291,7 +320,10 @@ public class DataAction implements Action {
     public Intent getAlternateIntent() {
         return mAlternateIntent;
     }
-
+    @Override
+    public Intent get2AlternateIntent() {
+        return m2AlternateIntent;
+    }
     @Override
     public void collapseWith(Action other) {
         // No-op
@@ -316,4 +348,19 @@ public class DataAction implements Action {
         }
         return true;
     }
+
+   private Intent getVTCallIntent(String number) {
+                Intent intent = new Intent("com.borqs.videocall.action.LaunchVideoCallScreen");
+                intent.addCategory(Intent.CATEGORY_DEFAULT);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                                | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+
+                intent.putExtra("IsCallOrAnswer", true); // true as a
+
+                intent.putExtra("LaunchMode", 1); // nLaunchMode: 1 as
+                // telephony, while
+                // 0 as socket
+                intent.putExtra("call_number_key", number);
+                return intent;
+        }
 }

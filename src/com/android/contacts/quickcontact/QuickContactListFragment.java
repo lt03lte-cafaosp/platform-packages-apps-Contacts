@@ -19,6 +19,7 @@ package com.android.contacts.quickcontact;
 import android.app.Fragment;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.SystemProperties;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.text.TextUtils;
@@ -116,6 +117,8 @@ public class QuickContactListFragment extends Fragment {
                         R.id.actions_view_container);
                 final ImageView alternateActionButton = (ImageView) resultView.findViewById(
                         R.id.secondary_action_button);
+                final ImageView alternateActionButton1 = (ImageView) resultView.findViewById(
+                        R.id.third_action_button);
                 final View alternateActionDivider = resultView.findViewById(R.id.vertical_divider);
                 final ImageView presenceIconView =
                         (ImageView) resultView.findViewById(R.id.presence_icon);
@@ -124,12 +127,22 @@ public class QuickContactListFragment extends Fragment {
                 actionsContainer.setTag(action);
                 alternateActionButton.setOnClickListener(mSecondaryActionClickListener);
                 alternateActionButton.setTag(action);
+                alternateActionButton1.setOnClickListener(mThirdActionClickListener);
+                alternateActionButton1.setTag(action);
 
                 final boolean hasAlternateAction = action.getAlternateIntent() != null;
+                final boolean hasAlternateAction1 = action.get2AlternateIntent() != null;
                 alternateActionDivider.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+                    alternateActionDivider.setVisibility(
+                        hasAlternateAction1 ? View.VISIBLE : View.GONE);
                 alternateActionButton.setImageDrawable(action.getAlternateIcon());
+                    alternateActionButton1.setImageDrawable(action.get2AlternateIcon());
                 alternateActionButton.setContentDescription(action.getAlternateIconDescription());
+                    alternateActionButton1.setContentDescription(
+                        action.get2AlternateIconDescription());
                 alternateActionButton.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+                    alternateActionButton1.setVisibility(hasAlternateAction1 && isVTSupported() ?
+                        View.VISIBLE : View.GONE);
 
                 if (mimeType.equals(Phone.CONTENT_ITEM_TYPE)) {
                     // Force LTR text direction for phone numbers
@@ -141,6 +154,10 @@ public class QuickContactListFragment extends Fragment {
                     if (hasAlternateAction) {
                         alternateActionButton.setContentDescription(getActivity()
                                 .getString(R.string.description_send_message, action.getBody()));
+                    }
+                    if(hasAlternateAction1) {
+                        alternateActionButton1.setContentDescription(getActivity()
+                                .getString(R.string.description_dial_vt, action.getBody()));
                     }
                 }
 
@@ -185,6 +202,22 @@ public class QuickContactListFragment extends Fragment {
         }
     };
 
+
+    /** A third action (VT) was clicked */
+    protected final OnClickListener mThirdActionClickListener = new OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            final Action action = (Action) v.getTag();
+            if (mListener != null) mListener.on2ItemClicked(action, true);
+        }
+    };
+
+    private boolean isVTSupported(){
+            return SystemProperties.getBoolean(
+                    "persist.radio.csvt.enabled"
+           /* TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
+    }
+
     private final OnClickListener mOutsideClickListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -195,5 +228,6 @@ public class QuickContactListFragment extends Fragment {
     public interface Listener {
         void onOutsideClick();
         void onItemClicked(Action action, boolean alternate);
+        void on2ItemClicked(Action action, boolean alternate);
     }
 }

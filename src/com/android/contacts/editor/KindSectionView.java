@@ -52,6 +52,7 @@ public class KindSectionView extends LinearLayout implements EditorListener {
     private DataKind mKind;
     private RawContactDelta mState;
     private boolean mReadOnly;
+    private boolean mLabelReadOnly;
 
     private ViewIdGenerator mViewIdGenerator;
 
@@ -178,6 +179,12 @@ public class KindSectionView extends LinearLayout implements EditorListener {
         }
     }
 
+    /**
+     * use for sim card is USIM or CSIM.
+     */
+    public void setLabelReadOnly(boolean readOnly){
+        mLabelReadOnly = readOnly;
+    }
 
     /**
      * Creates an EditorView for the given entry. This function must be used while constructing
@@ -198,6 +205,10 @@ public class KindSectionView extends LinearLayout implements EditorListener {
 
         view.setEnabled(isEnabled());
 
+        if (view instanceof TextFieldsEditorView && mLabelReadOnly) {
+            TextFieldsEditorView texteditor = (TextFieldsEditorView) view;
+            texteditor.setLabelReadOnly(true);
+        }
         if (view instanceof Editor) {
             Editor editor = (Editor) view;
             editor.setDeletable(true);
