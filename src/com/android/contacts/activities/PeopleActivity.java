@@ -1961,18 +1961,18 @@ public class PeopleActivity extends ContactsActivity
                     Bundle result = data.getExtras().getBundle("result");
                     Set<String> keySet = result.keySet();
                     Iterator<String> it = keySet.iterator();
-                    String selExport = "";
+                    StringBuilder selExportBuilder = new StringBuilder();
                     while (it.hasNext()) {
                         String id = it.next();
-                        if (selExport.equals("")) {
-                            selExport += id;
-                        } else {
-                            selExport = selExport + "," + id;
+                        if (0 != selExportBuilder.length()) {
+                            selExportBuilder.append(",");
                         }
+                        selExportBuilder.append(id);
                     }
-                    selExport = "_id IN (" + selExport + ")";
+                    selExportBuilder.insert(0, "_id IN (");
+                    selExportBuilder.append(")");
                     Intent exportIntent = new Intent(this, ExportVCardActivity.class);
-                    exportIntent.putExtra("SelExport", selExport);
+                    exportIntent.putExtra("SelExport", selExportBuilder.toString());
                     exportIntent.putExtra(VCardCommonArguments.ARG_CALLING_ACTIVITY,
                             PeopleActivity.class.getName());
                     this.startActivity(exportIntent);
