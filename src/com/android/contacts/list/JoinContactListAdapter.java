@@ -83,6 +83,8 @@ public class JoinContactListAdapter extends ContactListAdapter {
         }
 
         builder.appendQueryParameter("limit", String.valueOf(MAX_SUGGESTIONS));
+        builder.appendQueryParameter(RawContacts.ACCOUNT_TYPE, SimAccountType.ACCOUNT_TYPE);
+        builder.appendQueryParameter(DefaultContactListAdapter.WITHOUT_SIM_FLAG, "true");
 
         loader.setSuggestionUri(builder.build());
 
