@@ -159,7 +159,7 @@ public class RawContactReadOnlyEditorView extends BaseRawContactEditorView
 
         // TODO: Expose data set in the UI somehow?
 
-        mAccountIcon.setImageDrawable(type.getDisplayIcon(mContext));
+        mAccountIcon.setImageDrawable(type.getDisplayIcon(mContext, mAccountName));
 
         mRawContactId = state.getRawContactId();
 
