@@ -99,7 +99,7 @@
     <string name="email_address_too_long">"發生錯誤，郵箱地址過長。"</string>
     <string name="sim_card_full">"發生錯誤，SIM卡已滿。"</string>
     <string name="tag_too_long">"發生錯誤，聯絡人姓名過長。"</string>
-    <string name="no_phone_number">請輸入手機號碼。</string>
+    <string name="no_phone_number_or_email">請輸入手機號碼或者郵箱地址</string>
     <string name="invalid_phone_number">"發生錯誤，電話號碼不合法。"</string>
     <string name="groupSavedToast" msgid="1168756874239833756">"群組已儲存。"</string>
     <string name="groupSavedErrorToast" msgid="7984466936615304740">"無法儲存群組變更。"</string>
