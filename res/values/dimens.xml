@@ -165,4 +165,9 @@
 
     <dimen name="contact_shortcut_frame_width">50dip</dimen>
     <dimen name="contact_shortcut_frame_height">56dip</dimen>
+
+    <!-- Dimensions for dsds divider -->
+    <dimen name="dsds_vertical_divider_vertical_margin">16dip</dimen>
+    <dimen name="dsds_vertical_divider_width">1dip</dimen>
+    <dimen name="dsds_vertical_divider_height">-1dip</dimen>
 </resources>

@@ -15,6 +15,9 @@
 -->
 
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <include layout="@layout/secondary_action"/>
+
     <View
         android:id="@+id/vertical_divider"
         android:layout_width="1dip"
