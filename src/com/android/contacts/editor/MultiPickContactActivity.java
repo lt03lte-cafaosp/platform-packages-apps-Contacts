@@ -1171,8 +1171,12 @@ public class MultiPickContactActivity extends ListActivity implements
             final MultiPickContactActivity activity = mActivity.get();
             activity.mAdapter.changeCursor(cursor);
             if (cursor == null || cursor.getCount() == 0) {
-                Toast.makeText(mContext, R.string.listFoundAllContactsZero, Toast.LENGTH_SHORT)
-                    .show();
+                if (isPickCall()) {
+                    //do nothing
+                } else {
+                    Toast.makeText(mContext, R.string.listFoundAllContactsZero, Toast.LENGTH_SHORT)
+                        .show();
+                }
             }
         }
     }
