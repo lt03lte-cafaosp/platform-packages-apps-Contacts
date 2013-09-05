@@ -1173,9 +1173,11 @@ public class MultiPickContactActivity extends ListActivity implements
             if (cursor == null || cursor.getCount() == 0) {
                 if (isPickCall()) {
                     //do nothing
-                } else {
+                } else if (!activity.mAdapter.mIsContentChanged) {
                     Toast.makeText(mContext, R.string.listFoundAllContactsZero, Toast.LENGTH_SHORT)
                         .show();
+                } else {
+                    activity.mAdapter.mIsContentChanged = false;
                 }
             }
         }
@@ -1197,6 +1199,7 @@ public class MultiPickContactActivity extends ListActivity implements
         Context mContext;
         protected LayoutInflater mInflater;
         private ContactsSectionIndexer mIndexer;
+        public boolean mIsContentChanged = false;
 
         public ContactItemListAdapter(Context context) {
             super(context, null, false);
@@ -1373,6 +1376,7 @@ public class MultiPickContactActivity extends ListActivity implements
 
         @Override
         protected void onContentChanged() {
+            mIsContentChanged = true;
             updateContent();
         }
 
