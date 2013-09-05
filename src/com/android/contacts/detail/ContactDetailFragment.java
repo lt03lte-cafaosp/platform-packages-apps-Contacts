@@ -39,7 +39,6 @@ import android.os.SystemProperties;
 import android.provider.CalendarContract;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
-import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.Im;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
@@ -70,6 +69,7 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListPopupWindow;
@@ -107,6 +107,7 @@ import com.android.contacts.model.dataitem.EmailDataItem;
 import com.android.contacts.model.dataitem.EventDataItem;
 import com.android.contacts.model.dataitem.GroupMembershipDataItem;
 import com.android.contacts.model.dataitem.ImDataItem;
+import com.android.contacts.model.dataitem.LocalGroupDataItem;
 import com.android.contacts.model.dataitem.NicknameDataItem;
 import com.android.contacts.model.dataitem.NoteDataItem;
 import com.android.contacts.model.dataitem.OrganizationDataItem;
@@ -116,13 +117,13 @@ import com.android.contacts.model.dataitem.SipAddressDataItem;
 import com.android.contacts.model.dataitem.StructuredNameDataItem;
 import com.android.contacts.model.dataitem.StructuredPostalDataItem;
 import com.android.contacts.model.dataitem.WebsiteDataItem;
-import com.android.contacts.model.dataitem.LocalGroupDataItem;
 import com.android.contacts.util.DataStatus;
 import com.android.contacts.util.DateUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.StructuredPostalUtils;
 import com.android.contacts.util.UiClosables;
 import com.android.internal.telephony.ITelephony;
+import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.PhoneConstants;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
@@ -149,7 +150,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         static final int SET_DEFAULT = 2;
         static final int EDIT_BEFORE_CALL = 3;
         static final int VIDEOCALL = 4;    // add for new feature: csvt call prefix
-        static final int IPCALL = 5; // add for new feature: ip call prefix
+        static final int IPCALL1 = 5;
+        static final int IPCALL2 = 8; // add for new feature: ip call prefix
 
         static final int ADD_TO_BLACKLIST = 6;
         static final int ADD_TO_WHITELIST = 7;
@@ -637,6 +639,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     whiteintent.setAction(Intent.ACTION_INSERT);
                     whiteintent.putExtras(whitebundle);
                     entry.whiteintent = whiteintent;
+
+                    if (mHasPhone) {
+                        entry.mSlot1Intent = CallUtil.getSlotIntent(entry.data,
+                                MSimConstants.SUB1);
+                        entry.mSlot2Intent = CallUtil.getSlotIntent(entry.data,
+                                MSimConstants.SUB2);
+                    } else {
+                        entry.mSlot1Intent = null;
+                        entry.mSlot2Intent = null;
+                    }
 
                     // Remember super-primary phone
                     if (isSuperPrimary) mPrimaryPhoneUri = entry.uri;
@@ -1284,6 +1296,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         public Intent whiteintent;
         public Intent blackintent;
 
+        public Intent mSlot1Intent = null;
+        public Intent mSlot2Intent = null;
+
         public ArrayList<Long> ids = new ArrayList<Long>();
         public int collapseCount = 0;
 
@@ -1511,7 +1526,14 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         public final View thirdActionViewContainer;
         public final View secondaryActionDivider;
         public final View thirdActionDivider;
+        public final View fourthActionDivider;
         public final View primaryIndicator;
+        public final View layoutSub1;
+        public final View layoutSub2;
+        public final ImageButton callButtonSub1;
+        public final ImageButton callButtonSub2;
+        public final ImageView callIconSub1;
+        public final ImageView callIconSub2;
 
         public DetailViewCache(View view,
                 OnClickListener primaryActionClickListener,
@@ -1523,7 +1545,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
 
             actionsViewContainer = view.findViewById(R.id.actions_view_container);
-            actionsViewContainer.setOnClickListener(primaryActionClickListener);
+            if (MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
+                actionsViewContainer.setOnClickListener(primaryActionClickListener);
+            } else {
+                actionsViewContainer.setOnClickListener(null);
+            }
             primaryActionView = view.findViewById(R.id.primary_action_view);
 
             secondaryActionViewContainer = view.findViewById(
@@ -1543,6 +1569,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     R.id.third_action_button);
 
             thirdActionDivider = view.findViewById(R.id.vertical_divider_1);
+
+            layoutSub1 = view.findViewById(R.id.layout_sub1);
+            callButtonSub1 = (ImageButton) view.findViewById(R.id.call_button_sub1);
+            callIconSub1 = (ImageView) view.findViewById(R.id.call_icon_sub1);
+
+            fourthActionDivider = view.findViewById(R.id.divider_sub2);
+
+            layoutSub2 = view.findViewById(R.id.layout_sub2);
+            callButtonSub2 = (ImageButton) view.findViewById(R.id.call_button_sub2);
+            callIconSub2 = (ImageView) view.findViewById(R.id.call_icon_sub2);
         }
     }
 
@@ -1850,6 +1886,34 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 views.thirdActionDivider.setVisibility(View.GONE);
             }
 
+            if (entry.mSlot1Intent != null && entry.mSlot2Intent != null) {
+                views.callButtonSub1.setImageResource(
+                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                views.callButtonSub1.setTag(entry);
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                    views.callButtonSub1.setOnClickListener(mFourthActionClickListener);
+                }
+
+                views.callButtonSub2.setImageResource(
+                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                views.callButtonSub2.setTag(entry);
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
+                    views.callButtonSub2.setOnClickListener(mFifthActionClickListener);
+                }
+
+                MoreContactUtils.controlCallIconDisplay(mContext, views.layoutSub1,
+                        views.callButtonSub1, views.callIconSub1, views.layoutSub2,
+                        views.callButtonSub2, views.callIconSub2, views.fourthActionDivider);
+            } else {
+                views.layoutSub1.setVisibility(View.GONE);
+                views.callButtonSub1.setVisibility(View.GONE);
+                views.callIconSub1.setVisibility(View.GONE);
+                views.layoutSub2.setVisibility(View.GONE);
+                views.callButtonSub2.setVisibility(View.GONE);
+                views.callIconSub2.setVisibility(View.GONE);
+                views.fourthActionDivider.setVisibility(View.GONE);
+            }
+
             // Right and left padding should not have "pressed" effect.
             view.setPadding(
                     entry.isInSubSection()
@@ -1929,6 +1993,33 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }
         };
 
+        private final OnClickListener mFourthActionClickListener = new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mListener == null) return;
+                if (view == null) return;
+                final ViewEntry entry = (ViewEntry) view.getTag();
+                if (entry == null || !(entry instanceof DetailViewEntry)) return;
+                final DetailViewEntry detailViewEntry = (DetailViewEntry) entry;
+                final Intent intent = detailViewEntry.mSlot1Intent;
+                if (intent == null) return;
+                mListener.onItemClicked(intent);
+            }
+        };
+
+        private final OnClickListener mFifthActionClickListener = new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mListener == null) return;
+                if (view == null) return;
+                final ViewEntry entry = (ViewEntry) view.getTag();
+                if (entry == null || !(entry instanceof DetailViewEntry)) return;
+                final DetailViewEntry detailViewEntry = (DetailViewEntry) entry;
+                final Intent intent = detailViewEntry.mSlot2Intent;
+                if (intent == null) return;
+                mListener.onItemClicked(intent);
+            }
+        };
 
         @Override
         public int getCount() {
@@ -2061,8 +2152,18 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedMimeType)) {
             // add limit length to show IP call item
             if (selectedEntry.data.length() > MAX_NUM_LENGTH) {
-                menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL,
-                        ContextMenu.NONE, getString(R.string.ipcall));
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                    String sub1Name = MoreContactUtils.getSimSpnName(MSimConstants.SUB1);
+                    menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL1, ContextMenu.NONE,
+                            mContext.getString(com.android.contacts.common.R.string
+                            .ip_call_by_slot, sub1Name));
+                }
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
+                    String sub2Name = MoreContactUtils.getSimSpnName(MSimConstants.SUB2);
+                    menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL2, ContextMenu.NONE,
+                            mContext.getString(com.android.contacts.common.R.string
+                            .ip_call_by_slot, sub2Name));
+                }
             }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
@@ -2106,8 +2207,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             case ContextMenuIds.CLEAR_DEFAULT:
                 clearDefaultContactMethod(mListView.getItemIdAtPosition(menuInfo.position));
                 return true;
-            case ContextMenuIds.IPCALL:
-                callViaIP(menuInfo.position);
+            case ContextMenuIds.IPCALL1:
+                ipCallBySlot(menuInfo.position, MSimConstants.SUB1);
+                return true;
+            case ContextMenuIds.IPCALL2:
+                ipCallBySlot(menuInfo.position, MSimConstants.SUB2);
                 return true;
             case ContextMenuIds.EDIT_BEFORE_CALL:
                 callByEdit(menuInfo.position);
@@ -2151,11 +2255,17 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         ClipboardUtils.copyText(getActivity(), detailViewEntry.typeString, textToCopy, true);
     }
 
-    private void callViaIP(int viewEntryPosition) {
-        DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
-        Intent callIntent = new Intent(detailViewEntry.intent);
-        callIntent.putExtra(PhoneConstants.IP_CALL, true);
-        mContext.startActivity(callIntent);
+    private void ipCallBySlot(int viewEntryPosition, int subscription) {
+        if (MoreContactUtils.isIPNumberExist(mContext, subscription)) {
+            DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
+            Intent callIntent = new Intent(detailViewEntry.intent);
+            callIntent.putExtra(PhoneConstants.IP_CALL, true);
+            callIntent.putExtra(MSimConstants.SUBSCRIPTION_KEY, subscription);
+            callIntent.putExtra(MoreContactUtils.DIAL_WIDGET_SWITCHED, subscription);
+            mContext.startActivity(callIntent);
+        } else {
+            MoreContactUtils.showNoIPNumberDialog(mContext, subscription);
+        }
     }
 
     private void callByEdit(int viewEntryPosition) {

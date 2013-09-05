@@ -264,7 +264,7 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             mAccountTypeTextView.setText(
                     mContext.getString(R.string.account_type_format, accountType));
         }
-        mAccountIcon.setImageDrawable(type.getDisplayIcon(mContext));
+        mAccountIcon.setImageDrawable(type.getDisplayIcon(mContext, state.getAccountName()));
 
         // Show photo editor when supported
         RawContactModifier.ensureKindExists(state, type, Photo.CONTENT_ITEM_TYPE);
