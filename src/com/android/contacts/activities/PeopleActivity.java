@@ -250,6 +250,9 @@ public class PeopleActivity extends ContactsActivity
     // TODO: we need to refactor the export code in future release.
     // QRD enhancement: contacts list for multi contact pick
     private ArrayList<String[]> mContactList;
+
+    // If Receiver is registered, this variable will be true, otherwise false.
+    private boolean mIsReceiverRegistered = false;
     private final BroadcastReceiver mExportToSimCompleteListener = new BroadcastReceiver (){
         public void onReceive(Context context, Intent intent){
             String action = intent.getAction();
@@ -338,6 +341,7 @@ public class PeopleActivity extends ContactsActivity
         final IntentFilter exportCompleteFilter = new IntentFilter(SimContactsConstants
             .INTENT_EXPORT_COMPLETE);
         registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
+        mIsReceiverRegistered = true;
     }
 
     /**
@@ -686,7 +690,10 @@ public class PeopleActivity extends ContactsActivity
             mContactListFilterController.removeListener(this);
         }
 
-        unregisterReceiver(mExportToSimCompleteListener);
+        if (mIsReceiverRegistered) {
+            unregisterReceiver(mExportToSimCompleteListener);
+            mIsReceiverRegistered = false;
+        }
         super.onDestroy();
     }
 
