@@ -67,11 +67,13 @@ import com.android.contacts.common.list.ShortcutIntentBuilder.OnShortcutIntentCr
 import com.android.contacts.model.Contact;
 import com.android.contacts.model.ContactLoader;
 import com.android.contacts.model.RawContact;
+import com.android.contacts.model.RawContactDelta;
 import com.android.contacts.model.dataitem.DataItem;
 import com.android.contacts.model.dataitem.EmailDataItem;
 import com.android.contacts.model.dataitem.PhoneDataItem;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 
@@ -379,21 +381,22 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             } else if (SimContactsConstants.ACCOUNT_TYPE_PHONE.equals(accoutType)) {
                 copyToPhoneMenu.setVisible(false);
 
+                boolean hasPhoneOrEmail = hasPhoneOrEmailDate(mContactData);
                 if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-                    if (hasEnabledIccCard(SimContactsConstants.SUB_1)) {
+                    if (hasPhoneOrEmail && hasEnabledIccCard(SimContactsConstants.SUB_1)) {
                         copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo)
                                 + getString(R.string.account_sim) + "<"
                                 + SimContactsConstants.SIM_NAME_1 + ">");
                         copyToSim1Menu.setVisible(true);
                     }
-                    if (hasEnabledIccCard(SimContactsConstants.SUB_2)) {
+                    if (hasPhoneOrEmail && hasEnabledIccCard(SimContactsConstants.SUB_2)) {
                         copyToSim2Menu.setTitle("" + getString(R.string.menu_copyTo)
                                 + getString(R.string.account_sim) + "<"
                                 + SimContactsConstants.SIM_NAME_2 + ">");
                         copyToSim2Menu.setVisible(true);
                     }
                 } else {
-                    if (TelephonyManager.getDefault().hasIccCard()
+                    if (hasPhoneOrEmail && TelephonyManager.getDefault().hasIccCard()
                             && TelephonyManager.getDefault().getSimState()
                                 == TelephonyManager.SIM_STATE_READY) {
                         copyToSim1Menu.setTitle("" + getString(R.string.menu_copyTo)
@@ -404,6 +407,24 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                 }
             }
 
+        }
+    }
+
+    private boolean hasPhoneOrEmailDate(Contact contact){
+        int phoneCount = 0;
+        int emailCount = 0;
+        ImmutableList<RawContact> rawContacts = contact.getRawContacts();
+        for (RawContact rawContact : rawContacts) {
+            RawContactDelta rawContactDelta = RawContactDelta.fromBefore(rawContact);
+            phoneCount += rawContactDelta.getMimeEntriesCount(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE, true);
+            emailCount += rawContactDelta.getMimeEntriesCount(
+                    ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE, true);
+        }
+        if (phoneCount > 0 || emailCount > 0) {
+            return true;
+        } else {
+            return false;
         }
     }
 
