@@ -27,6 +27,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.ParseException;
 import android.net.Uri;
@@ -159,8 +160,13 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
     private static final String KEY_CONTACT_URI = "contactUri";
     private static final String KEY_LIST_STATE = "liststate";
+    private boolean isFireWallInstalled = false;
     private static final String FIREWALL_APK_NAME = "com.android.firewall";
     private static final String FIREWALL_BLACK_WHITE_LIST = "com.android.firewall.FirewallListPage";
+    public static final Uri FIREWALL_BLACKLIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/blacklistitems");
+    public static final Uri FIREWALL_WHITELIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/whitelistitems");
 
     private Context mContext;
     private View mView;
@@ -304,6 +310,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     @Override
     public void onResume() {
         super.onResume();
+        isFireWallInstalled = isFirewalltalled(mContext);
         if (mContactData != null) {
             bindData();
         }
@@ -1517,6 +1524,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     private static class DetailViewCache {
         public final TextView type;
         public final TextView data;
+        public final ImageView blackWhiteListIndicator;
         public final ImageView presenceIcon;
         public final ImageView secondaryActionButton;
         public final ImageView thirdActionButton;
@@ -1541,6 +1549,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 OnClickListener thirdActionClickListener) {
             type = (TextView) view.findViewById(R.id.type);
             data = (TextView) view.findViewById(R.id.data);
+            blackWhiteListIndicator = (ImageView) view
+                    .findViewById(R.id.black_white_list_indicator);
             primaryIndicator = view.findViewById(R.id.primary_indicator);
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
 
@@ -1805,6 +1815,41 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 }
             } else {
                 views.data.setText(entry.data);
+            }
+            if (isFireWallInstalled) {
+                if (Phone.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
+                    String number = entry.data;
+                    number = number.replaceAll(" ", "");
+                    number = number.replaceAll("-", "");
+                    String selectionString = "number=?";
+                    String[] selectionArgs = new String[] { number };
+                    Cursor cursorBlack = mContext.getContentResolver().query(
+                            FIREWALL_BLACKLIST_CONTENT_URI, null,
+                            selectionString, selectionArgs, null);
+                    if (cursorBlack != null && cursorBlack.getCount() > 0) {// in black list
+                        views.blackWhiteListIndicator.setVisibility(View.VISIBLE);
+                        views.blackWhiteListIndicator
+                                .setBackgroundResource(R.drawable.number_in_blacklist);
+                    }
+                    if (cursorBlack != null) {
+                        cursorBlack.close();
+                    }
+                    Cursor cursorWhite = mContext.getContentResolver().query(
+                            FIREWALL_WHITELIST_CONTENT_URI, null,
+                            selectionString, selectionArgs, null);
+                    if (cursorWhite != null && cursorWhite.getCount() > 0) {// in white list
+                        views.blackWhiteListIndicator.setVisibility(View.VISIBLE);
+                        views.blackWhiteListIndicator
+                                .setBackgroundResource(R.drawable.number_in_whitelist);
+                    }
+                    if (cursorWhite != null) {
+                        cursorWhite.close();
+                    }
+                } else {
+                    views.blackWhiteListIndicator.setVisibility(View.GONE);
+                }
+            } else {
+                views.blackWhiteListIndicator.setVisibility(View.GONE);
             }
             setMaxLines(views.data, entry.maxLines);
 
