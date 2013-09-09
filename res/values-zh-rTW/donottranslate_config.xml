@@ -32,4 +32,7 @@
     
     <!-- If true, the order of name fields in the editor is primary (i.e. given name first) -->
     <bool name="config_editor_field_order_primary">false</bool>
+
+    <!-- If true, the setting menu of sort order will be hideden (i.e. given name first) -->
+    <bool name="config_sort_order_disable">true</bool>
 </resources>
