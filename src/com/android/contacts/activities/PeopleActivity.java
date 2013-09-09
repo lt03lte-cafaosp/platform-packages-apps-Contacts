@@ -1675,11 +1675,12 @@ public class PeopleActivity extends ContactsActivity
             HelpUtils.prepareHelpMenuItem(this, helpMenu, R.string.help_url_people_main);
         }
         final boolean showMiscOptions = !isSearchMode;
+        final boolean hideSortSetting = getResources().getBoolean(R.bool.config_sort_order_disable);
         makeMenuItemVisible(menu, R.id.menu_search, showMiscOptions);
         makeMenuItemVisible(menu, R.id.menu_import_export, showMiscOptions);
         makeMenuItemVisible(menu, R.id.menu_accounts, showMiscOptions);
         makeMenuItemVisible(menu, R.id.menu_settings,
-                showMiscOptions && !ContactsPreferenceActivity.isEmpty(this));
+                !hideSortSetting && showMiscOptions && !ContactsPreferenceActivity.isEmpty(this));
 
         // Debug options need to be visible even in search mode.
         makeMenuItemVisible(menu, R.id.export_database, mEnableDebugMenuOptions);
