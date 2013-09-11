@@ -52,6 +52,7 @@ import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 import android.provider.ContactsContract;
+import android.provider.LocalGroups;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
@@ -134,11 +135,34 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
     @Override
     public boolean onPreferenceChange(Preference arg0, Object arg1) {
         if (titleView == arg0 && !group.getTitle().equals(arg1) && ((String) arg1).length() > 0) {
-            group.setTitle((String) arg1);
-            if (group.update(getContentResolver()))
-                initView();
+            if (checkGroupTitleExist((String) arg1)) {
+                Toast.makeText(getApplicationContext(), R.string.error_group_exist,
+                        Toast.LENGTH_SHORT).show();
+            } else {
+                group.setTitle((String) arg1);
+                if (group.update(getContentResolver()))
+                    initView();
+            }
         }
         return false;
+    }
+
+    private boolean checkGroupTitleExist(String name) {
+        Cursor c = null;
+        try {
+            c = getApplicationContext().getContentResolver().query(
+                    LocalGroups.CONTENT_URI, null, LocalGroups.GroupColumns.TITLE + "=?",
+                    new String[] { name }, null);
+            if (c != null) {
+                return c.getCount() > 0;
+            } else {
+                return false;
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
     }
 
     @Override
