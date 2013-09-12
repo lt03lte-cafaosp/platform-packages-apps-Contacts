@@ -368,9 +368,9 @@
     <!-- add for MemoryStatusActivity -->
     <string name="menu_memory_status">"存储器状态"</string>
     <string name="memory_status_title">"存储器状态"</string>
-    <string name="memory_size">"容量"</string>
+    <string name="memory_size">"容量:"</string>
     <string name="memory_available">"可用"</string>
-    <string name="memory_used">"已用"</string>
+    <string name="memory_used">"已用:"</string>
     <string name="calculating_status_now">正在计算存储状态…</string>
 
     <string name="delete_locale_group_dialog_message">您确定要删除此群组吗?</string>
