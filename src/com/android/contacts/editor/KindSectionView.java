@@ -131,6 +131,11 @@ public class KindSectionView extends LinearLayout implements EditorListener {
         }
     }
 
+    @Override
+    public void onDismissPopup() {
+        // Nothing to do.
+    }
+
     public void setState(DataKind kind, RawContactDelta state, boolean readOnly, ViewIdGenerator vig) {
         mKind = kind;
         mState = state;
