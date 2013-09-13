@@ -24,6 +24,7 @@ import android.os.SystemProperties;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.text.TextUtils;
+import android.telephony.MSimTelephonyManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -139,7 +140,8 @@ public class QuickContactListFragment extends Fragment {
                 final ImageView presenceIconView =
                         (ImageView) resultView.findViewById(R.id.presence_icon);
 
-                if (MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
+                if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                        || MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
                     actionsContainer.setOnClickListener(mPrimaryActionClickListener);
                     actionsContainer.setTag(action);
                 } else {
