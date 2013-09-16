@@ -50,6 +50,7 @@ import android.provider.ContactsContract.DisplayNameSources;
 import android.provider.ContactsContract.StatusUpdates;
 import android.provider.LocalGroups.Group;
 import android.text.TextUtils;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -1545,7 +1546,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
 
             actionsViewContainer = view.findViewById(R.id.actions_view_container);
-            if (MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
+            if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                    || MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
                 actionsViewContainer.setOnClickListener(primaryActionClickListener);
             } else {
                 actionsViewContainer.setOnClickListener(null);
