@@ -140,23 +140,29 @@ public class QuickContactListFragment extends Fragment {
                 final ImageView presenceIconView =
                         (ImageView) resultView.findViewById(R.id.presence_icon);
 
-                if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
-                        || MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
-                    actionsContainer.setOnClickListener(mPrimaryActionClickListener);
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                        && MoreContactUtils.getButtonStyle() != MoreContactUtils.DEFAULT_STYLE
+                        && Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                    actionsContainer.setOnClickListener(null);
+                } else if (QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType)) {
+                    actionsContainer.setOnClickListener(mThirdActionClickListener);
                     actionsContainer.setTag(action);
                 } else {
-                    actionsContainer.setOnClickListener(null);
+                    actionsContainer.setOnClickListener(mPrimaryActionClickListener);
+                    actionsContainer.setTag(action);
                 }
                 alternateActionButton.setOnClickListener(mSecondaryActionClickListener);
                 alternateActionButton.setTag(action);
                 alternateActionButton1.setOnClickListener(mThirdActionClickListener);
                 alternateActionButton1.setTag(action);
 
-                final boolean hasAlternateAction = action.getAlternateIntent() != null;
-                final boolean hasAlternateAction1 = action.get2AlternateIntent() != null;
-                alternateActionDivider.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
-                    alternateActionDivider.setVisibility(
-                        hasAlternateAction1 ? View.VISIBLE : View.GONE);
+                final boolean isVTTab = QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType);
+                final boolean hasAlternateAction = isVTTab ? false
+                        : action.getAlternateIntent() != null;
+                final boolean hasAlternateAction1 = !isVTTab ? false
+                        : action.get2AlternateIntent() != null;
+                alternateActionDivider.setVisibility(hasAlternateAction || hasAlternateAction1 ?
+                        View.VISIBLE : View.GONE);
                 alternateActionButton.setImageDrawable(action.getAlternateIcon());
                     alternateActionButton1.setImageDrawable(action.get2AlternateIcon());
                 alternateActionButton.setContentDescription(action.getAlternateIconDescription());
