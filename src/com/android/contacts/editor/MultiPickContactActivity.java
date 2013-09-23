@@ -289,6 +289,8 @@ public class MultiPickContactActivity extends ListActivity implements
      */
     public static final String EXT_NOT_SHOW_SIM_FLAG = "not_sim_show";
 
+    private int MAX_CONTACTS_NUM_TO_SELECT_ONCE = 2000;
+
     //registerReceiver to update content when airplane mode change.
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -701,14 +703,22 @@ public class MultiPickContactActivity extends ListActivity implements
                 if (isSearchMode()) {
                     exitSearchMode(true);
                 }
-                    if (mMode == MODE_DEFAULT_CONTACT) {
-                        if (Intent.ACTION_GET_CONTENT.equals(getIntent().getAction())) {
+                if (mMode == MODE_DEFAULT_CONTACT) {
+                    if (Intent.ACTION_GET_CONTENT.equals(getIntent().getAction())) {
+                        if (mChoiceSet.size() > MAX_CONTACTS_NUM_TO_SELECT_ONCE) {
+                            Toast.makeText(
+                                    mContext,
+                                    mContext.getString(R.string.too_many_contacts_add_to_group,
+                                            MAX_CONTACTS_NUM_TO_SELECT_ONCE), Toast.LENGTH_SHORT)
+                                    .show();
+                        } else {
                             Intent intent = new Intent();
                             Bundle bundle = new Bundle();
                             bundle.putBundle(RESULT_KEY, mChoiceSet);
                             intent.putExtras(bundle);
                             this.setResult(RESULT_OK, intent);
                             finish();
+                        }
                     } else if (mChoiceSet.size() > 0) {
                         showDialog(R.id.dialog_delete_contact_confirmation);
                     }

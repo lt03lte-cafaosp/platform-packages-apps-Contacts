@@ -332,4 +332,6 @@
     <string name="voicemail">"語音留言"</string>
 
     <string name="menu_copyTo">複制到</string>
+
+    <string name="too_many_contacts_add_to_group">聯系人過多，應該少于<xliff:g id="count">%d</xliff:g>個</string>
 </resources>
