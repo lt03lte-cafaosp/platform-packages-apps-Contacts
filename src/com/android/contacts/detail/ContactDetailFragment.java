@@ -146,6 +146,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
     private static final int TEXT_DIRECTION_UNDEFINED = -1;
 
+    private static final boolean HIDE_VTCALL_BTN = true;
+
     private interface ContextMenuIds {
         static final int COPY_TEXT = 0;
         static final int CLEAR_DEFAULT = 1;
@@ -1556,14 +1558,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
 
             actionsViewContainer = view.findViewById(R.id.actions_view_container);
-            if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
-                    || MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
-                actionsViewContainer.setOnClickListener(primaryActionClickListener);
-            } else {
-                actionsViewContainer.setOnClickListener(null);
-            }
+            actionsViewContainer.setOnClickListener(primaryActionClickListener);
             primaryActionView = view.findViewById(R.id.primary_action_view);
-
             secondaryActionViewContainer = view.findViewById(
                     R.id.secondary_action_view_container);
             secondaryActionViewContainer.setOnClickListener(
@@ -1779,7 +1775,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             final DetailViewEntry entry = (DetailViewEntry) getItem(position);
             final View v;
             final DetailViewCache viewCache;
-
             // Check to see if we can reuse convertView
             if (convertView != null) {
                 v = convertView;
@@ -1787,10 +1782,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             } else {
                 // Create a new view if needed
                 v = mInflater.inflate(R.layout.contact_detail_list_item, parent, false);
-
                 // Cache the children
-                viewCache = new DetailViewCache(v, mPrimaryActionClickListener,
-                    mSecondaryActionClickListener, mThirdActionClickListener);
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                        && MoreContactUtils.getButtonStyle() != MoreContactUtils.DEFAULT_STYLE
+                        && Phone.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
+                    viewCache = new DetailViewCache(v, null, mSecondaryActionClickListener,
+                            mThirdActionClickListener);
+                } else {
+                    viewCache = new DetailViewCache(v, mPrimaryActionClickListener,
+                            mSecondaryActionClickListener, mThirdActionClickListener);
+                }
                 v.setTag(viewCache);
             }
 
@@ -1922,7 +1923,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }
 
             final View thirdActionViewContainer = views.thirdActionViewContainer;
-            if (entry.thirdIntent != null && thirdActionIcon != null && isVTSupported()) {
+            if (!HIDE_VTCALL_BTN && entry.thirdIntent != null && thirdActionIcon != null
+                    && isVTSupported()) {
                 thirdActionView.setImageDrawable(thirdActionIcon);
                 thirdActionView.setContentDescription(thirdActionDescription);
                 thirdActionViewContainer.setTag(entry);
@@ -2158,6 +2160,10 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         menu.setHeaderTitle(selectedEntry.data);
 
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
+            if (isVTSupported()){
+                menu.add(ContextMenu.NONE, ContextMenuIds.VIDEOCALL,
+                    ContextMenu.NONE, getString(R.string.videocall));
+
             if (isFirewalltalled(mContext)) {
                 menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
                         ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
@@ -2214,9 +2220,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
-            if (isVTSupported()){
-                menu.add(ContextMenu.NONE, ContextMenuIds.VIDEOCALL,
-                    ContextMenu.NONE, getString(R.string.videocall));
             }
         }
      }
