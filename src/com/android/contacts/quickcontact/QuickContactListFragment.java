@@ -179,7 +179,7 @@ public class QuickContactListFragment extends Fragment {
                     callButtonSub2.setImageResource(
                             com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
                     callButtonSub2.setTag(action);
-                    if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                    if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
                         callButtonSub2.setOnClickListener(mFifthActionClickListener);
                     }
 
