@@ -49,7 +49,9 @@ import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
 import com.android.contacts.R;
 import com.android.contacts.common.MoreContactUtils;
+import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.AccountWithDataSet;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.detail.ContactDetailDisplayUtils;
 import com.android.contacts.detail.ContactDetailFragment;
 import com.android.contacts.detail.ContactDetailLayoutController;
@@ -57,6 +59,7 @@ import com.android.contacts.detail.ContactLoaderFragment;
 import com.android.contacts.detail.ContactLoaderFragment.ContactLoaderFragmentListener;
 import com.android.contacts.interactions.ContactDeletionInteraction;
 import com.android.contacts.model.Contact;
+import com.android.contacts.model.RawContact;
 import com.android.contacts.util.PhoneCapabilityTester;
 
 import java.util.ArrayList;
@@ -247,6 +250,14 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
             mPhoto.setImageBitmap(photo);
         } else {
             mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+        }
+        final RawContact rawContact = (RawContact) mContactData.getRawContacts().get(0);
+        final AccountType type = rawContact.getAccountType(this);
+        if (type.accountType.equals(SimAccountType.ACCOUNT_TYPE)) {
+            // Do not allow sim contacts to be starred, since it may cause problems.
+            mStar.setVisibility(View.INVISIBLE);
+        } else {
+            mStar.setVisibility(View.VISIBLE);
         }
         // If there is contact data, update the starred state
         if (mContactData != null) {
