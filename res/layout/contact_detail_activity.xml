@@ -65,6 +65,7 @@
                 android:paddingLeft="20dip"
                 android:layout_toRightOf="@id/name"
                 android:layout_centerVertical="true"
+                android:visibility="invisible"
                 android:src="@drawable/btn_star_off_normal_holo_dark"/>
             <ImageView
                 android:id="@+id/photo"
