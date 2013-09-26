@@ -23,8 +23,8 @@ import android.os.Bundle;
 import android.os.SystemProperties;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
-import android.text.TextUtils;
 import android.telephony.MSimTelephonyManager;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -141,7 +141,6 @@ public class QuickContactListFragment extends Fragment {
                         (ImageView) resultView.findViewById(R.id.presence_icon);
 
                 if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
-                        && MoreContactUtils.getButtonStyle() != MoreContactUtils.DEFAULT_STYLE
                         && Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
                     actionsContainer.setOnClickListener(null);
                 } else if (QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType)) {
@@ -176,14 +175,14 @@ public class QuickContactListFragment extends Fragment {
                     Context context = getActivity().getApplicationContext();
                     // set sub1
                     callButtonSub1.setImageResource(
-                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                     callButtonSub1.setTag(action);
                     if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
                         callButtonSub1.setOnClickListener(mFourthActionClickListener);
                     }
                     // set sub2
                     callButtonSub2.setImageResource(
-                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                     callButtonSub2.setTag(action);
                     if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
                         callButtonSub2.setOnClickListener(mFifthActionClickListener);
