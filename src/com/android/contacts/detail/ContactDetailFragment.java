@@ -50,8 +50,8 @@ import android.provider.ContactsContract.Directory;
 import android.provider.ContactsContract.DisplayNameSources;
 import android.provider.ContactsContract.StatusUpdates;
 import android.provider.LocalGroups.Group;
-import android.text.TextUtils;
 import android.telephony.MSimTelephonyManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -1784,7 +1784,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 v = mInflater.inflate(R.layout.contact_detail_list_item, parent, false);
                 // Cache the children
                 if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
-                        && MoreContactUtils.getButtonStyle() != MoreContactUtils.DEFAULT_STYLE
                         && Phone.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
                     viewCache = new DetailViewCache(v, null, mSecondaryActionClickListener,
                             mThirdActionClickListener);
@@ -1937,14 +1936,14 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
             if (entry.mSlot1Intent != null && entry.mSlot2Intent != null) {
                 views.callButtonSub1.setImageResource(
-                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                 views.callButtonSub1.setTag(entry);
                 if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
                     views.callButtonSub1.setOnClickListener(mFourthActionClickListener);
                 }
 
                 views.callButtonSub2.setImageResource(
-                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                        com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                 views.callButtonSub2.setTag(entry);
                 if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
                     views.callButtonSub2.setOnClickListener(mFifthActionClickListener);
