@@ -248,7 +248,7 @@ public class MultiPickContactActivity extends ListActivity implements
     private Button mCancelButton;
     private TextView mSelectAllLabel;
     private CheckBox mSelectAllCheckBox;
-    private static int mMode;
+    private int mMode;
     private boolean mSelectCallLog;
     public static final String KEY_SELECT_CALLLOG = "selectcalllog";
 
@@ -878,7 +878,7 @@ public class MultiPickContactActivity extends ListActivity implements
         return Contacts.CONTENT_FILTER_URI;
     }
 
-    public static String[] getProjectionForQuery() {
+    public String[] getProjectionForQuery() {
         switch (mMode) {
             case MODE_DEFAULT_CONTACT:
             case MODE_SEARCH_CONTACT:
