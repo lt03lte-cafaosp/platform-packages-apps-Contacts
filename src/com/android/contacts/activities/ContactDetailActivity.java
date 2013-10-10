@@ -251,13 +251,15 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         } else {
             mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
         }
-        final RawContact rawContact = (RawContact) mContactData.getRawContacts().get(0);
-        final AccountType type = rawContact.getAccountType(this);
-        if (type.accountType.equals(SimAccountType.ACCOUNT_TYPE)) {
-            // Do not allow sim contacts to be starred, since it may cause problems.
-            mStar.setVisibility(View.INVISIBLE);
-        } else {
-            mStar.setVisibility(View.VISIBLE);
+        if (!mContactData.isUserProfile()) {
+            final RawContact rawContact = (RawContact) mContactData.getRawContacts().get(0);
+            final AccountType type = rawContact.getAccountType(this);
+            if (type.accountType.equals(SimAccountType.ACCOUNT_TYPE)) {
+                // Do not allow sim contacts to be starred, since it may cause problems.
+                mStar.setVisibility(View.INVISIBLE);
+            } else {
+                mStar.setVisibility(View.VISIBLE);
+            }
         }
         // If there is contact data, update the starred state
         if (mContactData != null) {
