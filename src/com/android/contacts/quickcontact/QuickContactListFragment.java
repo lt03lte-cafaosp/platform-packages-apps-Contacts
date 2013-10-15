@@ -143,6 +143,7 @@ public class QuickContactListFragment extends Fragment {
                 if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
                         && Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
                     actionsContainer.setOnClickListener(null);
+                    actionsContainer.setClickable(false);
                 } else if (QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType)) {
                     actionsContainer.setOnClickListener(mThirdActionClickListener);
                     actionsContainer.setTag(action);
