@@ -289,7 +289,7 @@ public class MultiPickContactActivity extends ListActivity implements
      */
     public static final String EXT_NOT_SHOW_SIM_FLAG = "not_sim_show";
 
-    private int MAX_CONTACTS_NUM_TO_SELECT_ONCE = 2000;
+    private int MAX_CONTACTS_NUM_TO_SELECT_ONCE = 500;
 
     //registerReceiver to update content when airplane mode change.
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -449,6 +449,11 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private String getOKString() {
+        if (0 == mChoiceSet.size()) {
+            mOKButton.setEnabled(false);
+        } else {
+            mOKButton.setEnabled(true);
+        }
 
         return getString(R.string.btn_ok) + "(" + mChoiceSet.size() + ")";
     }
