@@ -30,7 +30,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.ContactsContract.Intents.UI;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -90,7 +89,6 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     private ImageView mStar;
     private ImageView mPhoto;
     private boolean mStarred;
-    private boolean mIsFromPhoneDialer = false;
 
     @Override
     protected void onCreate(Bundle savedState) {
@@ -99,7 +97,6 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         // Judge if view the vcard from mms to decide whether to
         // show the CONTACT_NOT_FOUND_DIALOG.
         mIsFromVcard = getIntent().getBooleanExtra(VIEW_VCARD, false);
-        mIsFromPhoneDialer = getIntent().getBooleanExtra(MoreContactUtils.IS_FROM_DAILER, false);
         if (PhoneCapabilityTester.isUsingTwoPanes(this)) {
             // This activity must not be shown. We have to select the contact in the
             // PeopleActivity instead ==> Create a forward intent and finish
@@ -379,12 +376,7 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         switch (id) {
             case R.id.back:
             case R.id.name:
-                if(mIsFromPhoneDialer) {
-                    Intent intentBack = new Intent(UI.LIST_ALL_CONTACTS_ACTION);
-                    startActivity(intentBack);
-                } else {
-                    finish();
-                }
+                finish();
                 break;
             case R.id.star:
                 if (mLookupUri != null && null != mContactData) {
