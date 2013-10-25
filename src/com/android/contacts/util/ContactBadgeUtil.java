@@ -16,6 +16,7 @@
 
 package com.android.contacts.util;
 
+import android.accounts.Account;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -107,8 +108,9 @@ public class ContactBadgeUtil {
         return attribution;
     }
 
-    public static Bitmap loadDefaultAvatarPhoto(Context context, boolean hires, boolean darkTheme) {
+    public static Bitmap loadDefaultAvatarPhoto(Context context, Account account,
+            boolean hires, boolean darkTheme) {
         return BitmapFactory.decodeResource(context.getResources(),
-                ContactPhotoManager.getDefaultAvatarResId(hires, darkTheme));
+                ContactPhotoManager.getDefaultAvatarResId(context, account, hires, darkTheme));
     }
 }
