@@ -884,4 +884,6 @@
     <string name="add_to_black">Add to blacklist</string>
 
     <string name="menu_copyTo">"Copy to "</string>
+
+    <string name="too_many_contacts_add_to_group">Too many contacts, that should be less than <xliff:g id="count">%d</xliff:g></string>
 </resources>

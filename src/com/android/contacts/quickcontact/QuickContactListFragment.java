@@ -23,8 +23,8 @@ import android.os.Bundle;
 import android.os.SystemProperties;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
-import android.text.TextUtils;
 import android.telephony.MSimTelephonyManager;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -140,23 +140,29 @@ public class QuickContactListFragment extends Fragment {
                 final ImageView presenceIconView =
                         (ImageView) resultView.findViewById(R.id.presence_icon);
 
-                if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()
-                        || MoreContactUtils.getButtonStyle() == MoreContactUtils.DEFAULT_STYLE) {
-                    actionsContainer.setOnClickListener(mPrimaryActionClickListener);
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                        && Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                    actionsContainer.setOnClickListener(null);
+                    actionsContainer.setClickable(false);
+                } else if (QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType)) {
+                    actionsContainer.setOnClickListener(mThirdActionClickListener);
                     actionsContainer.setTag(action);
                 } else {
-                    actionsContainer.setOnClickListener(null);
+                    actionsContainer.setOnClickListener(mPrimaryActionClickListener);
+                    actionsContainer.setTag(action);
                 }
                 alternateActionButton.setOnClickListener(mSecondaryActionClickListener);
                 alternateActionButton.setTag(action);
                 alternateActionButton1.setOnClickListener(mThirdActionClickListener);
                 alternateActionButton1.setTag(action);
 
-                final boolean hasAlternateAction = action.getAlternateIntent() != null;
-                final boolean hasAlternateAction1 = action.get2AlternateIntent() != null;
-                alternateActionDivider.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
-                    alternateActionDivider.setVisibility(
-                        hasAlternateAction1 ? View.VISIBLE : View.GONE);
+                final boolean isVTTab = QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType);
+                final boolean hasAlternateAction = isVTTab ? false
+                        : action.getAlternateIntent() != null;
+                final boolean hasAlternateAction1 = !isVTTab ? false
+                        : action.get2AlternateIntent() != null;
+                alternateActionDivider.setVisibility(hasAlternateAction || hasAlternateAction1 ?
+                        View.VISIBLE : View.GONE);
                 alternateActionButton.setImageDrawable(action.getAlternateIcon());
                     alternateActionButton1.setImageDrawable(action.get2AlternateIcon());
                 alternateActionButton.setContentDescription(action.getAlternateIconDescription());
@@ -170,16 +176,16 @@ public class QuickContactListFragment extends Fragment {
                     Context context = getActivity().getApplicationContext();
                     // set sub1
                     callButtonSub1.setImageResource(
-                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                     callButtonSub1.setTag(action);
                     if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
                         callButtonSub1.setOnClickListener(mFourthActionClickListener);
                     }
                     // set sub2
                     callButtonSub2.setImageResource(
-                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_dark);
+                            com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                     callButtonSub2.setTag(action);
-                    if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                    if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
                         callButtonSub2.setOnClickListener(mFifthActionClickListener);
                     }
 
