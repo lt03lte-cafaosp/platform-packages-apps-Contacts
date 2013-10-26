@@ -75,6 +75,8 @@ public class RawContactEditorView extends BaseRawContactEditorView {
     private static final String KEY_SUPER_INSTANCE_STATE = "superInstanceState";
 
     private LayoutInflater mInflater;
+    // Used to limit length of name to avoid OutOfMemory.
+    private static final int NAME_LENGTH_LIMIT = 512;
     private static Context mContext;
 
     private StructuredNameEditorView mName;
@@ -324,9 +326,10 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             if (StructuredName.CONTENT_ITEM_TYPE.equals(mimeType)) {
                 // Handle special case editor for structured name
                 final ValuesDelta primary = state.getPrimaryEntry(mimeType);
-                mName.setValues(
-                        type.getKindForMimetype(DataKind.PSEUDO_MIME_TYPE_DISPLAY_NAME),
-                        primary, state, false, vig);
+                DataKind dataKind = type.getKindForMimetype(DataKind.PSEUDO_MIME_TYPE_DISPLAY_NAME);
+                // Limit the length of EditText to avoid OOM.
+                dataKind.maxLength = NAME_LENGTH_LIMIT;
+                mName.setValues(dataKind, primary, state, false, vig);
                 if (!(SimContactsConstants.ACCOUNT_TYPE_SIM).equals(type.accountType)) {
                     mPhoneticName.setValues(
                         type.getKindForMimetype(DataKind.PSEUDO_MIME_TYPE_PHONETIC_NAME),
