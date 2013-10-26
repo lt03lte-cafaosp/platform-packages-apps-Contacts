@@ -30,7 +30,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.ContactsContract.Intents.UI;
+import android.telephony.MSimTelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -90,7 +90,6 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
     private ImageView mStar;
     private ImageView mPhoto;
     private boolean mStarred;
-    private boolean mIsFromPhoneDialer = false;
 
     @Override
     protected void onCreate(Bundle savedState) {
@@ -99,7 +98,6 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         // Judge if view the vcard from mms to decide whether to
         // show the CONTACT_NOT_FOUND_DIALOG.
         mIsFromVcard = getIntent().getBooleanExtra(VIEW_VCARD, false);
-        mIsFromPhoneDialer = getIntent().getBooleanExtra(MoreContactUtils.IS_FROM_DAILER, false);
         if (PhoneCapabilityTester.isUsingTwoPanes(this)) {
             // This activity must not be shown. We have to select the contact in the
             // PeopleActivity instead ==> Create a forward intent and finish
@@ -249,7 +247,14 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
 
             mPhoto.setImageBitmap(photo);
         } else {
-            mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+            RawContact rawContact = mContactData.getRawContacts().get(0);
+            final String accountType = rawContact.getAccountTypeString();
+            final String accountName = rawContact.getAccountName();
+            if (SimAccountType.ACCOUNT_TYPE.equals(accountType)) {
+                setSimPhotoByAccountName(mContactData, mPhoto, accountName);
+            } else {
+                mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+            }
         }
         if (!mContactData.isUserProfile()) {
             final RawContact rawContact = (RawContact) mContactData.getRawContacts().get(0);
@@ -286,6 +291,21 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
                 decorView.setContentDescription(talkback);
                 decorView.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED);
             }
+        }
+    }
+
+    private void setSimPhotoByAccountName(Contact contactData, ImageView photoView, String name) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            int sub = MoreContactUtils.getSubFromAccountName(name);
+            int index = MoreContactUtils.getCurrentSimIconIndex(photoView.getContext(), sub);
+            if (index < 0) {
+                mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+            } else {
+                photoView.setImageResource(MoreContactUtils
+                        .IC_NO_ANGLE_CONTACT_PICTURE_180_HOLO_LIGHTS[index]);
+            }
+        } else { // SSSS mode
+            photoView.setImageResource(MoreContactUtils.IC_CONTACT_PICTURE_180_HOLO_LIGHT_SIM);
         }
     }
 
@@ -379,12 +399,7 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         switch (id) {
             case R.id.back:
             case R.id.name:
-                if(mIsFromPhoneDialer) {
-                    Intent intentBack = new Intent(UI.LIST_ALL_CONTACTS_ACTION);
-                    startActivity(intentBack);
-                } else {
-                    finish();
-                }
+                finish();
                 break;
             case R.id.star:
                 if (mLookupUri != null && null != mContactData) {

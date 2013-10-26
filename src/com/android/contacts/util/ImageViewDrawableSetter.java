@@ -16,6 +16,7 @@
 
 package com.android.contacts.util;
 
+import android.accounts.Account;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
@@ -23,11 +24,15 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 import android.widget.ImageView;
 
 import com.android.contacts.common.ContactPhotoManager;
+import com.android.contacts.common.MoreContactUtils;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.model.Contact;
+import com.android.contacts.model.RawContact;
 
 import java.util.Arrays;
 
@@ -49,9 +54,32 @@ public class ImageViewDrawableSetter {
         mTarget = target;
     }
 
+    private void setSimPhotoByAccountName(Contact contactData, ImageView photoView, String name) {
+
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            int sub = MoreContactUtils.getSubFromAccountName(name);
+            int index = MoreContactUtils.getCurrentSimIconIndex(photoView.getContext(), sub);
+            if (index < 0) {
+                setCompressedImage(contactData.getPhotoBinaryData());
+            } else {
+                photoView.setImageResource(MoreContactUtils
+                        .IC_NO_ANGLE_CONTACT_PICTURE_180_HOLO_LIGHTS[index]);
+            }
+        } else { // SSSS mode
+            photoView.setImageResource(MoreContactUtils.IC_CONTACT_PICTURE_180_HOLO_LIGHT_SIM);
+        }
+    }
+
     public void setupContactPhoto(Contact contactData, ImageView photoView) {
         setTarget(photoView);
-        setCompressedImage(contactData.getPhotoBinaryData());
+        RawContact rawContact = contactData.getRawContacts().get(0);
+        final String accountType = rawContact.getAccountTypeString();
+        final String accountName = rawContact.getAccountName();
+        if (SimAccountType.ACCOUNT_TYPE.equals(accountType)) {
+            setSimPhotoByAccountName(contactData, photoView, accountName);
+        } else {
+            setCompressedImage(contactData.getPhotoBinaryData());
+        }
     }
 
     public void setTransitionDuration(int durationInMillis) {
