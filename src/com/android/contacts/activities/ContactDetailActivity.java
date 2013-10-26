@@ -30,6 +30,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.telephony.MSimTelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -246,7 +247,14 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
 
             mPhoto.setImageBitmap(photo);
         } else {
-            mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+            RawContact rawContact = mContactData.getRawContacts().get(0);
+            final String accountType = rawContact.getAccountTypeString();
+            final String accountName = rawContact.getAccountName();
+            if (SimAccountType.ACCOUNT_TYPE.equals(accountType)) {
+                setSimPhotoByAccountName(mContactData, mPhoto, accountName);
+            } else {
+                mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+            }
         }
         if (!mContactData.isUserProfile()) {
             final RawContact rawContact = (RawContact) mContactData.getRawContacts().get(0);
@@ -283,6 +291,21 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
                 decorView.setContentDescription(talkback);
                 decorView.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED);
             }
+        }
+    }
+
+    private void setSimPhotoByAccountName(Contact contactData, ImageView photoView, String name) {
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            int sub = MoreContactUtils.getSubFromAccountName(name);
+            int index = MoreContactUtils.getCurrentSimIconIndex(photoView.getContext(), sub);
+            if (index < 0) {
+                mPhoto.setImageResource(R.drawable.ic_contact_picture_holo_light);
+            } else {
+                photoView.setImageResource(MoreContactUtils
+                        .IC_NO_ANGLE_CONTACT_PICTURE_180_HOLO_LIGHTS[index]);
+            }
+        } else { // SSSS mode
+            photoView.setImageResource(MoreContactUtils.IC_CONTACT_PICTURE_180_HOLO_LIGHT_SIM);
         }
     }
 

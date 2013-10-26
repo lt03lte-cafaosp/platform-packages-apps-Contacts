@@ -973,7 +973,7 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
             }
 
             mPhotoManager.loadPhoto(badge, member.getPhotoUri(),
-                    ViewUtil.getConstantPreLayoutWidth(badge), false);
+                    null, ViewUtil.getConstantPreLayoutWidth(badge), false);
             return result;
         }
 
