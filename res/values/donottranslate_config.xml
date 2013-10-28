@@ -63,4 +63,7 @@
     <!-- Help URL pointing to editing contacts in People. This is intentionally empty because
          the overlay will fill this in during build time. -->
     <string name="help_url_people_edit"></string>
+
+    <!-- If true, the setting menu of sort order will be hideden (i.e. given name first) -->
+    <bool name="config_sort_order_disable">false</bool>
 </resources>
