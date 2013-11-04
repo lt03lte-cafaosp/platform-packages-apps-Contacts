@@ -38,6 +38,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import com.android.contacts.R;
 
 /**
  * Utility methods for the "account changed" notification in the new contact creation flow.
@@ -145,6 +146,17 @@ public class ContactEditorUtils {
      * Also note that the returned account may have been removed already.
      */
     public AccountWithDataSet getDefaultAccount() {
+        // if set the value of store contacts defalut
+        if(mContext.getResources().getBoolean(R.bool.def_storage_behavior_enabled)){
+            List<AccountWithDataSet> accouts = getWritableAccounts();
+            // default Contacts storage  postion
+            int store_pos = mContext.getResources().getInteger(R.integer.def_storage_position);
+            if(store_pos >= accouts.size() - 1){// Multi Sim behavior in contacts
+                return accouts.get(accouts.size()-1);
+            }else{
+                return accouts.get(store_pos);
+            }
+        }
         final String saved = mPrefs.getString(KEY_DEFAULT_ACCOUNT, null);
         if (TextUtils.isEmpty(saved)) {
             return null;
