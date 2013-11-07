@@ -16,6 +16,7 @@
 
 package com.android.contacts.socialwidget;
 
+import android.accounts.Account;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -41,6 +42,7 @@ import com.android.contacts.R;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.model.Contact;
 import com.android.contacts.model.ContactLoader;
+import com.android.contacts.model.RawContact;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.quickcontact.QuickContactBroadcastReceiver;
 import com.android.contacts.util.ContactBadgeUtil;
@@ -137,12 +139,14 @@ public class SocialWidgetProvider extends AppWidgetProvider {
         if (!contactData.isLoaded()) {
             setDisplayNameAndSnippet(context, views,
                     context.getString(R.string.invalidContactMessage), null, null, null);
-            setPhoto(views, ContactBadgeUtil.loadDefaultAvatarPhoto(context, false, false));
+            setPhoto(views, ContactBadgeUtil.loadDefaultAvatarPhoto(context, null, false, false));
         } else {
             byte[] photo = contactData.getPhotoBinaryData();
-            setPhoto(views, photo != null
-                    ? BitmapFactory.decodeByteArray(photo, 0, photo.length)
-                            : ContactBadgeUtil.loadDefaultAvatarPhoto(context, false, false));
+            RawContact rawContact = contactData.getRawContacts().get(0);
+            Account account = new Account(rawContact.getAccountName(),
+                    rawContact.getAccountTypeString());
+            setPhoto(views, photo != null ? BitmapFactory.decodeByteArray(photo, 0, photo.length)
+                    : ContactBadgeUtil.loadDefaultAvatarPhoto(context, account, false, false));
 
             // TODO: Rotate between all the stream items?
 

@@ -2310,7 +2310,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             Intent callIntent = new Intent(detailViewEntry.intent);
             callIntent.putExtra(PhoneConstants.IP_CALL, true);
             callIntent.putExtra(MSimConstants.SUBSCRIPTION_KEY, subscription);
-            callIntent.putExtra(MoreContactUtils.DIAL_WIDGET_SWITCHED, subscription);
             mContext.startActivity(callIntent);
         } else {
             MoreContactUtils.showNoIPNumberDialog(mContext, subscription);
