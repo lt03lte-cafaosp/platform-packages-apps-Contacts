@@ -319,12 +319,12 @@ public class PhotoSelectionActivity extends Activity {
         int photoWidth = getPhotoEndParams().width;
         if (mPhotoUri != null) {
             // If we have a URI, the bitmap should be cached directly.
-            ContactPhotoManager.getInstance(this).loadPhoto(mPhotoView, mPhotoUri, photoWidth,
-                    false);
+            ContactPhotoManager.getInstance(this).loadPhoto(mPhotoView, mPhotoUri, null,
+                    photoWidth, false);
         } else {
             // Fall back to avatar image.
-            mPhotoView.setImageResource(ContactPhotoManager.getDefaultAvatarResId(this, photoWidth,
-                    false));
+            mPhotoView.setImageResource(ContactPhotoManager.getDefaultAvatarResId(this, null,
+                    photoWidth, false));
         }
 
         mPhotoView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
