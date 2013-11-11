@@ -282,6 +282,11 @@ public class KindSectionView extends LinearLayout implements EditorListener {
                 // this {@link View}, then remove this empty editor.
                 if (emptyEditorView.findFocus() == null) {
                     mEditors.removeView(emptyEditorView);
+                    // when a emptyEditorView was removed,we should
+                    // delete the value in related ValueDelta.
+                    if (emptyEditorView instanceof Editor) {
+                        ((Editor) emptyEditorView).deleteEditor();
+                    }
                 }
             }
         }
