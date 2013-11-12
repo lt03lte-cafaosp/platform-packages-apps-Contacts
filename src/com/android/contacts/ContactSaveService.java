@@ -164,17 +164,17 @@ public class ContactSaveService extends IntentService {
     private static int count = MSimTelephonyManager.getDefault().getPhoneCount();
     private static int[] mSimMaxCount = new int[count];
 
-    private static final int RESULT_UNCHANGED = 0;
-    private static final int RESULT_SUCCESS = 1;
-    private static final int RESULT_FAILURE = 2;
-    private static final int RESULT_NO_NUMBER = 3;
-    private static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
-    private static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
+    public static final int RESULT_UNCHANGED = 0;
+    public static final int RESULT_SUCCESS = 1;
+    public static final int RESULT_FAILURE = 2;
+    public static final int RESULT_NO_NUMBER_AND_EMAIL = 3;
+    public static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
+    public static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
     // only for sim failure of number or anr is too long
-    private static final int RESULT_NUMBER_ANR_FAILURE = 6;
-    private static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
-    private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
-    private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
+    public static final int RESULT_NUMBER_ANR_FAILURE = 6;
+    public static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
+    public static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
+    public static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
 
     private final int MAX_NUM_LENGTH = 20;
     private final int MAX_EMAIL_LENGTH = 40;
@@ -682,8 +682,8 @@ public class ContactSaveService extends IntentService {
             email = values.getAsString(SimContactsConstants.STR_NEW_EMAILS);
         }
 
-        if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
-            return RESULT_NO_NUMBER;
+        if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr) && TextUtils.isEmpty(email)) {
+            return RESULT_NO_NUMBER_AND_EMAIL;
         }
 
         if ((!TextUtils.isEmpty(number) && number.length() > MAX_NUM_LENGTH)
