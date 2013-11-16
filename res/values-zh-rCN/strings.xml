@@ -148,7 +148,7 @@
     <string name="menu_all_contacts" msgid="5101735431586050711">"所有联系人"</string>
     <string name="share_via" msgid="563121028023030093">"联系人分享方式"</string>
     <string name="dialog_new_group_account" msgid="2318032089273496830">"要在哪个帐户下创建群组？"</string>
-    <string name="account_sim">SIM卡</string>
+    <string name="account_sim"><xliff:g id="sim">%s</xliff:g>卡</string>
     <string name="audio_chat" msgid="2535716629358298691">"语音聊天"</string>
     <string name="video_chat" msgid="1872255818640336072">"视频聊天"</string>
     <string name="name_for_sim">姓名</string>

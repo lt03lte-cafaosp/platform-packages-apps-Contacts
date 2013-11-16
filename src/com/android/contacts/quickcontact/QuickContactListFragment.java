@@ -178,16 +178,12 @@ public class QuickContactListFragment extends Fragment {
                     callButtonSub1.setImageResource(
                             com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                     callButtonSub1.setTag(action);
-                    if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
-                        callButtonSub1.setOnClickListener(mFourthActionClickListener);
-                    }
+                    callButtonSub1.setOnClickListener(mFourthActionClickListener);
                     // set sub2
                     callButtonSub2.setImageResource(
                             com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                     callButtonSub2.setTag(action);
-                    if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
-                        callButtonSub2.setOnClickListener(mFifthActionClickListener);
-                    }
+                    callButtonSub2.setOnClickListener(mFifthActionClickListener);
 
                     MoreContactUtils.controlCallIconDisplay(context, layoutSub1, callButtonSub1,
                             callIconSub1, layoutSub2, callButtonSub2, callIconSub2,

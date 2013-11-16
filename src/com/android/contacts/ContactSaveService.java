@@ -186,6 +186,9 @@ public class ContactSaveService extends IntentService {
     private static final int RESULT_AIR_PLANE_MODE = 10;
     private static SimContactsOperation mSimContactsOperation;
 
+    // Maximum number of operations allowed in a batch between yield points is 500.
+    private static final int BUFFER_LENGTH = 499;
+
     public interface Listener {
         public void onServiceCompleted(Intent callbackIntent);
     }
@@ -1322,18 +1325,7 @@ public class ContactSaveService extends IntentService {
         }
 
         boolean success = false;
-        // Apply all aggregation exceptions as one batch
-        try {
-            resolver.applyBatch(ContactsContract.AUTHORITY, operations);
-            showToast(R.string.contactsJoinedMessage);
-            success = true;
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to apply aggregation exception batch", e);
-            showToast(R.string.contactSavedErrorToast);
-        } catch (OperationApplicationException e) {
-            Log.e(TAG, "Failed to apply aggregation exception batch", e);
-            showToast(R.string.contactSavedErrorToast);
-        }
+        success = applyBatchByBuffer(operations, resolver);
 
         Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
         if (success) {
@@ -1342,6 +1334,42 @@ public class ContactSaveService extends IntentService {
             callbackIntent.setData(uri);
         }
         deliverCallback(callbackIntent);
+    }
+
+    public boolean applyBatchByBuffer(ArrayList<ContentProviderOperation> operations,
+            ContentResolver cr) {
+        boolean success = false;
+        final ArrayList<ContentProviderOperation> tempOperations
+                = new ArrayList<ContentProviderOperation>(BUFFER_LENGTH);
+        int bufferSize = operations.size() / BUFFER_LENGTH;
+        for (int index = 0; index <= bufferSize; index++) {
+            tempOperations.clear();
+            if (index == bufferSize) {
+                for (int i = index * BUFFER_LENGTH; i < operations.size(); i++) {
+                    tempOperations.add(operations.get(i));
+                }
+            } else {
+                for (int i = index * BUFFER_LENGTH;
+                        i < index * BUFFER_LENGTH + BUFFER_LENGTH; i++) {
+                    tempOperations.add(operations.get(i));
+                }
+            }
+            if (!tempOperations.isEmpty()) {
+                // Apply all aggregation exceptions as one batch
+                try {
+                    cr.applyBatch(ContactsContract.AUTHORITY, tempOperations);
+                    showToast(R.string.contactsJoinedMessage);
+                    success = true;
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Failed to apply aggregation exception batch", e);
+                    showToast(R.string.contactSavedErrorToast);
+                } catch (OperationApplicationException e) {
+                    Log.e(TAG, "Failed to apply aggregation exception batch", e);
+                    showToast(R.string.contactSavedErrorToast);
+                }
+            }
+        }
+        return success;
     }
 
     /**
