@@ -628,7 +628,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
                     // white and black listintent
                     Bundle blackbundle = new Bundle();
-                    blackbundle.putString("name", "");// optional
+                    blackbundle.putString("name", mContactData.getDisplayName());// optional
                     blackbundle.putString("number", entry.data);
                     blackbundle.putString("mode", "blacklist");
 
@@ -639,7 +639,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     entry.blackintent = blackintent;
 
                     Bundle whitebundle = new Bundle();
-                    whitebundle.putString("name", "");// optional
+                    whitebundle.putString("name", mContactData.getDisplayName());// optional
                     whitebundle.putString("number", entry.data);
                     whitebundle.putInt("personid", 0);// optional
                     whitebundle.putString("mode", "whitelist");
@@ -2158,6 +2158,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             if (isVTSupported()){
                 menu.add(ContextMenu.NONE, ContextMenuIds.VIDEOCALL,
                     ContextMenu.NONE, getString(R.string.videocall));
+            }
 
             if (isFirewalltalled(mContext)) {
                 menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
@@ -2215,7 +2216,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
-            }
         }
      }
 
