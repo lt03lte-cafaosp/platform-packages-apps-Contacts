@@ -1938,16 +1938,12 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 views.callButtonSub1.setImageResource(
                         com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                 views.callButtonSub1.setTag(entry);
-                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
-                    views.callButtonSub1.setOnClickListener(mFourthActionClickListener);
-                }
+                views.callButtonSub1.setOnClickListener(mFourthActionClickListener);
 
                 views.callButtonSub2.setImageResource(
                         com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                 views.callButtonSub2.setTag(entry);
-                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
-                    views.callButtonSub2.setOnClickListener(mFifthActionClickListener);
-                }
+                views.callButtonSub2.setOnClickListener(mFifthActionClickListener);
 
                 MoreContactUtils.controlCallIconDisplay(mContext, views.layoutSub1,
                         views.callButtonSub1, views.callIconSub1, views.layoutSub2,
