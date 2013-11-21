@@ -1230,6 +1230,10 @@ public class PeopleActivity extends ContactsActivity
             invalidateOptionsMenu();
             if (mTabPager != null) {
                 mTabPager.setVisibility(View.VISIBLE);
+                if (mActionBarAdapter != null) {
+                    int tab = mActionBarAdapter.getCurrentTab();
+                    mTabPager.setCurrentItem(tab, false);
+                }
             }
 
             if (mainView != null) {
