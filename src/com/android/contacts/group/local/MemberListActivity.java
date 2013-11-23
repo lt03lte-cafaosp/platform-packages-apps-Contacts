@@ -134,6 +134,7 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
             mDeleteMembersTask = null;
             removeSet.clear();
             mAdapter.refresh();
+            new LocalGroupCountTask(MemberListActivity.this).execute();
         }
     };
 
