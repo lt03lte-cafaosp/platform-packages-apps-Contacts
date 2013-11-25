@@ -184,7 +184,7 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
             // and have the same account name and type as specified in this adapter
             String searchQuery = prefix.toString() + "%";
             String accountClause = RawContacts.ACCOUNT_NAME + "=? AND " +
-                    RawContacts.ACCOUNT_TYPE + "=?";
+                    RawContacts.ACCOUNT_TYPE + "=? AND " + RawContacts.DELETED + "!= 1";
             String[] args;
             if (mDataSet == null) {
                 accountClause += " AND " + RawContacts.DATA_SET + " IS NULL";
