@@ -59,6 +59,9 @@ public class ContactEditorActivity extends ContactsActivity
     public static final String INTENT_KEY_FINISH_ACTIVITY_ON_SAVE_COMPLETED =
             "finishActivityOnSaveCompleted";
 
+    public static final String INTENT_KEY_MMS_SAVE_EMAIL_TO_CONTACT =
+            "mmsSaveEmailToContact";
+
     private ContactEditorFragment mFragment;
     private boolean mFinishActivityOnSaveCompleted;
 

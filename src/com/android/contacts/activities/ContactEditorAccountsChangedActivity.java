@@ -51,6 +51,9 @@ public class ContactEditorAccountsChangedActivity extends Activity {
 
     private static final int SUBACTIVITY_ADD_NEW_ACCOUNT = 1;
 
+    public static final String MMS_SAVE_EMAIL_TO_CONTACT =
+            "mmsSaveEmailToContact";
+
     private AccountsListAdapter mAccountListAdapter;
     private ContactEditorUtils mEditorUtils;
 
@@ -77,8 +80,13 @@ public class ContactEditorAccountsChangedActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         mEditorUtils = ContactEditorUtils.getInstance(this);
-        final List<AccountWithDataSet> accounts = AccountTypeManager.getInstance(this).
-                getAccounts(true);
+        final List<AccountWithDataSet> accounts;
+        if(getIntent().getBooleanExtra(MMS_SAVE_EMAIL_TO_CONTACT, false)) {
+            accounts = AccountTypeManager.getInstance(this).
+                getAccounts(true,AccountTypeManager.FLAG_ALL_ACCOUNTS_WITHOUT_SIM);
+        } else {
+            accounts = AccountTypeManager.getInstance(this).getAccounts(true);
+        }
         final int numAccounts = accounts.size();
         if (numAccounts < 0) {
             throw new IllegalStateException("Cannot have a negative number of accounts");
