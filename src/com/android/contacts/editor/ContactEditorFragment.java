@@ -650,6 +650,10 @@ public class ContactEditorFragment extends Fragment implements
         // prompt the user again, then launch the account prompt.
         if (mEditorUtils.shouldShowAccountChangedNotification()) {
             Intent intent = new Intent(mContext, ContactEditorAccountsChangedActivity.class);
+            if(getActivity().getIntent().getBooleanExtra
+                    (ContactEditorActivity.INTENT_KEY_MMS_SAVE_EMAIL_TO_CONTACT, false)) {
+                intent.putExtra(ContactEditorAccountsChangedActivity.MMS_SAVE_EMAIL_TO_CONTACT, true);
+            }
             mStatus = Status.SUB_ACTIVITY;
             startActivityForResult(intent, REQUEST_CODE_ACCOUNTS_CHANGED);
         } else {

@@ -2152,8 +2152,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             menu.setHeaderTitle(selectedEntry.data);
         }
 
-        menu.setHeaderTitle(selectedEntry.data);
-
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
             if (isVTSupported()){
                 menu.add(ContextMenu.NONE, ContextMenuIds.VIDEOCALL,
