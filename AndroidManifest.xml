@@ -53,6 +53,7 @@
     <!-- Add uses-permission for cooperating with xcloud -->
     <uses-permission android:name="com.baidu.permission.QCCLOUD_PROVIDER"/>
     <uses-permission android:name="com.android.firewall.READ_GRAVITY"/>
+    <uses-permission android:name="com.android.firewall.WRITE_GRAVITY"/>
 
     <!-- allow broadcasting secret code intents that reboot the phone -->
     <uses-permission android:name="android.permission.REBOOT" />

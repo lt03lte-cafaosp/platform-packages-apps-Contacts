@@ -50,7 +50,6 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     private static final int REQUEST_CODE_ACCOUNT_FILTER = 1;
 
     private TextView mCounterHeaderView;
-    private View mSearchHeaderView;
     private View mAccountFilterHeader;
     private FrameLayout mProfileHeaderContainer;
     private View mProfileHeader;
@@ -58,7 +57,6 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     private FrameLayout mMessageContainer;
     private TextView mProfileTitle;
     private View mSearchProgress;
-    private TextView mSearchProgressText;
 
     private class FilterHeaderClickListener implements OnClickListener {
         @Override
@@ -113,16 +111,9 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         addEmptyUserProfileHeader(inflater);
         showEmptyUserProfile(false);
 
-        // Putting the header view inside a container will allow us to make
-        // it invisible later. See checkHeaderViewVisibility()
-        FrameLayout headerContainer = new FrameLayout(inflater.getContext());
-        mSearchHeaderView = inflater.inflate(R.layout.search_header, null, false);
-        headerContainer.addView(mSearchHeaderView);
-        getListView().addHeaderView(headerContainer, null, false);
         checkHeaderViewVisibility();
 
         mSearchProgress = getView().findViewById(R.id.search_progress);
-        mSearchProgressText = (TextView) mSearchHeaderView.findViewById(R.id.totalContactsText);
     }
 
     @Override
@@ -142,11 +133,6 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
             mCounterHeaderView.setVisibility(isSearchMode() ? View.GONE : View.VISIBLE);
         }
         updateFilterHeaderView();
-
-        // Hide the search header by default. See showCount().
-        if (mSearchHeaderView != null) {
-            mSearchHeaderView.setVisibility(View.GONE);
-        }
     }
 
     @Override

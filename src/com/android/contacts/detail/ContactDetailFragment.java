@@ -628,7 +628,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
                     // white and black listintent
                     Bundle blackbundle = new Bundle();
-                    blackbundle.putString("name", "");// optional
+                    blackbundle.putString("name", mContactData.getDisplayName());// optional
                     blackbundle.putString("number", entry.data);
                     blackbundle.putString("mode", "blacklist");
 
@@ -639,7 +639,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     entry.blackintent = blackintent;
 
                     Bundle whitebundle = new Bundle();
-                    whitebundle.putString("name", "");// optional
+                    whitebundle.putString("name", mContactData.getDisplayName());// optional
                     whitebundle.putString("number", entry.data);
                     whitebundle.putInt("personid", 0);// optional
                     whitebundle.putString("mode", "whitelist");
@@ -1938,16 +1938,12 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 views.callButtonSub1.setImageResource(
                         com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                 views.callButtonSub1.setTag(entry);
-                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
-                    views.callButtonSub1.setOnClickListener(mFourthActionClickListener);
-                }
+                views.callButtonSub1.setOnClickListener(mFourthActionClickListener);
 
                 views.callButtonSub2.setImageResource(
                         com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                 views.callButtonSub2.setTag(entry);
-                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
-                    views.callButtonSub2.setOnClickListener(mFifthActionClickListener);
-                }
+                views.callButtonSub2.setOnClickListener(mFifthActionClickListener);
 
                 MoreContactUtils.controlCallIconDisplay(mContext, views.layoutSub1,
                         views.callButtonSub1, views.callIconSub1, views.layoutSub2,
@@ -2156,12 +2152,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             menu.setHeaderTitle(selectedEntry.data);
         }
 
-        menu.setHeaderTitle(selectedEntry.data);
-
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
             if (isVTSupported()){
                 menu.add(ContextMenu.NONE, ContextMenuIds.VIDEOCALL,
                     ContextMenu.NONE, getString(R.string.videocall));
+            }
 
             if (isFirewalltalled(mContext)) {
                 menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
@@ -2219,7 +2214,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
-            }
         }
      }
 
