@@ -53,9 +53,16 @@ public class LocalGroupCountTask extends AsyncTask<Object, Object, Object> {
         target = fragment;
     }
 
+    public LocalGroupCountTask(Context context) {
+        mContext = context;
+        target = null;
+    }
+
     @Override
     protected void onPostExecute(Object result) {
-        target.updateGroupData();
+        if (target != null) {
+            target.updateGroupData();
+        }
     }
 
     @Override

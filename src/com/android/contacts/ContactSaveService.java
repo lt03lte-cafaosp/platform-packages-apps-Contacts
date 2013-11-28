@@ -164,17 +164,17 @@ public class ContactSaveService extends IntentService {
     private static int count = MSimTelephonyManager.getDefault().getPhoneCount();
     private static int[] mSimMaxCount = new int[count];
 
-    private static final int RESULT_UNCHANGED = 0;
-    private static final int RESULT_SUCCESS = 1;
-    private static final int RESULT_FAILURE = 2;
-    private static final int RESULT_NO_NUMBER = 3;
-    private static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
-    private static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
+    public static final int RESULT_UNCHANGED = 0;
+    public static final int RESULT_SUCCESS = 1;
+    public static final int RESULT_FAILURE = 2;
+    public static final int RESULT_NO_NUMBER_AND_EMAIL = 3;
+    public static final int RESULT_SIM_FAILURE = 4;   //only for sim operation failure
+    public static final int RESULT_EMAIL_FAILURE = 5; // only for sim email operation failure
     // only for sim failure of number or anr is too long
-    private static final int RESULT_NUMBER_ANR_FAILURE = 6;
-    private static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
-    private static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
-    private static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
+    public static final int RESULT_NUMBER_ANR_FAILURE = 6;
+    public static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
+    public static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
+    public static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
 
     private final int MAX_NUM_LENGTH = 20;
     private final int MAX_EMAIL_LENGTH = 40;
@@ -185,6 +185,9 @@ public class ContactSaveService extends IntentService {
     // when device is in the "AirPlane" mode.
     private static final int RESULT_AIR_PLANE_MODE = 10;
     private static SimContactsOperation mSimContactsOperation;
+
+    // Maximum number of operations allowed in a batch between yield points is 500.
+    private static final int BUFFER_LENGTH = 499;
 
     public interface Listener {
         public void onServiceCompleted(Intent callbackIntent);
@@ -679,8 +682,8 @@ public class ContactSaveService extends IntentService {
             email = values.getAsString(SimContactsConstants.STR_NEW_EMAILS);
         }
 
-        if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr)) {
-            return RESULT_NO_NUMBER;
+        if (TextUtils.isEmpty(number) && TextUtils.isEmpty(anr) && TextUtils.isEmpty(email)) {
+            return RESULT_NO_NUMBER_AND_EMAIL;
         }
 
         if ((!TextUtils.isEmpty(number) && number.length() > MAX_NUM_LENGTH)
@@ -1322,18 +1325,7 @@ public class ContactSaveService extends IntentService {
         }
 
         boolean success = false;
-        // Apply all aggregation exceptions as one batch
-        try {
-            resolver.applyBatch(ContactsContract.AUTHORITY, operations);
-            showToast(R.string.contactsJoinedMessage);
-            success = true;
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to apply aggregation exception batch", e);
-            showToast(R.string.contactSavedErrorToast);
-        } catch (OperationApplicationException e) {
-            Log.e(TAG, "Failed to apply aggregation exception batch", e);
-            showToast(R.string.contactSavedErrorToast);
-        }
+        success = applyBatchByBuffer(operations, resolver);
 
         Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
         if (success) {
@@ -1342,6 +1334,42 @@ public class ContactSaveService extends IntentService {
             callbackIntent.setData(uri);
         }
         deliverCallback(callbackIntent);
+    }
+
+    public boolean applyBatchByBuffer(ArrayList<ContentProviderOperation> operations,
+            ContentResolver cr) {
+        boolean success = false;
+        final ArrayList<ContentProviderOperation> tempOperations
+                = new ArrayList<ContentProviderOperation>(BUFFER_LENGTH);
+        int bufferSize = operations.size() / BUFFER_LENGTH;
+        for (int index = 0; index <= bufferSize; index++) {
+            tempOperations.clear();
+            if (index == bufferSize) {
+                for (int i = index * BUFFER_LENGTH; i < operations.size(); i++) {
+                    tempOperations.add(operations.get(i));
+                }
+            } else {
+                for (int i = index * BUFFER_LENGTH;
+                        i < index * BUFFER_LENGTH + BUFFER_LENGTH; i++) {
+                    tempOperations.add(operations.get(i));
+                }
+            }
+            if (!tempOperations.isEmpty()) {
+                // Apply all aggregation exceptions as one batch
+                try {
+                    cr.applyBatch(ContactsContract.AUTHORITY, tempOperations);
+                    showToast(R.string.contactsJoinedMessage);
+                    success = true;
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Failed to apply aggregation exception batch", e);
+                    showToast(R.string.contactSavedErrorToast);
+                } catch (OperationApplicationException e) {
+                    Log.e(TAG, "Failed to apply aggregation exception batch", e);
+                    showToast(R.string.contactSavedErrorToast);
+                }
+            }
+        }
+        return success;
     }
 
     /**
