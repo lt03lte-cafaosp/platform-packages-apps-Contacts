@@ -100,7 +100,7 @@ public class PhotoEditorView extends LinearLayout implements Editor {
 
         setId(vig.getId(state, kind, values, 0));
 
-        if (values != null) {
+        if (values != null && !values.isDelete()) {
             // Try decoding photo if actual entry
             final byte[] photoBytes = values.getAsByteArray(Photo.PHOTO);
             if (photoBytes != null) {
@@ -133,7 +133,7 @@ public class PhotoEditorView extends LinearLayout implements Editor {
     public void setPhotoBitmap(Bitmap photo) {
         if (photo == null) {
             // Clear any existing photo and return
-            mEntry.put(Photo.PHOTO, (byte[])null);
+            mEntry.markDeleted();
             resetDefault();
             return;
         }
