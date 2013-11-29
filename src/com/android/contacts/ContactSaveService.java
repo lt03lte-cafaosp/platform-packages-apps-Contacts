@@ -17,6 +17,7 @@
 package com.android.contacts;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.IntentService;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderOperation.Builder;
@@ -28,6 +29,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteFullException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -175,6 +177,8 @@ public class ContactSaveService extends IntentService {
     public static final int RESULT_SIM_FULL_FAILURE = 7; // only for sim card is full
     public static final int RESULT_TAG_FAILURE = 8; // only for sim failure of name is too long
     public static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
+
+    public static final int RESULT_MEMORY_FULL_FAILURE = 11; //for memory full exception
 
     private final int MAX_NUM_LENGTH = 20;
     private final int MAX_EMAIL_LENGTH = 40;
@@ -482,6 +486,12 @@ public class ContactSaveService extends IntentService {
 
                 ContentProviderResult[] results = null;
                 if (!diff.isEmpty()) {
+                    ActivityManager am = (ActivityManager)getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
+                    ActivityManager.MemoryInfo outInfo = new ActivityManager.MemoryInfo();
+                    am.getMemoryInfo(outInfo);
+                    if(outInfo.lowMemory ==true) {
+                        throw new SQLiteFullException("Memory almost full can't save contact");
+                    }
                     results = resolver.applyBatch(ContactsContract.AUTHORITY, diff);
                 }
 
@@ -530,6 +540,17 @@ public class ContactSaveService extends IntentService {
                 Log.e(TAG, "Problem persisting user edits", e);
                 break;
 
+            } catch (SQLiteFullException e) {
+                // Memory is full. don't do any thing
+                Log.e(TAG, "Memory is almost full", e);
+                Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+                if (callbackIntent != null) {
+                    callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                    callbackIntent.setData(null);
+                    callbackIntent.putExtra(SAVE_CONTACT_RESULT, RESULT_MEMORY_FULL_FAILURE);
+                    deliverCallback(callbackIntent);
+                }
+                return;
             } catch (OperationApplicationException e) {
                 // Version consistency failed, re-parent change and try again
                 Log.w(TAG, "Version consistency failed, re-parenting: " + e.toString());
