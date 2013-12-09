@@ -275,7 +275,7 @@ public class ContactEditorFragment extends Fragment implements
     // Only for accessing SIM card
     // when device is in the "AirPlane" mode.
     private static final int RESULT_AIR_PLANE_MODE = 10;
-
+    private static final int RESULT_MEMORY_FULL_FAILURE = 11;
     private static final class AggregationSuggestionAdapter extends BaseAdapter {
         private final Activity mActivity;
         private final boolean mSetNewContact;
@@ -1321,6 +1321,9 @@ public class ContactEditorFragment extends Fragment implements
                     mStatus = Status.EDITING;
                     setEnabled(true);
                     return;
+                } else if (result == RESULT_MEMORY_FULL_FAILURE) {
+                    Toast.makeText(mContext, R.string.memory_card_full, Toast.LENGTH_SHORT)
+                            .show();
                 } else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                             .show();
