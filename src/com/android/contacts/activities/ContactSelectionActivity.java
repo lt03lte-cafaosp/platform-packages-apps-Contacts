@@ -24,6 +24,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Intents.Insert;
 import android.text.TextUtils;
@@ -591,6 +592,9 @@ public class ContactSelectionActivity extends ContactsActivity
 
     private void startCreateNewContactActivity() {
         Intent intent = new Intent(Intent.ACTION_INSERT, Contacts.CONTENT_URI);
+        if(getIntent().getExtra(ContactsContract.Intents.Insert.EMAIL) != null) {
+            intent.putExtra(ContactEditorActivity.INTENT_KEY_MMS_SAVE_EMAIL_TO_CONTACT, true);
+        }
         intent.putExtra(ContactEditorActivity.INTENT_KEY_FINISH_ACTIVITY_ON_SAVE_COMPLETED, true);
         startActivityAndForwardResult(intent);
     }

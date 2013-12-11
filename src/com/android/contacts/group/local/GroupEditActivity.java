@@ -264,6 +264,7 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
             if (mProgressDialog != null && mProgressDialog.isShowing()) {
                 mProgressDialog.dismiss();
             }
+            new LocalGroupCountTask(GroupEditActivity.this).execute();
         }
 
         @Override
