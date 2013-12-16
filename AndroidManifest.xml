@@ -474,7 +474,7 @@
             android:name=".editor.MultiPickContactActivity"
             android:windowSoftInputMode="stateHidden|adjustResize"
             android:screenOrientation="nosensor"
-            android:configChanges="orientation|keyboardHidden|locale|layoutDirection">
+            android:configChanges="orientation|keyboardHidden|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.DEFAULT" />
