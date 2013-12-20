@@ -24,7 +24,11 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.ParseException;
 import android.net.Uri;
@@ -115,6 +119,7 @@ import com.android.contacts.common.model.dataitem.WebsiteDataItem;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.StructuredPostalUtils;
 import com.android.contacts.util.UiClosables;
+import com.android.internal.telephony.MSimConstants;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
@@ -139,10 +144,24 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         static final int CLEAR_DEFAULT = 1;
         static final int SET_DEFAULT = 2;
         static final int EDIT_BEFORE_CALL = 3;
+        static final int ADD_TO_BLACKLIST = 4;
+        static final int ADD_TO_WHITELIST = 5;
     }
 
     private static final String KEY_CONTACT_URI = "contactUri";
     private static final String KEY_LIST_STATE = "liststate";
+    private boolean isFireWallInstalled = false;
+    private static final String FIREWALL_APK_NAME = "com.android.firewall";
+    private static final String FIREWALL_BLACK_WHITE_LIST = "com.android.firewall.FirewallListPage";
+    private static final Uri FIREWALL_BLACKLIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/blacklistitems");
+    private static final Uri FIREWALL_WHITELIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/whitelistitems");
+
+    private final String NAME_KEY = "name";
+    private final String NUMBER_KEY = "number";
+    private final String PERSON_KEY = "personid";
+    private final String MODE_KEY = "mode";
 
     private Context mContext;
     private View mView;
@@ -269,6 +288,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     @Override
     public void onResume() {
         super.onResume();
+        isFireWallInstalled = isFirewalltalled(mContext);
     }
 
     @Override
@@ -591,6 +611,30 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     } else {
                         entry.intent = null;
                     }
+
+                    // white and black listintent
+                    Bundle blackbundle = new Bundle();
+                    blackbundle.putString(NAME_KEY, mContactData.getDisplayName());// optional
+                    blackbundle.putString(NUMBER_KEY, entry.data);
+                    blackbundle.putString(MODE_KEY, "blacklist");
+
+                    Intent blackintent = new Intent();
+                    blackintent.setClassName(FIREWALL_APK_NAME, FIREWALL_BLACK_WHITE_LIST);
+                    blackintent.setAction(Intent.ACTION_INSERT);
+                    blackintent.putExtras(blackbundle);
+                    entry.blackintent = blackintent;
+
+                    Bundle whitebundle = new Bundle();
+                    whitebundle.putString(NAME_KEY, mContactData.getDisplayName());// optional
+                    whitebundle.putString(NUMBER_KEY, entry.data);
+                    whitebundle.putInt(PERSON_KEY, 0);// optional
+                    whitebundle.putString(MODE_KEY, "whitelist");
+
+                    Intent whiteintent = new Intent();
+                    whiteintent.setClassName(FIREWALL_APK_NAME, FIREWALL_BLACK_WHITE_LIST);
+                    whiteintent.setAction(Intent.ACTION_INSERT);
+                    whiteintent.putExtras(whitebundle);
+                    entry.whiteintent = whiteintent;
 
                     // Remember super-primary phone
                     if (isSuperPrimary) mPrimaryPhoneUri = entry.uri;
@@ -1219,6 +1263,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         public int secondaryActionDescription = -1;
         public Intent intent;
         public Intent secondaryIntent = null;
+        public Intent whiteintent;
+        public Intent blackintent;
+
         public ArrayList<Long> ids = new ArrayList<Long>();
         public int collapseCount = 0;
 
@@ -1437,6 +1484,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     private static class DetailViewCache {
         public final TextView type;
         public final TextView data;
+        public final ImageView blackWhiteListIndicator;
         public final ImageView presenceIcon;
         public final ImageView secondaryActionButton;
         public final View actionsViewContainer;
@@ -1450,6 +1498,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 OnClickListener secondaryActionClickListener) {
             type = (TextView) view.findViewById(R.id.type);
             data = (TextView) view.findViewById(R.id.data);
+            blackWhiteListIndicator = (ImageView) view
+                    .findViewById(R.id.black_white_list_indicator);
             primaryIndicator = view.findViewById(R.id.primary_indicator);
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
 
@@ -1682,6 +1732,41 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             }
 
             views.data.setText(entry.data);
+            if (isFireWallInstalled) {
+                if (Phone.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
+                    String number = entry.data;
+                    number = number.replaceAll(" ", "");
+                    number = number.replaceAll("-", "");
+                    String selectionString = "number=?";
+                    String[] selectionArgs = new String[] { number };
+                    Cursor cursorBlack = mContext.getContentResolver().query(
+                            FIREWALL_BLACKLIST_CONTENT_URI, null,
+                            selectionString, selectionArgs, null);
+                    if (cursorBlack != null && cursorBlack.getCount() > 0) {// in black list
+                        views.blackWhiteListIndicator.setVisibility(View.VISIBLE);
+                        views.blackWhiteListIndicator
+                                .setBackgroundResource(R.drawable.number_in_blacklist);
+                    }
+                    if (cursorBlack != null) {
+                        cursorBlack.close();
+                    }
+                    Cursor cursorWhite = mContext.getContentResolver().query(
+                            FIREWALL_WHITELIST_CONTENT_URI, null,
+                            selectionString, selectionArgs, null);
+                    if (cursorWhite != null && cursorWhite.getCount() > 0) {// in white list
+                        views.blackWhiteListIndicator.setVisibility(View.VISIBLE);
+                        views.blackWhiteListIndicator
+                                .setBackgroundResource(R.drawable.number_in_whitelist);
+                    }
+                    if (cursorWhite != null) {
+                        cursorWhite.close();
+                    }
+                } else {
+                    views.blackWhiteListIndicator.setVisibility(View.GONE);
+                }
+            } else {
+                views.blackWhiteListIndicator.setVisibility(View.GONE);
+            }
             setMaxLines(views.data, entry.maxLines);
 
             // Gray out the data item if it does not perform an action when clicked
@@ -1885,6 +1970,17 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         DetailViewEntry selectedEntry = (DetailViewEntry) mAllEntries.get(info.position);
 
         menu.setHeaderTitle(selectedEntry.data);
+        if (Phone.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
+
+            if (isFirewalltalled(mContext)) {
+                menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                        ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                        selectedEntry.blackintent);
+                menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                        ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
+                        selectedEntry.whiteintent);
+            }
+        }
         menu.add(ContextMenu.NONE, ContextMenuIds.COPY_TEXT,
                 ContextMenu.NONE, getString(R.string.copy_text));
 
@@ -1919,6 +2015,19 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         }
      }
 
+    private boolean isFirewalltalled(Context context) {
+        boolean installed = false;
+        try {
+            ApplicationInfo info = context.getPackageManager().getApplicationInfo(
+                    FIREWALL_APK_NAME, PackageManager.GET_PROVIDERS);
+            installed = info != null;
+        } catch (NameNotFoundException e) {
+            installed = false;
+        }
+        Log.d(TAG,"Is Firewall installed ? " + installed);
+        return installed;
+    }
+
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo menuInfo;
@@ -1942,6 +2051,10 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             case ContextMenuIds.EDIT_BEFORE_CALL:
                 callByEdit(menuInfo.position);
                 return true;
+            case ContextMenuIds.ADD_TO_BLACKLIST:
+                return false;
+            case ContextMenuIds.ADD_TO_WHITELIST:
+                return false;
             default:
                 throw new IllegalArgumentException("Unknown menu option " + item.getItemId());
         }

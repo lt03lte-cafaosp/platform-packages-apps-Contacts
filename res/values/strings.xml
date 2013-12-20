@@ -847,4 +847,6 @@
     <!-- Description when picture in the contact detail view is selected. [CHAR LIMIT=NONE] -->
     <string name="contact_detail_picture_description">Picture. Select to change</string>
     <string name="too_many_contacts_add_to_group">Too many contacts, that should be less than <xliff:g id="count">%d</xliff:g></string>
+    <string name="add_to_white">Add to whitelist</string>
+    <string name="add_to_black">Add to blacklist</string>
 </resources>
