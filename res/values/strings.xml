@@ -849,4 +849,6 @@
     <string name="too_many_contacts_add_to_group">Too many contacts, that should be less than <xliff:g id="count">%d</xliff:g></string>
     <string name="add_to_white">Add to whitelist</string>
     <string name="add_to_black">Add to blacklist</string>
+    <string name="no_phone_number_or_email">Please insert phone number or email address.</string>
+    <string name="memory_card_full">Error, Memory is almost full.</string>
 </resources>
