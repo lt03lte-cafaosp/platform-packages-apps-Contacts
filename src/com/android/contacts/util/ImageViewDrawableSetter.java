@@ -16,6 +16,8 @@
 
 package com.android.contacts.util;
 
+import android.accounts.Account;
+import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
@@ -27,7 +29,10 @@ import android.util.Log;
 import android.widget.ImageView;
 
 import com.android.contacts.common.ContactPhotoManager;
+import com.android.contacts.common.MoreContactUtils;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.common.model.Contact;
+import com.android.contacts.common.model.RawContact;
 
 import java.util.Arrays;
 
@@ -51,7 +56,11 @@ public class ImageViewDrawableSetter {
 
     public void setupContactPhoto(Contact contactData, ImageView photoView) {
         setTarget(photoView);
-        setCompressedImage(contactData.getPhotoBinaryData());
+        RawContact rawContact = contactData.getRawContacts().get(0);
+        final String accountType = rawContact.getAccountTypeString();
+        final String accountName = rawContact.getAccountName();
+        setCompressedImage(contactData.getPhotoBinaryData(), photoView.getContext(), accountType,
+                accountName);
     }
 
     public void setTransitionDuration(int durationInMillis) {
@@ -79,7 +88,8 @@ public class ImageViewDrawableSetter {
         return mCompressed;
     }
 
-    protected Bitmap setCompressedImage(byte[] compressed) {
+    protected Bitmap setCompressedImage(byte[] compressed, Context c, String accountType,
+            String accountName) {
         if (mPreviousDrawable == null) {
             // If we don't already have a drawable, skip the exit-early test
             // below; otherwise we might not end up setting the default image.
@@ -92,7 +102,7 @@ public class ImageViewDrawableSetter {
         }
 
         final Drawable newDrawable = (compressed == null)
-                ? defaultDrawable()
+                ? defaultDrawable(c,accountType,accountName)
                 : decodedBitmapDrawable(compressed);
 
         // Remember this for next time, so that we can check if it changed.
@@ -130,9 +140,15 @@ public class ImageViewDrawableSetter {
     /**
      * Obtain the default drawable for a contact when no photo is available.
      */
-    private Drawable defaultDrawable() {
+    private Drawable defaultDrawable(Context c, String accountType, String accountName) {
         Resources resources = mTarget.getResources();
-        final int resId = ContactPhotoManager.getDefaultAvatarResId(true, false);
+        int resId;
+        if (SimAccountType.ACCOUNT_TYPE.equals(accountType)) {
+            resId = ContactPhotoManager.getSimPhotoResIdByAccount(c, true, false,
+                    SimAccountType.ACCOUNT_TYPE, accountName);
+        } else {
+            resId = ContactPhotoManager.getDefaultAvatarResId(true, false);
+        }
         try {
             return resources.getDrawable(resId);
         } catch (NotFoundException e) {
