@@ -259,7 +259,8 @@ public class ContactDetailActivity extends ContactsActivity implements View.OnCl
         if (!mContactData.isUserProfile()) {
             final RawContact rawContact = (RawContact) mContactData.getRawContacts().get(0);
             final AccountType type = rawContact.getAccountType(this);
-            if (type != null && type.accountType.equals(SimAccountType.ACCOUNT_TYPE)) {
+            if (type != null && null != type.accountType && type.accountType.equals
+               (SimAccountType.ACCOUNT_TYPE)) {
                 // Do not allow sim contacts to be starred, since it may cause problems.
                 mStar.setVisibility(View.INVISIBLE);
             } else {
