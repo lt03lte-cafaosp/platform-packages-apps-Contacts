@@ -377,4 +377,5 @@
     <string name="add_to_black">加入黑名单</string>
     <string name="no_phone_number_or_email">请输入手机号码或者邮箱地址。</string>
     <string name="memory_card_full">错误, 内存已满.</string>
+    <string name="button_moveto">移动</string>
 </resources>

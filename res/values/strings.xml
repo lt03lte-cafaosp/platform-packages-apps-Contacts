@@ -858,4 +858,5 @@
     <string name="add_to_black">Add to blacklist</string>
     <string name="no_phone_number_or_email">Please insert phone number or email address.</string>
     <string name="memory_card_full">Error, Memory is almost full.</string>
+    <string name="button_moveto">Move</string>
 </resources>
