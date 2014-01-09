@@ -123,6 +123,7 @@ import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.StructuredPostalUtils;
 import com.android.contacts.util.UiClosables;
 import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.PhoneConstants;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
@@ -149,6 +150,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         static final int EDIT_BEFORE_CALL = 3;
         static final int ADD_TO_BLACKLIST = 4;
         static final int ADD_TO_WHITELIST = 5;
+        static final int IPCALL = 6;
     }
 
     private static final String KEY_CONTACT_URI = "contactUri";
@@ -160,6 +162,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             .parse("content://com.android.firewall/blacklistitems");
     private static final Uri FIREWALL_WHITELIST_CONTENT_URI = Uri
             .parse("content://com.android.firewall/whitelistitems");
+    private static final int MAX_NUM_LENGTH = 3; // add limit length to show IP call item
 
     private final String NAME_KEY = "name";
     private final String NUMBER_KEY = "number";
@@ -2041,6 +2044,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     ContextMenu.NONE, getString(R.string.set_default));
             }
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedMimeType)) {
+            // add limit length to show IP call item
+            if (selectedEntry.data.length() > MAX_NUM_LENGTH) {
+                menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL,
+                        ContextMenu.NONE, getString(R.string.ipcall));
+            }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
         }
@@ -2086,6 +2094,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 return false;
             case ContextMenuIds.ADD_TO_WHITELIST:
                 return false;
+            case ContextMenuIds.IPCALL:
+                callViaIP(menuInfo.position);
+                return true;
             default:
                 throw new IllegalArgumentException("Unknown menu option " + item.getItemId());
         }
@@ -2116,6 +2127,13 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         }
 
         ClipboardUtils.copyText(getActivity(), detailViewEntry.typeString, textToCopy, true);
+    }
+
+    private void callViaIP(int viewEntryPosition) {
+        DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
+        Intent callIntent = new Intent(detailViewEntry.intent);
+        callIntent.putExtra(PhoneConstants.IP_CALL, true);
+        mContext.startActivity(callIntent);
     }
 
     private void callByEdit(int viewEntryPosition) {
