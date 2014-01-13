@@ -394,7 +394,7 @@
     <!-- Title for the disambiguation dialog that requests the user choose an account for the new group to be created under [CHAR LIMIT=NONE] -->
     <string name="dialog_new_group_account">Create group under account</string>
 
-    <string name="account_sim">SIM Card</string>
+    <string name="account_sim"><xliff:g id="sim">%s</xliff:g> Card</string>
     <!-- Generic action string for starting an audio chat. Used by AccessibilityService to announce the purpose of the view. [CHAR LIMIT=NONE] -->
     <string name="audio_chat">Voice chat</string>
     <!-- Generic action string for starting a video chat. Used by AccessibilityService to announce the purpose of the view. [CHAR LIMIT=NONE] -->
@@ -859,4 +859,5 @@
     <string name="no_phone_number_or_email">Please insert phone number or email address.</string>
     <string name="memory_card_full">Error, Memory is almost full.</string>
     <string name="button_moveto">Move</string>
+    <string name="menu_copyTo">"Copy to "</string>
 </resources>
