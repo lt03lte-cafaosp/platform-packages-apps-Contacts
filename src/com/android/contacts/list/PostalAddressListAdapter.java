@@ -15,6 +15,7 @@
  */
 package com.android.contacts.list;
 
+import android.accounts.Account;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.CursorLoader;
@@ -25,6 +26,7 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.ContactCounts;
 import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.RawContacts;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -44,6 +46,8 @@ public class PostalAddressListAdapter extends ContactEntryListAdapter {
             StructuredPostal.DATA,                      // 3
             StructuredPostal.PHOTO_ID,                  // 4
             StructuredPostal.DISPLAY_NAME_PRIMARY,      // 5
+            RawContacts.ACCOUNT_TYPE,                   // 6
+            RawContacts.ACCOUNT_NAME,                   // 7
         };
 
         private static final String[] PROJECTION_ALTERNATIVE = new String[] {
@@ -53,6 +57,8 @@ public class PostalAddressListAdapter extends ContactEntryListAdapter {
             StructuredPostal.DATA,                      // 3
             StructuredPostal.PHOTO_ID,                  // 4
             StructuredPostal.DISPLAY_NAME_ALTERNATIVE,  // 5
+            RawContacts.ACCOUNT_TYPE,                   // 6
+            RawContacts.ACCOUNT_NAME,                   // 7
         };
 
         public static final int POSTAL_ID           = 0;
@@ -61,6 +67,8 @@ public class PostalAddressListAdapter extends ContactEntryListAdapter {
         public static final int POSTAL_ADDRESS      = 3;
         public static final int POSTAL_PHOTO_ID     = 4;
         public static final int POSTAL_DISPLAY_NAME = 5;
+        public static final int POSTAL_ACCOUNT_TYPE  = 6;
+        public static final int POSTAL_ACCOUNT_NAME  = 7;
     }
 
     private final CharSequence mUnknownNameText;
@@ -165,8 +173,14 @@ public class PostalAddressListAdapter extends ContactEntryListAdapter {
         if (!cursor.isNull(PostalQuery.POSTAL_PHOTO_ID)) {
             photoId = cursor.getLong(PostalQuery.POSTAL_PHOTO_ID);
         }
-
-        getPhotoLoader().loadThumbnail(view.getPhotoView(), photoId, false);
+        Account account = null;
+        if (!cursor.isNull(PostalQuery.POSTAL_ACCOUNT_TYPE)
+                && !cursor.isNull(PostalQuery.POSTAL_ACCOUNT_NAME)) {
+            final String accountType = cursor.getString(PostalQuery.POSTAL_ACCOUNT_TYPE);
+            final String accountName = cursor.getString(PostalQuery.POSTAL_ACCOUNT_NAME);
+            account = new Account(accountName, accountType);
+        }
+        getPhotoLoader().loadThumbnail(view.getPhotoView(), photoId, account, false);
     }
 //
 //    protected void bindSearchSnippet(final ContactListItemView view, Cursor cursor) {

@@ -16,6 +16,7 @@
 
 package com.android.contacts.util;
 
+import android.accounts.Account;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -27,6 +28,8 @@ import android.text.format.DateUtils;
 import android.util.Log;
 
 import com.android.contacts.common.ContactPhotoManager;
+import com.android.contacts.common.model.account.SimAccountType;
+import com.android.contacts.common.model.RawContact;
 import com.android.contacts.util.StreamItemEntry;
 import com.android.contacts.R;
 
@@ -108,8 +111,15 @@ public class ContactBadgeUtil {
         return attribution;
     }
 
-    public static Bitmap loadDefaultAvatarPhoto(Context context, boolean hires, boolean darkTheme) {
-        return BitmapFactory.decodeResource(context.getResources(),
-                ContactPhotoManager.getDefaultAvatarResId(hires, darkTheme));
+    public static Bitmap loadDefaultAvatarPhoto(Context context, Account account,
+            boolean hires, boolean darkTheme) {
+        if (SimAccountType.ACCOUNT_TYPE.equals(account.type)) {
+            return BitmapFactory.decodeResource(context.getResources(),
+                    ContactPhotoManager.getSimPhotoResIdByAccount(context, hires, darkTheme,
+                            SimAccountType.ACCOUNT_TYPE, account.name));
+        } else {
+            return BitmapFactory.decodeResource(context.getResources(),
+                    ContactPhotoManager.getDefaultAvatarResId(hires, darkTheme));
+        }
     }
 }

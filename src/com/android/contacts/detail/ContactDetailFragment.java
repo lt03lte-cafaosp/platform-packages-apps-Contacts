@@ -93,6 +93,7 @@ import com.android.contacts.common.editor.SelectAccountDialogFragment;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.account.AccountType;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.common.model.account.AccountType.EditType;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.common.model.dataitem.DataKind;
@@ -456,9 +457,12 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 final boolean expandPhotoOnClick = mContactData.getPhotoUri() != null;
                 final OnClickListener listener = mPhotoSetter.setupContactPhotoForClick(
                         mContext, mContactData, photoView, expandPhotoOnClick);
+                RawContact rawContact = mContactData.getRawContacts().get(0);
+                final String accountType = rawContact.getAccountTypeString();
                 if (mPhotoTouchOverlay != null) {
                     mPhotoTouchOverlay.setVisibility(View.VISIBLE);
-                    if (expandPhotoOnClick || mContactData.isWritableContact(mContext)) {
+                    if (expandPhotoOnClick || mContactData.isWritableContact(mContext)
+                            || !(SimAccountType.ACCOUNT_TYPE.equals(accountType))) {
                         mPhotoTouchOverlay.setOnClickListener(listener);
                     } else {
                         mPhotoTouchOverlay.setClickable(false);
