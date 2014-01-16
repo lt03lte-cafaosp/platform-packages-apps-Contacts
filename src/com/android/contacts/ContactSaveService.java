@@ -17,7 +17,6 @@
 package com.android.contacts;
 
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.IntentService;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderOperation.Builder;
@@ -486,12 +485,6 @@ public class ContactSaveService extends IntentService {
 
                 ContentProviderResult[] results = null;
                 if (!diff.isEmpty()) {
-                    ActivityManager am = (ActivityManager)getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
-                    ActivityManager.MemoryInfo outInfo = new ActivityManager.MemoryInfo();
-                    am.getMemoryInfo(outInfo);
-                    if(outInfo.lowMemory ==true) {
-                        throw new SQLiteFullException("Memory almost full can't save contact");
-                    }
                     results = resolver.applyBatch(ContactsContract.AUTHORITY, diff);
                 }
 
