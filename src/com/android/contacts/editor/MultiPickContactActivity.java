@@ -48,6 +48,7 @@ import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -255,7 +256,10 @@ public class MultiPickContactActivity extends ListActivity implements
     private CheckBox mSelectAllCheckBox;
     private int mMode;
     private boolean mSelectCallLog;
+    private boolean mQueryPhoneWithEmail;
+    private Cursor mEmailCursor;
     public static final String KEY_SELECT_CALLLOG = "selectcalllog";
+    public static final String KEY_SELECT_PHONE_EMAIL = "selectphoneandemail";
 
     private ProgressDialog mProgressDialog;
     private Drawable mDrawableIncoming;
@@ -324,6 +328,7 @@ public class MultiPickContactActivity extends ListActivity implements
             mMode = MODE_DEFAULT_CONTACT;
         } else if (ACTION_MULTI_PICK.equals(action)) {
             mMode = MODE_DEFAULT_PHONE;
+            mQueryPhoneWithEmail = intent.getBooleanExtra(KEY_SELECT_PHONE_EMAIL, false);
         } else if (ACTION_MULTI_PICK_EMAIL.equals(action)) {
             mMode = MODE_DEFAULT_EMAIL;
         } else if (ACTION_MULTI_PICK_CALL.equals(action)) {
@@ -793,6 +798,8 @@ public class MultiPickContactActivity extends ListActivity implements
             mAdapter.getCursor().close();
         }
 
+        closeEmailCursor();
+
         if (mProgressDialog != null) {
             mProgressDialog.cancel();
         }
@@ -1011,6 +1018,11 @@ public class MultiPickContactActivity extends ListActivity implements
         String[] projection = getProjectionForQuery();
         String selection = getSelectionForQuery();
         String[] selectionArgs = getSelectionArgsForQuery();
+        if(mQueryPhoneWithEmail){
+            closeEmailCursor();
+            mEmailCursor = getContentResolver().query(Email.CONTENT_URI, EMAILS_PROJECTION, null,
+                    null, getSortOrder(projection));
+        }
         mQueryHandler.startQuery(QUERY_TOKEN, null, uri, projection, selection,
                 selectionArgs, getSortOrder(projection));
     }
@@ -1041,6 +1053,12 @@ public class MultiPickContactActivity extends ListActivity implements
         String[] projection = getProjectionForQuery();
         String selection = getSelectionForQuery();
         String[] selectionArgs = getSelectionArgsForQuery();
+        if(mQueryPhoneWithEmail){
+            closeEmailCursor();
+            Uri emailUrl = Uri.withAppendedPath(Email.CONTENT_FILTER_URI, Uri.encode(s.toString()));
+            mEmailCursor = getContentResolver().query(emailUrl, EMAILS_PROJECTION, null,
+                    null, getSortOrder(projection));
+        }
         mQueryHandler.startQuery(QUERY_TOKEN, null, uri, projection, selection,
                 selectionArgs, getSortOrder(projection));
     }
@@ -1171,6 +1189,44 @@ public class MultiPickContactActivity extends ListActivity implements
         }
     }
 
+    private void closeEmailCursor(){
+        if (mEmailCursor != null) {
+            mEmailCursor.close();
+        }
+    }
+
+    private Cursor combinPhoneEmailCursor(Cursor phone, Cursor email) {
+        MatrixCursor cursor = new MatrixCursor(PHONES_PROJECTION);
+        if (phone != null && phone.getCount() > 0) {
+            phone.moveToPosition(-1);
+            while (phone.moveToNext()) {
+                String id = String.valueOf(phone.getLong(PHONE_COLUMN_ID));
+                String name = phone.getString(PHONE_COLUMN_DISPLAY_NAME);
+                String number = phone.getString(PHONE_COLUMN_NUMBER);
+                String type = String.valueOf(phone.getInt(PHONE_COLUMN_TYPE));
+                String label = phone.getString(PHONE_COLUMN_LABEL);
+                String contact_id = String.valueOf(phone.getLong(PHONE_COLUMN_CONTACT_ID));
+                String[] columnValues = new String[] {
+                        id, type, label, number, name, contact_id, null, null, null, null, null
+                };
+                cursor.addRow(columnValues);
+            }
+        }
+        if (email != null && email.getCount() > 0) {
+            email.moveToPosition(-1);
+            while (email.moveToNext()) {
+                String id = String.valueOf(email.getLong(EMAIL_COLUMN_ID));
+                String name = email.getString(EMAIL_COLUMN_DISPLAY_NAME);
+                String address = email.getString(EMAIL_COLUMN_ADDRESS);
+                String[] columnValues = new String[] {
+                        id, null, null, address, name, null, null, null, null, null, null
+                };
+                cursor.addRow(columnValues);
+            }
+        }
+        return cursor;
+    }
+
     private class QueryHandler extends AsyncQueryHandler {
         protected  WeakReference<MultiPickContactActivity> mActivity;
 
@@ -1189,6 +1245,9 @@ public class MultiPickContactActivity extends ListActivity implements
                         MultiPickContactActivity.this);
             }
             final MultiPickContactActivity activity = mActivity.get();
+            if(mQueryPhoneWithEmail){
+                cursor = combinPhoneEmailCursor(cursor,mEmailCursor);
+            }
             activity.mAdapter.changeCursor(cursor);
             if (cursor == null || cursor.getCount() == 0) {
                 if (isPickCall()) {
