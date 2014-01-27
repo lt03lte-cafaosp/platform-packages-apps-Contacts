@@ -386,4 +386,5 @@
     <string name="menu_copyTo">复制到</string>
 
     <string name="too_many_contacts_add_to_group">联系人过多，应该少于<xliff:g id="count">%d</xliff:g>个</string>
+     <string name="group_max_input">输入的字符已达最大值</string>
 </resources>

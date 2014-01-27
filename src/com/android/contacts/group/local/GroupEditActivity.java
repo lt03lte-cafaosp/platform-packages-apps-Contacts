@@ -477,6 +477,8 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
                 s.delete(i,s.length()-keepStr.length());
                 // Use setTextKeepState to keep the cursor position.
                 titleView.getEditText().setTextKeepState(s);
+                Toast.makeText(this, R.string.group_max_input,
+                        Toast.LENGTH_SHORT).show();
                 break;
             }
         }

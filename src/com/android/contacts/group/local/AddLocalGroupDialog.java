@@ -158,6 +158,8 @@ public class AddLocalGroupDialog extends AlertDialog implements OnClickListener,
                 // delete the redundant text.
                 s.delete(i,s.length()-keepStr.length());
                 groupSettings.setTextKeepState(s);
+                Toast.makeText(getContext(), R.string.group_max_input,
+                        Toast.LENGTH_SHORT).show();
                 break;
             }
         }
