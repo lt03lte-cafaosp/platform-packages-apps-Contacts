@@ -44,6 +44,7 @@ import com.android.contacts.common.model.dataitem.StructuredPostalDataItem;
 import com.android.contacts.common.model.dataitem.WebsiteDataItem;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.util.StructuredPostalUtils;
+import com.android.internal.telephony.MSimConstants;
 
 /**
  * Description of a specific {@link Data#_ID} item, with style information
@@ -61,6 +62,8 @@ public class DataAction implements Action {
     private Intent mIntent;
     private Intent mAlternateIntent;
     private Intent m2AlternateIntent;
+    private Intent mSlot1Intent;
+    private Intent mSlot2Intent;
     private int mAlternateIconDescriptionRes;
     private int m2AlternateIconDescriptionRes;
     private int mAlternateIconRes;
@@ -125,6 +128,14 @@ public class DataAction implements Action {
                         smsIntent.setComponent(smsComponent);
                     }
                     final Intent videocallIntent = getVTCallIntent(number);
+
+                    if (hasPhone) {
+                        mSlot1Intent = CallUtil.getSlotIntent(number, MSimConstants.SUB1);
+                        mSlot2Intent = CallUtil.getSlotIntent(number, MSimConstants.SUB2);
+                    } else {
+                        mSlot1Intent = null;
+                        mSlot2Intent = null;
+                    }
 
                     // Configure Icons and Intents. Notice actionIcon is already set to the phone
                     if (hasPhone && hasSms) {
@@ -323,6 +334,16 @@ public class DataAction implements Action {
     @Override
     public Intent get2AlternateIntent() {
         return m2AlternateIntent;
+    }
+
+    @Override
+    public Intent getSlot1Intent() {
+        return mSlot1Intent;
+    }
+
+    @Override
+    public Intent getSlot2Intent() {
+        return mSlot2Intent;
     }
 
     @Override

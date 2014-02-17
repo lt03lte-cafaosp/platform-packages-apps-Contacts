@@ -50,6 +50,11 @@ public interface Action extends Collapser.Collapsible<Action> {
 
     /** Build an {@link Intent} that will perform the alternate action. */
     public Intent getAlternateIntent();
+
+    public Intent getSlot1Intent();
+
+    public Intent getSlot2Intent();
+
     /** Build an {@link Intent} that will perform the alternate action. */
     public Intent get2AlternateIntent();
 
