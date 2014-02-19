@@ -154,8 +154,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         static final int EDIT_BEFORE_CALL = 3;
         static final int ADD_TO_BLACKLIST = 4;
         static final int ADD_TO_WHITELIST = 5;
-        static final int IPCALL = 6;
-        static final int VIDEOCALL = 7;  // add for new feature: csvt call prefix
+        static final int IPCALL1 = 6;
+        static final int IPCALL2 = 7; // add for new feature: ip call prefix
+        static final int VIDEOCALL = 8;  // add for new feature: csvt call prefix
     }
 
     private static final String KEY_CONTACT_URI = "contactUri";
@@ -2124,8 +2125,18 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedMimeType)) {
             // add limit length to show IP call item
             if (selectedEntry.data.length() > MAX_NUM_LENGTH) {
-                menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL,
-                        ContextMenu.NONE, getString(R.string.ipcall));
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                    String sub1Name = MoreContactUtils.getSimSpnName(MSimConstants.SUB1);
+                    menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL1, ContextMenu.NONE,
+                            mContext.getString(com.android.contacts.common.R.string
+                            .ip_call_by_slot, sub1Name));
+                }
+                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
+                    String sub2Name = MoreContactUtils.getSimSpnName(MSimConstants.SUB2);
+                    menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL2, ContextMenu.NONE,
+                            mContext.getString(com.android.contacts.common.R.string
+                            .ip_call_by_slot, sub2Name));
+                }
             }
             menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                     ContextMenu.NONE, getString(R.string.edit_before_call));
@@ -2165,6 +2176,12 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             case ContextMenuIds.CLEAR_DEFAULT:
                 clearDefaultContactMethod(mListView.getItemIdAtPosition(menuInfo.position));
                 return true;
+            case ContextMenuIds.IPCALL1:
+                ipCallBySlot(menuInfo.position, MSimConstants.SUB1);
+                return true;
+            case ContextMenuIds.IPCALL2:
+                ipCallBySlot(menuInfo.position, MSimConstants.SUB2);
+                return true;
             case ContextMenuIds.EDIT_BEFORE_CALL:
                 callByEdit(menuInfo.position);
                 return true;
@@ -2175,9 +2192,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 return false;
             case ContextMenuIds.ADD_TO_WHITELIST:
                 return false;
-            case ContextMenuIds.IPCALL:
-                callViaIP(menuInfo.position);
-                return true;
             default:
                 throw new IllegalArgumentException("Unknown menu option " + item.getItemId());
         }
@@ -2210,11 +2224,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         ClipboardUtils.copyText(getActivity(), detailViewEntry.typeString, textToCopy, true);
     }
 
-    private void callViaIP(int viewEntryPosition) {
-        DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
-        Intent callIntent = new Intent(detailViewEntry.intent);
-        callIntent.putExtra(PhoneConstants.IP_CALL, true);
-        mContext.startActivity(callIntent);
+    private void ipCallBySlot(int viewEntryPosition, int subscription) {
+        if (MoreContactUtils.isIPNumberExist(mContext, subscription)) {
+            DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
+            Intent callIntent = new Intent(detailViewEntry.intent);
+            callIntent.putExtra(PhoneConstants.IP_CALL, true);
+            callIntent.putExtra(MSimConstants.SUBSCRIPTION_KEY, subscription);
+            mContext.startActivity(callIntent);
+        } else {
+            MoreContactUtils.showNoIPNumberDialog(mContext, subscription);
+        }
     }
 
     private void callByEdit(int viewEntryPosition) {
