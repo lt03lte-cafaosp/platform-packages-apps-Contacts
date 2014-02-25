@@ -17,7 +17,6 @@
 package com.android.contacts;
 
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.IntentService;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderOperation.Builder;
@@ -36,7 +35,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.os.RemoteException;
+import android.os.Environment;
+import android.os.StatFs;
 import android.os.ServiceManager;
+import android.os.storage.StorageManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.AggregationExceptions;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
@@ -486,10 +488,12 @@ public class ContactSaveService extends IntentService {
 
                 ContentProviderResult[] results = null;
                 if (!diff.isEmpty()) {
-                    ActivityManager am = (ActivityManager)getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
-                    ActivityManager.MemoryInfo outInfo = new ActivityManager.MemoryInfo();
-                    am.getMemoryInfo(outInfo);
-                    if(outInfo.lowMemory ==true) {
+                    StorageManager sm = (StorageManager) getApplicationContext()
+                            .getSystemService(Context.STORAGE_SERVICE);
+                    long criticalSize = sm.getStorageFullBytes(Environment.getDataDirectory());
+                    StatFs stat = new StatFs(Environment.getDataDirectory().getPath());
+                    long freeSize = stat.getBlockSize() * stat.getAvailableBlocks();
+                    if (freeSize <= criticalSize) {
                         throw new SQLiteFullException("Memory almost full can't save contact");
                     }
                     results = resolver.applyBatch(ContactsContract.AUTHORITY, diff);
