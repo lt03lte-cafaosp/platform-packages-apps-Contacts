@@ -1670,7 +1670,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 final OnClickListener listener = mPhotoSetter.setupContactPhotoForClick(
                         mContext, mContactData, viewCache.photoView, expandOnClick);
 
-                if (expandOnClick || mContactData.isWritableContact(mContext)) {
+                RawContact rawContact = mContactData.getRawContacts().get(0);
+                final String accountType = rawContact.getAccountTypeString();
+
+                if ((expandOnClick || mContactData.isWritableContact(mContext))
+                        && !(SimAccountType.ACCOUNT_TYPE.equals(accountType))) {
                     viewCache.enablePhotoOverlay(listener);
                 }
             }
