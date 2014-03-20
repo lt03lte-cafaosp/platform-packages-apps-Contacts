@@ -1571,11 +1571,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
             presenceIcon = (ImageView) view.findViewById(R.id.presence_icon);
 
             actionsViewContainer = view.findViewById(R.id.actions_view_container);
-            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()){
-                actionsViewContainer.setOnClickListener(null);
-            }else{
-                actionsViewContainer.setOnClickListener(primaryActionClickListener);
-            }
+            actionsViewContainer.setOnClickListener(primaryActionClickListener);
             primaryActionView = view.findViewById(R.id.primary_action_view);
 
             secondaryActionViewContainer = view.findViewById(
@@ -1804,9 +1800,14 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 v = mInflater.inflate(R.layout.contact_detail_list_item, parent, false);
 
                 // Cache the children
-                viewCache = new DetailViewCache(v,
-                        mPrimaryActionClickListener, mSecondaryActionClickListener,
-                        mThirdActionClickListener);
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()
+                        && Phone.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
+                    viewCache = new DetailViewCache(v, null, mSecondaryActionClickListener,
+                            mThirdActionClickListener);
+                } else {
+                    viewCache = new DetailViewCache(v, mPrimaryActionClickListener,
+                            mSecondaryActionClickListener, mThirdActionClickListener);
+                }
                 v.setTag(viewCache);
             }
 
