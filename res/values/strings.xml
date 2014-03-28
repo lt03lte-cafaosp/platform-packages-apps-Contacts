@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (C) 2006 The Android Open Source Project
-     copyright (C) 2013 The Linux Foundation. All Rights Reserved.
+     copyright (C) 2013-2014 The Linux Foundation. All Rights Reserved.
      Not a Contribution.
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -860,4 +860,6 @@
     <string name="memory_card_full">Error, Memory is almost full.</string>
     <string name="button_moveto">Move</string>
     <string name="menu_copyTo">"Copy to "</string>
+    <string name="voicemail">Voicemail</string>
+    <string name="select_call_title">Select call logs</string>
 </resources>
