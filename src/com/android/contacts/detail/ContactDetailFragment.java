@@ -2222,14 +2222,14 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedMimeType)) {
             // add limit length to show IP call item
             if (selectedEntry.data.length() > MAX_NUM_LENGTH) {
-                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB1)) {
+                if (MoreContactUtils.isMultiSimEnable(mContext, MSimConstants.SUB1)) {
                     String sub1Name = MoreContactUtils.getMultiSimAliasesName(
                             mContext, MSimConstants.SUB1);
                     menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL1, ContextMenu.NONE,
                             mContext.getString(com.android.contacts.common.R.string
                             .ip_call_by_slot, sub1Name));
                 }
-                if (MoreContactUtils.isMultiSimEnable(MSimConstants.SUB2)) {
+                if (MoreContactUtils.isMultiSimEnable(mContext, MSimConstants.SUB2)) {
                     String sub2Name = MoreContactUtils.getMultiSimAliasesName(
                             mContext, MSimConstants.SUB2);
                     menu.add(ContextMenu.NONE, ContextMenuIds.IPCALL2, ContextMenu.NONE,
