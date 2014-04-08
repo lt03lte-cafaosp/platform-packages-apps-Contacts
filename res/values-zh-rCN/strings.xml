@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--  Copyright (C) 2006 The Android Open Source Project
-      Copyright (C) 2013 The Linux Foundation. All Rights Reserved.
+      Copyright (C) 2013-2014 The Linux Foundation. All Rights Reserved.
       Not a Contribution.
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -379,4 +379,6 @@
     <string name="memory_card_full">错误, 内存已满.</string>
     <string name="button_moveto">移动</string>
     <string name="menu_copyTo">复制到</string>
+    <string name="voicemail">"语音信箱"</string>
+    <string name="select_call_title">"选择通话记录"</string>
 </resources>
