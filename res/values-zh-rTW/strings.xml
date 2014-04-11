@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--  Copyright (C) 2006 The Android Open Source Project
-      Copyright (C) 2013 The Linux Foundation. All Rights Reserved.
+      Copyright (C) 2013-2014 The Linux Foundation. All Rights Reserved.
       Not a Contribution.
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -328,4 +328,6 @@
     <string name="contact_detail_picture_description" msgid="6083230522651287030">"圖片 (選取即可變更)"</string>
     <string name="menu_copyTo">複制到</string>
     <string name="account_sim"><xliff:g id="sim">%s</xliff:g>卡</string>
+    <string name="voicemail">"語音信箱"</string>
+    <string name="select_call_title">"選擇通話記錄"</string>
 </resources>
