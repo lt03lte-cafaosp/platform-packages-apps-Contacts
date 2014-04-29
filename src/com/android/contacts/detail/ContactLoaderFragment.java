@@ -575,9 +575,11 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
         String[] value = new String[] {
                 name, phoneNumber, email, anrNumber
         };
-        MoreContactUtils
+        boolean success = MoreContactUtils
                 .insertToPhone(value, mContext.getContentResolver(),
                         SimContactsConstants.SUB_INVALID);
+        Toast.makeText(mContext, success ? R.string.copy_done : R.string.copy_failure,
+                Toast.LENGTH_SHORT).show();
     }
 
     private Handler mHandler = null;
