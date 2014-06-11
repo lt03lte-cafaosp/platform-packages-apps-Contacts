@@ -468,8 +468,8 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 final String accountType = rawContact.getAccountTypeString();
                 if (mPhotoTouchOverlay != null) {
                     mPhotoTouchOverlay.setVisibility(View.VISIBLE);
-                    if (expandPhotoOnClick || mContactData.isWritableContact(mContext)
-                            || !(SimAccountType.ACCOUNT_TYPE.equals(accountType))) {
+                    if ((expandPhotoOnClick || mContactData.isWritableContact(mContext))
+                            && !(SimAccountType.ACCOUNT_TYPE.equals(accountType))) {
                         mPhotoTouchOverlay.setOnClickListener(listener);
                     } else {
                         mPhotoTouchOverlay.setClickable(false);
