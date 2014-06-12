@@ -111,15 +111,8 @@ public class ContactBadgeUtil {
         return attribution;
     }
 
-    public static Bitmap loadDefaultAvatarPhoto(Context context, Account account,
-            boolean hires, boolean darkTheme) {
-        if (SimAccountType.ACCOUNT_TYPE.equals(account.type)) {
-            return BitmapFactory.decodeResource(context.getResources(),
-                    ContactPhotoManager.getSimPhotoResIdByAccount(context, hires, darkTheme,
-                            SimAccountType.ACCOUNT_TYPE, account.name));
-        } else {
-            return BitmapFactory.decodeResource(context.getResources(),
-                    ContactPhotoManager.getDefaultAvatarResId(hires, darkTheme));
-        }
+    public static Bitmap loadDefaultAvatarPhoto(Context context, boolean hires, boolean darkTheme) {
+        return BitmapFactory.decodeResource(context.getResources(),
+                R.drawable.ic_contacts_holo_dark);
     }
 }
