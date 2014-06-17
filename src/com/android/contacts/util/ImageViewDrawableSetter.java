@@ -25,12 +25,16 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
+import android.provider.ContactsContract.DisplayNameSources;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.ImageView;
 
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.SimAccountType;
+import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
+import com.android.contacts.common.lettertiles.LetterTileDrawable;
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.RawContact;
 
@@ -45,6 +49,7 @@ public class ImageViewDrawableSetter {
     private byte[] mCompressed;
     private Drawable mPreviousDrawable;
     private int mDurationInMillis = 0;
+    private Contact mContact;
     private static final String TAG = "ImageViewDrawableSetter";
 
     public ImageViewDrawableSetter() {
@@ -54,13 +59,19 @@ public class ImageViewDrawableSetter {
         mTarget = target;
     }
 
-    public void setupContactPhoto(Contact contactData, ImageView photoView) {
+    public Bitmap setupContactPhoto(Contact contactData, ImageView photoView) {
+        Account account = null;
+        mContact = contactData;
         setTarget(photoView);
+
         RawContact rawContact = contactData.getRawContacts().get(0);
         final String accountType = rawContact.getAccountTypeString();
         final String accountName = rawContact.getAccountName();
-        setCompressedImage(contactData.getPhotoBinaryData(), photoView.getContext(), accountType,
-                accountName);
+        if (!TextUtils.isEmpty(accountType) && !TextUtils.isEmpty(accountName)) {
+            account = new Account(accountName, accountType);
+        }
+        return setCompressedImage(contactData.getPhotoBinaryData(),
+                photoView.getContext(), account);
     }
 
     public void setTransitionDuration(int durationInMillis) {
@@ -88,8 +99,7 @@ public class ImageViewDrawableSetter {
         return mCompressed;
     }
 
-    protected Bitmap setCompressedImage(byte[] compressed, Context c, String accountType,
-            String accountName) {
+    protected Bitmap setCompressedImage(byte[] compressed, Context c, Account account) {
         if (mPreviousDrawable == null) {
             // If we don't already have a drawable, skip the exit-early test
             // below; otherwise we might not end up setting the default image.
@@ -102,7 +112,7 @@ public class ImageViewDrawableSetter {
         }
 
         final Drawable newDrawable = (compressed == null)
-                ? defaultDrawable(c,accountType,accountName)
+                ? defaultDrawable(c,account)
                 : decodedBitmapDrawable(compressed);
 
         // Remember this for next time, so that we can check if it changed.
@@ -132,29 +142,35 @@ public class ImageViewDrawableSetter {
     }
 
     private Bitmap previousBitmap() {
-        return (mPreviousDrawable == null)
-                ? null
+        return (mPreviousDrawable == null) ? null
+                : mPreviousDrawable instanceof LetterTileDrawable ? null
                 : ((BitmapDrawable) mPreviousDrawable).getBitmap();
     }
 
     /**
-     * Obtain the default drawable for a contact when no photo is available.
+     * Obtain the default drawable for a contact when no photo is available. If this is a local
+     * contact, then use the contact's display name and lookup key (as a unique identifier) to
+     * retrieve a default drawable for this contact. If not, then use the name as the contact
+     * identifier instead.
      */
-    private Drawable defaultDrawable(Context c, String accountType, String accountName) {
+    private Drawable defaultDrawable(Context c, Account account) {
         Resources resources = mTarget.getResources();
-        int resId;
-        if (SimAccountType.ACCOUNT_TYPE.equals(accountType)) {
-            resId = ContactPhotoManager.getSimPhotoResIdByAccount(c, true, false,
-                    SimAccountType.ACCOUNT_TYPE, accountName);
+
+        DefaultImageRequest request;
+        int contactType = ContactPhotoManager.TYPE_DEFAULT;
+
+        if (mContact.isDisplayNameFromOrganization()) {
+            contactType = ContactPhotoManager.TYPE_BUSINESS;
+        }
+
+        if (TextUtils.isEmpty(mContact.getLookupKey())) {
+            request = new DefaultImageRequest(null, mContact.getDisplayName(), contactType);
         } else {
-            resId = ContactPhotoManager.getDefaultAvatarResId(true, false);
+            request = new DefaultImageRequest(mContact.getDisplayName(), mContact.getLookupKey(),
+                    contactType);
         }
-        try {
-            return resources.getDrawable(resId);
-        } catch (NotFoundException e) {
-            Log.wtf(TAG, "Cannot load default avatar resource.");
-            return null;
-        }
+        return ContactPhotoManager.getDefaultAvatarDrawableForContact(
+                resources, true, request, account);
     }
 
     private BitmapDrawable decodedBitmapDrawable(byte[] compressed) {
@@ -162,5 +178,4 @@ public class ImageViewDrawableSetter {
         Bitmap bitmap = BitmapFactory.decodeByteArray(compressed, 0, compressed.length);
         return new BitmapDrawable(rsrc, bitmap);
     }
-
 }

@@ -487,7 +487,9 @@ public class RawContactEditorView extends BaseRawContactEditorView {
             long defaultGroupId = getDefaultGroupId();
             if (defaultGroupId != -1) {
                 ValuesDelta entry = RawContactModifier.insertChild(mState, mGroupMembershipKind);
-                entry.setGroupRowId(defaultGroupId);
+                if (entry != null) {
+                    entry.setGroupRowId(defaultGroupId);
+                }
             }
         }
     }

@@ -31,6 +31,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.list.ContactEntryListAdapter;
 import com.android.contacts.common.list.ContactListItemView;
 
@@ -46,9 +47,10 @@ public class EmailAddressListAdapter extends ContactEntryListAdapter {
             Email.LABEL,                     // 2
             Email.DATA,                      // 3
             Email.PHOTO_ID,                  // 4
-            Email.DISPLAY_NAME_PRIMARY,      // 5
-            RawContacts.ACCOUNT_TYPE,        // 6
-            RawContacts.ACCOUNT_NAME,        // 7
+            Email.LOOKUP_KEY,                // 5
+            Email.DISPLAY_NAME_PRIMARY,      // 6
+            RawContacts.ACCOUNT_TYPE,        // 7
+            RawContacts.ACCOUNT_NAME         // 8
         };
 
         private static final String[] PROJECTION_ALTERNATIVE = new String[] {
@@ -57,9 +59,10 @@ public class EmailAddressListAdapter extends ContactEntryListAdapter {
             Email.LABEL,                     // 2
             Email.DATA,                      // 3
             Email.PHOTO_ID,                  // 4
-            Email.DISPLAY_NAME_ALTERNATIVE,  // 5
-            RawContacts.ACCOUNT_TYPE,        // 6
-            RawContacts.ACCOUNT_NAME,        // 7
+            Email.LOOKUP_KEY,                // 5
+            Email.DISPLAY_NAME_ALTERNATIVE,  // 6
+            RawContacts.ACCOUNT_TYPE,        // 7
+            RawContacts.ACCOUNT_NAME         // 8
         };
 
         public static final int EMAIL_ID           = 0;
@@ -67,9 +70,10 @@ public class EmailAddressListAdapter extends ContactEntryListAdapter {
         public static final int EMAIL_LABEL        = 2;
         public static final int EMAIL_ADDRESS      = 3;
         public static final int EMAIL_PHOTO_ID     = 4;
-        public static final int EMAIL_DISPLAY_NAME = 5;
-        public static final int EMAIL_ACCOUNT_TYPE = 6;
-        public static final int EMAIL_ACCOUNT_NAME = 7;
+        public static final int EMAIL_LOOKUP_KEY   = 5;
+        public static final int EMAIL_DISPLAY_NAME = 6;
+        public static final int EMAIL_ACCOUNT_TYPE = 7;
+        public static final int EMAIL_ACCOUNT_NAME = 8;
     }
 
     private final CharSequence mUnknownNameText;
@@ -191,7 +195,14 @@ public class EmailAddressListAdapter extends ContactEntryListAdapter {
             final String accountName = cursor.getString(EmailQuery.EMAIL_ACCOUNT_NAME);
             account = new Account(accountName, accountType);
         }
-        getPhotoLoader().loadThumbnail(view.getPhotoView(), photoId, account, false);
+
+        DefaultImageRequest request = null;
+        if (photoId == 0) {
+             request = getDefaultImageRequestFromCursor(cursor, EmailQuery.EMAIL_DISPLAY_NAME,
+                    EmailQuery.EMAIL_LOOKUP_KEY);
+        }
+        getPhotoLoader().loadThumbnail(view.getPhotoView(), photoId, account, false, request);
+
     }
 //
 //    protected void bindSearchSnippet(final ContactListItemView view, Cursor cursor) {

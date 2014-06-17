@@ -39,12 +39,7 @@ import com.android.contacts.util.ImageViewDrawableSetter;
 public class ContactDetailPhotoSetter extends ImageViewDrawableSetter {
     public OnClickListener setupContactPhotoForClick(Context context, Contact contactData,
             ImageView photoView, boolean expandPhotoOnClick) {
-        setTarget(photoView);
-        RawContact rawContact = contactData.getRawContacts().get(0);
-        final String accountType = rawContact.getAccountTypeString();
-        final String accountName = rawContact.getAccountName();
-        Bitmap bitmap = setCompressedImage(contactData.getPhotoBinaryData(),
-                photoView.getContext(), accountType, accountName);
+        Bitmap bitmap = setupContactPhoto(contactData, photoView);
         return setupClickListener(context, contactData, bitmap, expandPhotoOnClick);
     }
 

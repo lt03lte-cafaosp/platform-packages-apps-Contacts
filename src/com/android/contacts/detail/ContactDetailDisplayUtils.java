@@ -236,8 +236,7 @@ public class ContactDetailDisplayUtils {
         setDataOrHideIfNone(snippet, statusView);
         if (photoUri != null) {
             ContactPhotoManager.getInstance(context).loadPhoto(
-                    statusPhotoView, Uri.parse(photoUri), null, -1, false,
-                    ContactPhotoManager.DEFAULT_BLANK);
+                    statusPhotoView, Uri.parse(photoUri), null,-1, false, null);
             statusPhotoView.setVisibility(View.VISIBLE);
         } else {
             statusPhotoView.setVisibility(View.GONE);
@@ -341,8 +340,8 @@ public class ContactDetailDisplayUtils {
             pushLayerView.setClickable(false);
             pushLayerView.setEnabled(false);
         }
-        contactPhotoManager.loadPhoto(imageView, Uri.parse(streamItemPhoto.getPhotoUri()), null,
-                -1, false, ContactPhotoManager.DEFAULT_BLANK);
+        contactPhotoManager.loadPhoto(imageView, Uri.parse(streamItemPhoto.getPhotoUri()), null, -1,
+                false, null);
     }
 
     @VisibleForTesting

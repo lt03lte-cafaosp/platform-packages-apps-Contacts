@@ -316,7 +316,7 @@ public class QuickContactActivity extends Activity {
                                 @Override
                                 public void run() {
                                     finish();
-                                    overridePendingTransition(0,0);
+                                    overridePendingTransition(0, 0);
                                 }
                             }, POST_DRAW_WAIT_DURATION);
                         }
