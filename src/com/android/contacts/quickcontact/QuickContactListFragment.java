@@ -173,8 +173,8 @@ public class QuickContactListFragment extends Fragment {
 
                 alternateActionButton1.setImageDrawable(action.get2AlternateIcon());//csvt
                 alternateActionButton1.setContentDescription(action.get2AlternateIconDescription());
-                alternateActionButton1.setVisibility(hasAlternateAction1
-                                && isVTSupported() ? View.VISIBLE : View.GONE);
+                alternateActionButton1.setVisibility(hasAlternateAction1 &&
+                                (isVTSupported() || isIMSSupported()) ? View.VISIBLE : View.GONE);
 
                 if (mimeType.equals(Phone.CONTENT_ITEM_TYPE)) {
                     Context context = getActivity().getApplicationContext();
@@ -295,10 +295,17 @@ public class QuickContactListFragment extends Fragment {
         }
     };
 
-    private boolean isVTSupported(){
-            return SystemProperties.getBoolean(
-                    "persist.radio.csvt.enabled"
-           /* TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
+    private boolean isVTSupported() {
+        boolean CSVTSupported = SystemProperties.getBoolean("persist.radio.csvt.enabled", false);
+        return CSVTSupported && MoreContactUtils.isAnySimAviable();
+    }
+
+    public boolean isIMSSupported(){
+        boolean IMSSupported = this.getResources().getBoolean(R.bool.ims_enabled)
+                && SystemProperties.getBoolean("persist.radio.calls.on.ims", false);
+        boolean IMSRegisrered = SystemProperties.get(
+                "persist.radio.ims.registered", "0").equals("1");
+        return IMSSupported && IMSRegisrered && MoreContactUtils.isAnySimAviable();
     }
 
     public interface Listener {

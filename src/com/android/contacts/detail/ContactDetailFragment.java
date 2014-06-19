@@ -619,8 +619,12 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                     }
 
                     //add for csvt
-                    final Intent vtIntent = getVTCallIntent(phone.getNumber());
-
+                    final Intent vtIntent = null;
+                    if(isVTSupported()){
+                        getVTCallIntent(phone.getNumber());
+                    } else {
+                        getIMSVTCallIntent(phone.getNumber());
+                    }
                     // Configure Icons and Intents.
                     if (hasPhone) {
                         entry.intent = phoneIntent;
@@ -637,8 +641,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                         }
                     } else if (hasSms) {
                         entry.intent = smsIntent;
-                    } else {
-                        entry.intent = null;
                     }
 
                     // white and black listintent
@@ -1946,7 +1948,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
             final View thirdActionViewContainer = views.thirdActionViewContainer;
             if (!HIDE_VTCALL_BTN && entry.thirdIntent != null && thirdActionIcon != null
-                    && isVTSupported()) {
+                    && (isVTSupported() || isIMSSupported())) {
                 thirdActionView.setImageDrawable(thirdActionIcon);
                 thirdActionView.setContentDescription(thirdActionDescription);
                 thirdActionViewContainer.setTag(entry);
@@ -2178,7 +2180,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         }
 
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
-            if (isVTSupported()){
+            if (isVTSupported() || isIMSSupported()){
                 menu.add(ContextMenu.NONE, ContextMenuIds.VIDEOCALL,
                     ContextMenu.NONE, getString(R.string.videocall));
             }
@@ -2345,12 +2347,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     //add for csvt
     private void videocall(int viewEntryPosition) {
         DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
-        mContext.startActivity(getVTCallIntent(detailViewEntry.data));
+        if (isVTSupported()){
+            mContext.startActivity(getVTCallIntent(detailViewEntry.data));
+        } else {
+            mContext.startActivity(getIMSVTCallIntent(detailViewEntry.data));
+        }
     }
 
-    private boolean isVTSupported(){
-        return SystemProperties.getBoolean("persist.radio.csvt.enabled"
-           /* TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
+    private boolean isVTSupported() {
+        boolean CSVTSupported = SystemProperties.getBoolean("persist.radio.csvt.enabled", false);
+        return CSVTSupported && MoreContactUtils.isAnySimAviable();
     }
 
     private Intent getVTCallIntent(String number) {
@@ -2371,6 +2377,29 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         return intent;
     }
     //add for csvt end
+
+    //add for ims vt entry
+    private Intent getIMSVTCallIntent(String number) {
+        Intent intent = CallUtil.getCallIntent(
+                Uri.fromParts(CallUtil.SCHEME_TEL, number, null));
+        int mSubscription = -1;
+        if (mSubscription != -1) {
+            intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, mSubscription);
+            Log.d(TAG, "Start the activity and the call log sub is: " + mSubscription);
+        }
+        intent.putExtra("ims_videocall", true);
+        return intent;
+    }
+
+    public boolean isIMSSupported(){
+        boolean IMSSupported = this.getResources().getBoolean(R.bool.ims_enabled)
+                && SystemProperties.getBoolean("persist.radio.calls.on.ims", false);
+        boolean IMSRegisrered = SystemProperties.get(
+                "persist.radio.ims.registered", "0").equals("1");
+        return IMSSupported && IMSRegisrered && MoreContactUtils.isAnySimAviable();
+    }
+    //add for ims vt entry end
+
 
     @Override
     public boolean handleKeyDown(int keyCode) {
