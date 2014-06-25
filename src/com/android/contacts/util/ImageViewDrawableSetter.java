@@ -170,7 +170,7 @@ public class ImageViewDrawableSetter {
                     contactType);
         }
         return ContactPhotoManager.getDefaultAvatarDrawableForContact(
-                resources, true, request, account);
+                c, true, request, account);
     }
 
     private BitmapDrawable decodedBitmapDrawable(byte[] compressed) {
