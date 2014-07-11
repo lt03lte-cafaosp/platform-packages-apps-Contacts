@@ -507,7 +507,7 @@ public class MultiPickContactActivity extends ListActivity implements
             case R.id.dialog_delete_contact_confirmation: {
                 return new AlertDialog.Builder(this)
                         .setTitle(R.string.deleteConfirmation_title)
-                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setIconAttribute(android.R.attr.alertDialogIcon)
                         .setMessage(R.string.ContactMultiDeleteConfirmation)
                         .setNegativeButton(android.R.string.cancel, null)
                         .setPositiveButton(android.R.string.ok,
