@@ -231,10 +231,12 @@ public class MultiPickContactActivity extends ListActivity implements
     private static final int MODE_SEARCH_CALL = MODE_DEFAULT_CALL | MODE_MASK_SEARCH;
     private static final int MODE_SEARCH_SIM = MODE_DEFAULT_SIM | MODE_MASK_SEARCH;
 
-    static final String ACTION_MULTI_PICK = "com.android.contacts.action.MULTI_PICK";
+    public static final String ACTION_MULTI_PICK = "com.android.contacts.action.MULTI_PICK";
     static final String ACTION_MULTI_PICK_EMAIL = "com.android.contacts.action.MULTI_PICK_EMAIL";
     static final String ACTION_MULTI_PICK_CALL = "com.android.contacts.action.MULTI_PICK_CALL";
     static final String ACTION_MULTI_PICK_SIM = "com.android.contacts.action.MULTI_PICK_SIM";
+
+    public static final String IS_CONTACT ="is_contact";
 
     private static final int DIALOG_DEL_CALL = 1;
 
@@ -312,13 +314,18 @@ public class MultiPickContactActivity extends ListActivity implements
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         String action = intent.getAction();
+        boolean isContact = intent.getBooleanExtra(IS_CONTACT,false);
         if (Intent.ACTION_DELETE.equals(action)) {
             mMode = MODE_DEFAULT_CONTACT;
             setTitle(R.string.menu_deleteContact);
         } else if (Intent.ACTION_GET_CONTENT.equals(action)) {
             mMode = MODE_DEFAULT_CONTACT;
         } else if (ACTION_MULTI_PICK.equals(action)) {
-            mMode = MODE_DEFAULT_PHONE;
+            if (!isContact) {
+                mMode = MODE_DEFAULT_PHONE;
+            } else {
+                mMode = MODE_DEFAULT_CONTACT;
+            }
         } else if (ACTION_MULTI_PICK_EMAIL.equals(action)) {
             mMode = MODE_DEFAULT_EMAIL;
         } else if (ACTION_MULTI_PICK_CALL.equals(action)) {
@@ -709,7 +716,7 @@ public class MultiPickContactActivity extends ListActivity implements
                     exitSearchMode(true);
                 }
                 if (mMode == MODE_DEFAULT_CONTACT) {
-                    if (Intent.ACTION_GET_CONTENT.equals(getIntent().getAction())) {
+                    if (ACTION_MULTI_PICK.equals(getIntent().getAction())) {
                         if (mChoiceSet.size() > MAX_CONTACTS_NUM_TO_SELECT_ONCE) {
                             Toast.makeText(
                                     mContext,
