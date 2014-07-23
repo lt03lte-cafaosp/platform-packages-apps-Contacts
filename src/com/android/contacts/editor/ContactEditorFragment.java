@@ -1313,7 +1313,11 @@ public class ContactEditorFragment extends Fragment implements
                 } else if (result == ContactSaveService.RESULT_MEMORY_FULL_FAILURE) {
                     Toast.makeText(mContext, R.string.memory_card_full, Toast.LENGTH_SHORT)
                             .show();
-                } else {
+                } else if(result == ContactSaveService.RESULT_NUMBER_TYPE_FAILURE) {
+                    Toast.makeText(mContext, R.string.invalid_number_type, Toast.LENGTH_SHORT)
+                    .show();
+                }
+                else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                             .show();
                 }
