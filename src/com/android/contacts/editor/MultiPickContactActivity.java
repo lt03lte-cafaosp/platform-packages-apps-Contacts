@@ -1428,12 +1428,16 @@ public class MultiPickContactActivity extends ListActivity implements
             if (!isSearchMode()) {
                 if (cursor == null || cursor.getCount() == 0) {
                     mSelectAllCheckBox.setChecked(false);
-                    mSelectAllLabel.setTextColor(Color.GRAY);
+                    mSelectAllLabel.setEnabled(false);
                     mSelectAllCheckBox.setClickable(false);
-                } else if (cursor.getCount() > mChoiceSet.size()) {
-                    mSelectAllCheckBox.setChecked(false);
                 } else {
-                    mSelectAllCheckBox.setChecked(true);
+                    mSelectAllLabel.setEnabled(true);
+                    mSelectAllCheckBox.setClickable(true);
+                    if (cursor.getCount() > mChoiceSet.size()) {
+                        mSelectAllCheckBox.setChecked(false);
+                    } else {
+                        mSelectAllCheckBox.setChecked(true);
+                    }
                 }
             }
             String[] sections = null;
