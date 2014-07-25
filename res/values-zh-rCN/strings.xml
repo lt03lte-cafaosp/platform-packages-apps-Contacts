@@ -102,6 +102,7 @@
     <string name="tag_too_long">"发生错误，联系人姓名过长。"</string>
     <string name="no_phone_number">请输入手机号码。</string>
     <string name="invalid_phone_number">"发生错误，电话号码不合法。"</string>
+    <string name="invalid_number_type">"发生错误，号码类型不合法。"</string>
     <string name="groupSavedToast" msgid="1168756874239833756">"群组已保存。"</string>
     <string name="groupSavedErrorToast" msgid="7984466936615304740">"无法保存所做的群组更改。"</string>
   <plurals name="listTotalPhoneContacts">
