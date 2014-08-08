@@ -262,6 +262,7 @@
     <string name="tag_too_long">Error, Contact name is too long.</string>
     <string name="no_phone_number">Please insert phone number.</string>
     <string name="invalid_phone_number">Error, Number is invalid.</string>
+    <string name="invalid_number_type">Error, Number type is invalid.</string>
 
     <!-- Toast displayed when a group is saved [CHAR LIMIT=NONE] -->
     <string name="groupSavedToast">Group saved.</string>
