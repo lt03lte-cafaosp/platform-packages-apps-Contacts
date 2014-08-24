@@ -295,12 +295,15 @@ public class RawContactEditorView extends BaseRawContactEditorView {
                 sub = SimContactsConstants.SUB_2;
             }
             if (!MoreContactUtils.canSaveAnr(sub)) {
-                for (ValuesDelta entry : mState
-                        .getMimeEntries(Phone.CONTENT_ITEM_TYPE)) {
-                    if (Phone.TYPE_HOME == entry.getAsLong(Phone.TYPE)) {
-                        mState.getMimeEntries(Phone.CONTENT_ITEM_TYPE).remove(
-                            entry);
-                        break;
+                ArrayList<ValuesDelta> phoneDeltas = mState
+                        .getMimeEntries(Phone.CONTENT_ITEM_TYPE);
+                if (phoneDeltas != null) {
+                    for (ValuesDelta entry : phoneDeltas) {
+                        if (Phone.TYPE_HOME == entry.getAsLong(Phone.TYPE)) {
+                            mState.getMimeEntries(Phone.CONTENT_ITEM_TYPE).remove(
+                                    entry);
+                            break;
+                        }
                     }
                 }
             }
