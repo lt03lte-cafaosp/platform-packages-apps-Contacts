@@ -85,7 +85,7 @@ public class QuickContactListFragment extends Fragment {
     private void configureAdapter() {
         if (mActions == null || mListView == null) return;
 
-        mListView.setAdapter(new BaseAdapter() {
+        BaseAdapter adapter = new BaseAdapter() {
             @Override
             public int getCount() {
                 return mActions.size();
@@ -240,7 +240,9 @@ public class QuickContactListFragment extends Fragment {
                 }
                 return resultView;
             }
-        });
+        };
+        mListView.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
     }
 
     /** A data item (e.g. phone number) was clicked */

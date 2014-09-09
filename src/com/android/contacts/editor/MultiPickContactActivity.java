@@ -244,6 +244,7 @@ public class MultiPickContactActivity extends ListActivity implements
     static final String ACTION_MULTI_PICK_SIM = "com.android.contacts.action.MULTI_PICK_SIM";
 
     public static final String IS_CONTACT ="is_contact";
+    private static final String IS_EXPORT_CONTACT = "is_export_contact";
 
     private static final int DIALOG_DEL_CALL = 1;
 
@@ -296,6 +297,7 @@ public class MultiPickContactActivity extends ListActivity implements
     public static final String EXT_NOT_SHOW_SIM_FLAG = "not_sim_show";
 
     private int MAX_CONTACTS_NUM_TO_SELECT_ONCE = 500;
+    private int MAX_CONTACTS_NUM_TO_EXPORT_ONCE = 2000;
 
     //registerReceiver to update content when airplane mode change.
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -724,7 +726,13 @@ public class MultiPickContactActivity extends ListActivity implements
                 }
                 if (mMode == MODE_DEFAULT_CONTACT) {
                     if (ACTION_MULTI_PICK.equals(getIntent().getAction())) {
-                        if (mChoiceSet.size() > MAX_CONTACTS_NUM_TO_SELECT_ONCE) {
+                        if (isExportContact()
+                                && mChoiceSet.size() > MAX_CONTACTS_NUM_TO_EXPORT_ONCE) {
+                            Toast.makeText(mContext,
+                                    mContext.getString(R.string.too_many_contacts_add_to_group,
+                                    MAX_CONTACTS_NUM_TO_EXPORT_ONCE), Toast.LENGTH_SHORT).show();
+                        } else if (!isExportContact()
+                                && mChoiceSet.size() > MAX_CONTACTS_NUM_TO_SELECT_ONCE) {
                             Toast.makeText(
                                     mContext,
                                     mContext.getString(R.string.too_many_contacts_add_to_group,
@@ -1098,6 +1106,10 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private boolean isPickCall() {
         return mMode == MODE_DEFAULT_CALL || mMode == MODE_SEARCH_CALL;
+    }
+
+    private boolean isExportContact() {
+        return getIntent().getBooleanExtra(IS_EXPORT_CONTACT, false);
     }
 
     private void selectAll(boolean isSelected) {
