@@ -28,6 +28,7 @@ import android.provider.ContactsContract.CommonDataKinds.Im;
 import android.provider.ContactsContract.Data;
 import android.text.TextUtils;
 import android.util.Log;
+import android.os.SystemProperties;
 
 import com.android.contacts.common.CallUtil;
 import com.android.contacts.common.ContactsUtils;
@@ -127,7 +128,12 @@ public class DataAction implements Action {
                                 Uri.fromParts(CallUtil.SCHEME_SMSTO, number, null));
                         smsIntent.setComponent(smsComponent);
                     }
-                    final Intent videocallIntent = getVTCallIntent(number);
+                    final Intent videocallIntent;
+                    if(isVTSupported()){
+                        videocallIntent = getVTCallIntent(number);
+                    } else {
+                        videocallIntent = getIMSVTCallIntent(number);
+                    }
 
                     if (hasPhone) {
                         mSlot1Intent = CallUtil.getSlotIntent(number, MSimConstants.SUB1);
@@ -386,6 +392,31 @@ public class DataAction implements Action {
         // 0 as socket
         intent.putExtra("call_number_key", number);
         return intent;
+    }
+
+    private boolean isVTSupported() {
+        boolean CSVTSupported = SystemProperties.getBoolean("persist.radio.csvt.enabled", false);
+        return CSVTSupported && MoreContactUtils.isAnySimAviable();
+    }
+
+    private Intent getIMSVTCallIntent(String number) {
+        Intent intent = CallUtil.getCallIntent(
+                Uri.fromParts(CallUtil.SCHEME_TEL, number, null));
+        int mSubscription = -1;
+        if (mSubscription != -1) {
+            intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, mSubscription);
+            Log.d(TAG, "Start the activity and the call log sub is: " + mSubscription);
+        }
+        intent.putExtra("ims_videocall", true);
+        return intent;
+    }
+
+    public boolean isIMSSupported(){
+        boolean IMSSupported = mContext.getResources().getBoolean(R.bool.ims_enabled)
+                && SystemProperties.getBoolean("persist.radio.calls.on.ims", false);
+        boolean IMSRegisrered = SystemProperties.get(
+                "persist.radio.ims.registered", "0").equals("1");
+        return IMSSupported && IMSRegisrered && MoreContactUtils.isAnySimAviable();
     }
 
 }
