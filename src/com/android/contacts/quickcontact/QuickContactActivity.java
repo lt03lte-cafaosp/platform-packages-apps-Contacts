@@ -63,6 +63,7 @@ import android.widget.Toast;
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.common.Collapser;
 import com.android.contacts.R;
+import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.ContactLoader;
@@ -461,7 +462,8 @@ public class QuickContactActivity extends Activity {
                         }
                     }
 
-                    if (isVTSupported() && Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                    if ((isVTSupported() || isIMSSupported())
+                            && Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
                         dataItem.setMimeType(VTCALL_ITEM_TYPE);
                         mimeType = VTCALL_ITEM_TYPE;
                         final Action vtAction = new DataAction(context, dataItem, dataKind);
@@ -549,8 +551,16 @@ public class QuickContactActivity extends Activity {
     }
 
     private boolean isVTSupported() {
-        return SystemProperties.getBoolean("persist.radio.csvt.enabled"
-        /* TelephonyProperties.PROPERTY_CSVT_ENABLED */, false);
+        boolean CSVTSupported = SystemProperties.getBoolean("persist.radio.csvt.enabled", false);
+        return CSVTSupported && MoreContactUtils.isAnySimAviable();
+    }
+
+    public boolean isIMSSupported(){
+        boolean IMSSupported = this.getResources().getBoolean(R.bool.ims_enabled)
+                && SystemProperties.getBoolean("persist.radio.calls.on.ims", false);
+        boolean IMSRegisrered = SystemProperties.get(
+                "persist.radio.ims.registered", "0").equals("1");
+        return IMSSupported && IMSRegisrered && MoreContactUtils.isAnySimAviable();
     }
 
     /**
