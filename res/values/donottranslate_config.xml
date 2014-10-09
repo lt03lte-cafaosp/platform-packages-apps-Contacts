@@ -69,4 +69,10 @@
 
     <!-- If true, baidu_xcloud will be enabled. -->
     <bool name="baidu_xcloud_enable">true</bool>
+
+    <!-- If true, write contact will need permission(CTA requirement). -->
+    <bool name="config_write_contact_need_permission">false</bool>
+
+    <!-- If true, ims UI enhance feature will be enabled. -->
+    <bool name="ims_enabled">true</bool>
 </resources>

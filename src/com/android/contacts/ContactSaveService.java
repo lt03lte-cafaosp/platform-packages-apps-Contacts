@@ -570,6 +570,11 @@ public class ContactSaveService extends IntentService {
                 }
                 sb.append(")");
 
+                //for CTA requirement
+                if (getResources().getBoolean(R.bool.config_write_contact_need_permission)) {
+                    first = false;
+                }
+
                 if (first) {
                     throw new IllegalStateException(
                             "Version consistency failed for a new contact", e);
