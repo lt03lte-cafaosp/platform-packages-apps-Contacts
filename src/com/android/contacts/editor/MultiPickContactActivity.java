@@ -1291,6 +1291,11 @@ public class MultiPickContactActivity extends ListActivity implements
                 cache.number = cursor.getString(SIM_COLUMN_NUMBER);
                 cache.email = cursor.getString(SIM_COLUMN_EMAILS);
                 cache.anrs = cursor.getString(SIM_COLUMN_ANRS);
+                if (!TextUtils.isEmpty(cache.anrs)) {
+                    if (cache.anrs.endsWith(",")) {
+                        cache.anrs = cache.anrs.substring(0, cache.anrs.length() - 2);
+                    }
+                }
                 ((TextView) view.findViewById(R.id.pick_contact_name)).setText(cache.name);
                 if (!TextUtils.isEmpty(cache.number)) {
                     ((TextView) view.findViewById(R.id.pick_contact_number)).setText(cache.number);
@@ -1664,7 +1669,7 @@ public class MultiPickContactActivity extends ListActivity implements
             emailAddressArray = null;
         }
         if (!TextUtils.isEmpty(anrs)) {
-            anrArray = anrs.split(",");
+            anrArray = anrs.split(SimContactsConstants.ANR_SEP);
         } else {
             anrArray = null;
         }

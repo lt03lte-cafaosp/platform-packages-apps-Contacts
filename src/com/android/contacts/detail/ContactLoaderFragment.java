@@ -747,7 +747,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                                         0, MoreContactUtils.MAX_LENGTH_NUMBER_IN_SIM);
                             }
                             strAnrNum.append(s);
-                            strAnrNum.append(",");
+                            strAnrNum.append(SimContactsConstants.ANR_SEP);
                         }
                         StringBuilder strEmail = new StringBuilder();
                         for (int j = 0; j < arrayEmail.size(); j++) {
@@ -757,7 +757,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                                         0, MoreContactUtils.MAX_LENGTH_EMAIL_IN_SIM);
                             }
                             strEmail.append(s);
-                            strEmail.append(",");
+                            strEmail.append(SimContactsConstants.EMAIL_SEP);
                         }
                         itemUri = MoreContactUtils.insertToCard(mContext, strName, strNum,
                                 strEmail.toString(), strAnrNum.toString(), sub);
