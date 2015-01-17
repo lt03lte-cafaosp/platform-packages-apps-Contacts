@@ -21,6 +21,7 @@ import android.app.Fragment;
 import android.app.LoaderManager;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ActivityNotFoundException;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -29,9 +30,11 @@ import android.content.IntentFilter;
 import android.content.Loader;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.Email;
@@ -40,9 +43,11 @@ import android.provider.ContactsContract.CommonDataKinds.Organization;
 import android.provider.ContactsContract.CommonDataKinds.SipAddress;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.RawContacts;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -55,6 +60,7 @@ import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.ContactDetailActivity.FragmentKeyListener;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.SimContactsConstants;
@@ -68,8 +74,10 @@ import com.android.contacts.common.model.dataitem.DataItem;
 import com.android.contacts.common.model.dataitem.EmailDataItem;
 import com.android.contacts.common.model.dataitem.PhoneDataItem;
 import com.android.contacts.util.PhoneCapabilityTester;
+import com.android.contacts.util.RCSUtil;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
 import java.util.ArrayList;
 
@@ -83,6 +91,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
 
     /** The launch code when picking a ringtone */
     private static final int REQUEST_CODE_PICK_RINGTONE = 1;
+    private static final int REQUEST_CODE_ADD_CONTACT_FROM_QRCODE = 3;
 
     /** This is the Intent action to install a shortcut in the launcher. */
     private static final String ACTION_INSTALL_SHORTCUT =
@@ -94,6 +103,9 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
     private boolean mOptionsMenuCanCreateShortcut;
     private boolean mSendToVoicemailState;
     private String mCustomRingtone;
+    private boolean mIsUpdatePhotos = false;
+    private boolean mIsLocalProfileInsert = false;
+    private boolean mNeverQueryRcsCapability;
 
     private static final String ACTION_INSTALL_SHORTCUT_SUCCESSFUL =
             "com.android.launcher.action.INSTALL_SHORTCUT_SUCCESSFUL";
@@ -212,8 +224,13 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
 
     @Override
     public void onResume() {
+        mNeverQueryRcsCapability = true;
         super.onResume();
         getActivity().registerReceiver(mResponseReceiver, mResponseFilter);
+    }
+
+    public void setIsUpdatePhotos(boolean flag) {
+        mIsUpdatePhotos = flag;
     }
 
     public void loadUri(Uri lookupUri) {
@@ -276,6 +293,17 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                     mListener.onContactNotFound();
                 } else {
                     mListener.onDetailsLoaded(mContactData);
+                    if (RCSUtil.getRcsSupport() && !RCSUtil.isLocalProfile(mContactData)) {
+                        if (mIsUpdatePhotos) {
+                            RCSUtil.getOneContactPhotoFromServer((Activity)mContext, mContactData,
+                                    RcsApiManager.getProfileApi(), null);
+                            mIsUpdatePhotos = false;
+                        }
+                        if (mNeverQueryRcsCapability) {
+                            RCSUtil.updateRCSCapability((Activity)mContext, mContactData);
+                            mNeverQueryRcsCapability = false;
+                        }
+                    }
                 }
             }
             // Make sure the options menu is setup correctly with the loaded data.
@@ -408,6 +436,14 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             }
 
         }
+
+        final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
+        if (RCSUtil.getRcsSupport() && RCSUtil.isLocalProfile(mContactData)) {
+            uploadOrDownload.setVisible(true);
+        } else {
+            uploadOrDownload.setVisible(false);
+        }
+        RCSUtil.initRcsMenu(menu, mContactData);
     }
     private boolean hasPhoneOrEmailDate(Contact contact){
         int phoneCount = 0;
@@ -526,6 +562,32 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             case R.id.menu_create_contact_shortcut: {
                 // Create a launcher shortcut with this contact
                 createLauncherShortcutWithContact();
+                return true;
+            }
+            case R.id.menu_upload_download: {
+                //LocalProfileBackupRestoreFragment.show(getFragmentManager(), mContactData);
+                RCSUtil.createLocalProfileBackupRestoreDialog(mContext, mContactData,
+                   null, RcsApiManager.getProfileApi()).show();
+                return true;
+            }
+            case R.id.menu_qrcode: {
+                RCSUtil.startQrCodeActivity(mContext, mContactData);
+                return true;
+            }
+            case R.id.menu_enhancedscreen: {
+                RCSUtil.setEnhanceScreen(mContext, mContactData);
+                return true;
+            }
+            case R.id.menu_updateenhancedscreen:{
+                RCSUtil.updateEnhanceScreeenFunction(mContext, mContactData);
+                return true;
+            }
+            case R.id.menu_plugin_center: {
+                try {
+                    RcsApiManager.getPluginCenterApi().intentApk();
+                } catch (ServiceDisconnectedException e) {
+                    e.printStackTrace();
+                }
                 return true;
             }
         }
@@ -974,6 +1036,22 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             case REQUEST_CODE_PICK_RINGTONE: {
                 Uri pickedUri = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
                 handleRingtonePicked(pickedUri);
+                break;
+            }
+            case 3:{
+                if (resultCode == Activity.RESULT_OK) {
+                    getActivity().finish();
+                } else {
+                    StringBuilder where = new StringBuilder();
+                    where.append(RawContacts.CONTACT_ID);
+                    where.append("=");
+                    where.append(ContentUris.parseId(mLookupUri));
+                
+                    try{
+                        mContext.getContentResolver().delete(RawContacts.CONTENT_URI, where.toString(),null);
+                    }catch(Exception ex) {
+                    }
+                }
                 break;
             }
         }

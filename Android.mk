@@ -16,6 +16,7 @@ LOCAL_AAPT_FLAGS := \
     --extra-packages com.android.contacts.common
 
 LOCAL_JAVA_LIBRARIES := telephony-common voip-common
+LOCAL_JAVA_LIBRARIES += rcs_service_api
 LOCAL_STATIC_JAVA_LIBRARIES := \
     com.android.phone.shared \
     com.android.vcard \
@@ -23,7 +24,7 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
     guava \
     android-support-v13 \
     android-support-v4 \
-    android-ex-variablespeed \
+    android-ex-variablespeed
 
 LOCAL_REQUIRED_MODULES := libvariablespeed
 

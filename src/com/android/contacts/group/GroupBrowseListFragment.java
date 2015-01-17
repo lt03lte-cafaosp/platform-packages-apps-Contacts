@@ -20,13 +20,17 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.app.LoaderManager.LoaderCallbacks;
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
@@ -52,8 +56,24 @@ import com.android.contacts.group.local.LocalGroupListLoader;
 import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
 import com.android.contacts.group.GroupBrowseListAdapter.GroupListItemViewCache;
+import com.android.contacts.util.RCSUtil;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.list.AutoScrollListView;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.android.contacts.RcsApiManager;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import android.text.TextUtils;
+import android.util.Log;
+import android.provider.ContactsContract.Groups;
+import android.provider.Telephony.Threads;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 
 /**
  * Fragment to display the list of groups.
@@ -133,15 +153,19 @@ public class GroupBrowseListFragment extends Fragment
         mListView.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Object tag = view.getTag();
-                if (tag instanceof GroupListItemViewCache) {
-                    GroupListItemViewCache groupListItem = (GroupListItemViewCache) tag;
-                    if (groupListItem != null) {
-                        viewGroup(groupListItem.getUri());
+                if (mListView.getAdapter() instanceof GroupBrowseListAdapter) {
+                    GroupListItem entry = ((GroupBrowseListAdapter)mListView.getAdapter()).getItem(position);
+                    if ("RCS".equals(entry.getAccountType())) {
+                    RCSUtil.startChatGroupManagementActivity(mContext, entry);
+                    } else {
+                        GroupListItemViewCache groupListItem = (GroupListItemViewCache) view.getTag();
+                        if (groupListItem != null) {
+                           viewGroup(groupListItem.getUri());
+                        }
                     }
-                } else {
-                    goToGroupEdit(getSelectUri(((Group) tag).getId()));
-                }
+                 } else {
+                     goToGroupEdit(getSelectUri(((Group) view.getTag()).getId()));
+                 }             
             }
         });
 
@@ -270,6 +294,12 @@ public class GroupBrowseListFragment extends Fragment
         //local group will update group data in onResume()
         if (!isLocalShown()) {
             updateGroupData();
+        }
+        SharedPreferences groupStatus = mContext.getSharedPreferences("RcsSharepreferences", Context.MODE_PRIVATE);
+        boolean isRcsGroupDataLoaded = groupStatus.getBoolean("isRcsGroupDataLoaded", false);
+        // start to load chat-group data when first initialization.
+        if(RCSUtil.getRcsSupport() && (!isRcsGroupDataLoaded)){
+            new AsyncDataLoaderTask(GroupBrowseListFragment.this).execute();
         }
         super.onStart();
     }
@@ -403,4 +433,90 @@ public class GroupBrowseListFragment extends Fragment
             mAddAccountsView.setVisibility(visible && !isLocalShown() ? View.VISIBLE : View.GONE);
         }
     }
+
+    //Task to get chat-group data.
+    class AsyncDataLoaderTask extends
+            AsyncTask<Void, Void, ArrayList<GroupChatModel>> {
+
+        private Context activityContext;
+        private ContentResolver contentResolver;
+        private LoaderManager loaderManager;
+        private ArrayList<GroupChatModel> rcsChatGroups = new ArrayList<GroupChatModel>();
+        private HashMap<String, Integer> contactCountMap = new HashMap<String, Integer>();
+        public AsyncDataLoaderTask(Fragment fragment){
+            this.activityContext = fragment.getActivity().getApplicationContext();
+            if(activityContext != null){
+                contentResolver = activityContext.getContentResolver();
+            }
+            loaderManager = fragment.getLoaderManager();
+        }
+        @Override
+        protected ArrayList<GroupChatModel> doInBackground(Void... params) {
+
+            try {
+			    RCSUtil.sleep(1000);
+                rcsChatGroups.addAll(RcsApiManager.getMessageApi()
+                        .getAllGroupChat());
+            } catch (ServiceDisconnectedException e) {
+                e.printStackTrace();
+            }
+
+            initGroupChatToMap(rcsChatGroups);
+            return rcsChatGroups;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<GroupChatModel> result) {
+            super.onPostExecute(result);
+
+            StringBuilder where = new StringBuilder();
+            where.append(Groups.SOURCE_ID);
+            where.append("='RCS'");
+            try{
+                contentResolver.delete(Groups.CONTENT_URI, where.toString(), null);
+            }catch(Exception e) {
+                e.printStackTrace();
+            }
+            Log.i("AsyncDataLoaderTask"," ArrayList<GroupChatModel> size: "+result.size());
+            for (GroupChatModel groupChatModel : result) {
+
+                String thread_id = String.valueOf(groupChatModel.getThreadId());
+                String group_id = String.valueOf(groupChatModel.getId());
+                String groupTitle = TextUtils.isEmpty(groupChatModel
+                        .getRemark()) ? groupChatModel.getSubject()
+                        : groupChatModel.getRemark();
+
+                if(contentResolver == null) return;
+                ContentValues values = new ContentValues();
+                values.put(Groups.TITLE, groupTitle);
+                values.put(Groups.SYSTEM_ID,group_id);
+                values.put(Groups.SOURCE_ID,"RCS");
+
+                try{
+                    Log.d(TAG," insert group: title= "+groupTitle+" id= "+group_id);
+                    contentResolver.insert(Groups.CONTENT_URI, values);
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if(loaderManager != null)
+                loaderManager.restartLoader(LOADER_GROUPS, null, mGroupLoaderListener);
+            mAdapter.setRcsGroupsData(result,contactCountMap);
+            mAdapter.notifyDataSetChanged();
+            SharedPreferences groupStatus = activityContext.getSharedPreferences("RcsSharepreferences", Context.MODE_PRIVATE);
+            Editor editor = groupStatus.edit();
+            editor.putBoolean("isRcsGroupDataLoaded", true);
+            editor.commit();
+
+        }
+
+        private void initGroupChatToMap(ArrayList<GroupChatModel> allChatGroups) {
+            for (GroupChatModel groupChatModel : allChatGroups) {
+                contactCountMap.put("chat" + groupChatModel.getId(),
+                        groupChatModel.getUserList().size());
+
+            }
+        }
+    }
+
 }

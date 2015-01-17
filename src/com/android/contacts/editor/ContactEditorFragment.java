@@ -90,6 +90,7 @@ import com.android.contacts.R;
 import com.android.contacts.util.ContactPhotoUtils;
 import com.android.contacts.util.DialogManager;
 import com.android.contacts.util.HelpUtils;
+import com.android.contacts.util.RCSUtil;
 import com.android.contacts.util.UiClosables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -1193,6 +1194,14 @@ public class ContactEditorFragment extends Fragment implements
                 SAVE_MODE_EXTRA_KEY, saveMode, isEditingUserProfile(),
                 ((Activity)mContext).getClass(), ContactEditorActivity.ACTION_SAVE_COMPLETED,
                 mUpdatedPhotos);
+
+        if (RCSUtil.getRcsSupport()) {
+            intent.putExtra(RCSUtil.KEY_IS_INSERT, !mIsEdit);
+            intent.putExtra(
+                    RCSUtil.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
+                    isSomethingChangedExceptPhoto());
+        }
+
         mContext.startService(intent);
 
         // Don't try to save the same photos twice.
@@ -1262,6 +1271,10 @@ public class ContactEditorFragment extends Fragment implements
                     if (null != contactLookupUri) {
                         Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
                                 .show();
+                        if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(mContext)
+                                && RCSUtil.isPluginInstalled(mContext)) {
+                            RCSUtil.autoBackupOnceChanged(mContext);
+                        }
                     } else {
                         Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)
                                 .show();
@@ -1905,6 +1918,28 @@ public class ContactEditorFragment extends Fragment implements
             }
         }
         return false;
+    }
+
+    /**
+     * Returns true if something changed except photo.
+     */
+    private boolean isSomethingChangedExceptPhoto() {
+        int countWithPicture = 0;
+        final int numEntities = mState.size();
+        for (int i = 0; i < numEntities; i++) {
+            final RawContactDelta entity = mState.get(i);
+            if (entity.isVisible()) {
+                final ValuesDelta primary = entity.getPrimaryEntry(Photo.CONTENT_ITEM_TYPE);
+                if (primary != null && primary.getPhoto() != null) {
+                    countWithPicture++;
+                } 
+
+                if (countWithPicture > 0) {
+                    break;
+                }
+            }
+        }
+        return (countWithPicture > 0) && mUpdatedPhotos.isEmpty();
     }
 
     /**

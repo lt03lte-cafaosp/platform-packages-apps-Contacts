@@ -110,6 +110,7 @@ import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.SimAccountType;
 import com.android.internal.telephony.MSimConstants;
+import com.android.contacts.util.RCSUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -1726,6 +1727,7 @@ public class MultiPickContactActivity extends ListActivity implements
                 operationList.add(builder.build());
             }
         }
+        RCSUtil.importContactUpdateEnhanceScreen(phoneNumber,anrs);
 
         try {
             resolver.applyBatch(ContactsContract.AUTHORITY, operationList);

@@ -49,6 +49,7 @@ import com.android.contacts.interactions.ContactDeletionInteraction;
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.util.PhoneCapabilityTester;
+import com.android.contacts.util.RCSUtil;
 
 import java.util.ArrayList;
 
@@ -112,6 +113,9 @@ public class ContactDetailActivity extends ContactsActivity {
          if (fragment instanceof ContactLoaderFragment) {
             mLoaderFragment = (ContactLoaderFragment) fragment;
             mLoaderFragment.setListener(mLoaderFragmentListener);
+            if (RCSUtil.getRcsSupport()) {
+                mLoaderFragment.setIsUpdatePhotos(true);
+            }
             mLoaderFragment.loadUri(getIntent().getData());
         }
     }

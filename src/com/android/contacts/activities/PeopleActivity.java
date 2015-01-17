@@ -31,7 +31,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Rect;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.NetworkInfo.State;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
@@ -66,6 +70,7 @@ import android.widget.Toast;
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.ActionBarAdapter.TabState;
 import com.android.contacts.detail.ContactDetailFragment;
 import com.android.contacts.detail.ContactDetailLayoutController;
@@ -94,6 +99,7 @@ import com.android.contacts.list.ContactTileListFragment;
 import com.android.contacts.list.ContactsIntentResolver;
 import com.android.contacts.list.ContactsRequest;
 import com.android.contacts.list.ContactsUnavailableFragment;
+import com.android.contacts.list.ContactsUpdateFragment;
 import com.android.contacts.list.DefaultContactBrowseListFragment;
 import com.android.contacts.common.list.DirectoryListLoader;
 import com.android.contacts.list.OnContactBrowserActionListener;
@@ -113,6 +119,7 @@ import com.android.contacts.common.util.AccountsListAdapter;
 import com.android.contacts.common.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.common.util.Constants;
 import com.android.contacts.util.DialogManager;
+import com.android.contacts.util.RCSUtil;
 import com.android.contacts.util.HelpUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
 import com.android.contacts.common.util.UriUtils;
@@ -122,6 +129,7 @@ import com.android.contacts.util.XCloudManager;
 import com.android.contacts.widget.TransitionAnimationView;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -153,6 +161,7 @@ public class PeopleActivity extends ContactsActivity
     private static final int SUBACTIVITY_NEW_GROUP = 4;
     private static final int SUBACTIVITY_EDIT_GROUP = 5;
     private static final int SUBACTIVITY_ACCOUNT_FILTER = 6;
+    private static final int START_CAPTURE = 109;
 
     private final DialogManager mDialogManager = new DialogManager(this);
 
@@ -335,7 +344,10 @@ public class PeopleActivity extends ContactsActivity
             .INTENT_EXPORT_COMPLETE);
         registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
         mIsReceiverRegistered = true;
+        if (RCSUtil.getRcsSupport()) {
+            RCSUtil.resotreContactIfTerminalChanged(this);
         }
+    }
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -698,6 +710,9 @@ public class PeopleActivity extends ContactsActivity
     }
 
     private void setupContactDetailFragment(final Uri contactLookupUri) {
+        if (RCSUtil.getRcsSupport()) {
+            mContactDetailLoaderFragment.setIsUpdatePhotos(true);
+        }
         mContactDetailLoaderFragment.loadUri(contactLookupUri);
         invalidateOptionsMenuIfNeeded();
     }
@@ -1522,10 +1537,12 @@ public class PeopleActivity extends ContactsActivity
         final MenuItem contactsFilterMenu = menu.findItem(R.id.menu_contacts_filter);
         switchGroupsMenu = menu.findItem(R.id.menu_switch_group);
 
+        final MenuItem cloudMenu = menu.findItem(R.id.menu_cloud);
         addGroupMenu = menu.findItem(R.id.menu_add_group);
 
         final MenuItem clearFrequentsMenu = menu.findItem(R.id.menu_clear_frequents);
         final MenuItem helpMenu = menu.findItem(R.id.menu_help);
+        final MenuItem contactsPhotoUpdateMenu = menu.findItem(R.id.menu_contacts_photo_update);
 
         final boolean isSearchMode = mActionBarAdapter.isSearchMode();
         if (isSearchMode) {
@@ -1536,6 +1553,8 @@ public class PeopleActivity extends ContactsActivity
             clearFrequentsMenu.setVisible(false);
             helpMenu.setVisible(false);
             makeMenuItemVisible(menu, R.id.menu_delete, false);
+            contactsPhotoUpdateMenu.setVisible(false);
+            cloudMenu.setVisible(false);
         } else {
             switch (mActionBarAdapter.getCurrentTab()) {
                 case TabState.FAVORITES:
@@ -1544,6 +1563,8 @@ public class PeopleActivity extends ContactsActivity
                     contactsFilterMenu.setVisible(false);
                     switchGroupsMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(hasFrequents());
+                    contactsPhotoUpdateMenu.setVisible(false);
+                    cloudMenu.setVisible(false);
                     break;
                 case TabState.ALL:
                     addContactMenu.setVisible(true);
@@ -1551,6 +1572,17 @@ public class PeopleActivity extends ContactsActivity
                     contactsFilterMenu.setVisible(true);
                     switchGroupsMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
+                    if (RCSUtil.getRcsSupport()) {
+                        if (RCSUtil.isNativeUiInstalled(this) && RCSUtil.isPluginInstalled(this)) {
+                            cloudMenu.setVisible(true);
+                        } else {
+                            cloudMenu.setVisible(false);
+                        }
+                        contactsPhotoUpdateMenu.setVisible(true);
+                    } else {
+                        cloudMenu.setVisible(false);
+                        contactsPhotoUpdateMenu.setVisible(false);
+                    }
                     break;
                 case TabState.GROUPS:
                     addContactMenu.setVisible(false);
@@ -1560,6 +1592,8 @@ public class PeopleActivity extends ContactsActivity
 
                     // Do not display the "new group" button if no accounts are available
                     updateGroupsMenu();
+                    contactsPhotoUpdateMenu.setVisible(false);
+                    cloudMenu.setVisible(false);
                     break;
             }
             HelpUtils.prepareHelpMenuItem(this, helpMenu, R.string.help_url_people_main);
@@ -1613,6 +1647,17 @@ public class PeopleActivity extends ContactsActivity
                 if (mActionBarAdapter.isUpShowing()) {
                     // "UP" icon press -- should be treated as "back".
                     onBackPressed();
+                }
+                return true;
+            }
+            case R.id.menu_scan:{
+                Intent intent = new Intent("android.intent.action.SCAN_QRCODE");
+                String accnountNumber = RCSUtil.getProfileAccountNumber();
+                intent.putExtra("profile_tel",accnountNumber);
+                try {
+                    startActivityForResult(intent,START_CAPTURE);
+                } catch (ActivityNotFoundException e) {
+                    e.printStackTrace();
                 }
                 return true;
             }
@@ -1707,6 +1752,10 @@ public class PeopleActivity extends ContactsActivity
                 startActivity(intent);
                 return true;
             }
+            case R.id.menu_contacts_photo_update: {
+                ContactsUpdateFragment.show(getFragmentManager());
+                return true;
+            }
 
             case R.id.menu_memory_status: {
                 final Intent intent = new Intent(this, MemoryStatusActivity.class);
@@ -1717,6 +1766,10 @@ public class PeopleActivity extends ContactsActivity
                 isLocalGroupsShown = !isLocalGroupsShown;
                 updateGroupsMenu();
                 mGroupsFragment.updateGroupData();
+                return true;
+            }
+            case R.id.menu_cloud: {
+                startActivity(new Intent(RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
                 return true;
             }
         }
@@ -1813,7 +1866,28 @@ public class PeopleActivity extends ContactsActivity
                 }
                 break;
             }
-
+            case START_CAPTURE:{
+                if (resultCode == RESULT_OK) {
+                    Bundle bundle = data.getExtras();
+                    String name = data.getStringExtra("name");
+                    String tel = data.getStringExtra("tel");
+                    String companyTel = data.getStringExtra("companyTel");
+                    String companyFax = data.getStringExtra("companyFax");
+                    String companyName = data.getStringExtra("companyName");
+                    String companyDuty = data.getStringExtra("companyDuty");
+                    String companyEmail = data.getStringExtra("companyEmail");
+                    Intent intent = new Intent(Intent.ACTION_INSERT_OR_EDIT);
+                    intent.setType(Contacts.CONTENT_ITEM_TYPE);
+                    intent.putExtra(ContactsContract.Intents.Insert.NAME, name);
+                    intent.putExtra(ContactsContract.Intents.Insert.PHONE, tel);
+                    intent.putExtra(ContactsContract.Intents.Insert.PHONE_TYPE,
+                            ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE);
+                    intent.putExtra(ContactsContract.Intents.Insert.EMAIL, companyEmail);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                    this.startActivity(intent);
+                }
+                break;
+            }
             case SUBACTIVITY_NEW_GROUP:
             case SUBACTIVITY_EDIT_GROUP: {
                 if (resultCode == RESULT_OK && PhoneCapabilityTester.isUsingTwoPanes(this)) {
