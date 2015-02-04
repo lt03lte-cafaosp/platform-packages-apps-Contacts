@@ -65,6 +65,7 @@ import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.model.RawContactDeltaList;
 import com.android.contacts.common.model.RawContactModifier;
+import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.android.contacts.common.SimContactsConstants;
@@ -183,6 +184,7 @@ public class ContactSaveService extends IntentService {
 
     public static final int RESULT_MEMORY_FULL_FAILURE = 11; //for memory full exception
     public static final int RESULT_NUMBER_TYPE_FAILURE =12;  //only for sim failure of number TYPE
+    public static final int RESULT_NAME_IS_TOO_LONG_FAILURE = 13;
 
     private final int MAX_NUM_LENGTH = 20;
     private final int MAX_EMAIL_LENGTH = 40;
@@ -310,7 +312,11 @@ public class ContactSaveService extends IntentService {
             CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
             if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(this)
                     && RCSUtil.isPluginInstalled(this)) {
-                RCSUtil.autoBackupOnceChanged(this);
+                Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
+                if (!TextUtils.isEmpty(contactUri.getPath())
+                        && !contactUri.getPath().contains("profile")) {
+                    RCSUtil.autoBackupOnceChanged(this);
+                }
             }
         } else if (ACTION_JOIN_CONTACTS.equals(action)) {
             joinContacts(intent);
@@ -462,6 +468,25 @@ public class ContactSaveService extends IntentService {
 
         ArrayList<Long> rawContactsList = new ArrayList<Long>();
         boolean isCardOperation = false;
+        if (RCSUtil.getRcsSupport() && isProfile && state.size() > 0
+                && state.get(0).getMimeEntries(StructuredName.CONTENT_ITEM_TYPE).size() > 0) {
+
+            ValuesDelta aValue = state.get(0).getMimeEntries(StructuredName.CONTENT_ITEM_TYPE)
+                    .get(0);
+            String firstName = aValue.getAsString(StructuredName.GIVEN_NAME);
+            String lastName = aValue.getAsString(StructuredName.FAMILY_NAME);
+            if ((firstName != null && firstName.length() > 20)
+                    || ((lastName != null && lastName.length() > 20))) {
+                Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+                if (callbackIntent != null) {
+                    callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                    callbackIntent.setData(null);
+                    callbackIntent.putExtra(SAVE_CONTACT_RESULT, RESULT_NAME_IS_TOO_LONG_FAILURE);
+                    deliverCallback(callbackIntent);
+                }
+                return;
+            }
+        }
         for (int i=0; i < state.size(); i++) {
             final RawContactDelta entity = state.get(i);
             final String accountType = entity.getValues().getAsString(RawContacts.ACCOUNT_TYPE);
@@ -537,6 +562,8 @@ public class ContactSaveService extends IntentService {
                                 String.valueOf(rawContactId)
                             });
                     }
+                RCSUtil.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
+                        resolver, rawContactId);
                 // We can change this back to false later, if we fail to save the contact photo.
                 succeeded = true;
                 break;

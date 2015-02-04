@@ -37,6 +37,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.Organization;
@@ -774,7 +775,7 @@ public class ContactEditorFragment extends Fragment implements
 
         // Ensure we have some default fields (if the account type does not support a field,
         // ensureKind will not add it, so it is safe to add e.g. Event)
-        RawContactModifier.ensureKindExists(insert, newAccountType, Phone.CONTENT_ITEM_TYPE);
+        ValuesDelta phoneChild = RawContactModifier.ensureKindExists(insert, newAccountType, Phone.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(insert, newAccountType, Email.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(insert, newAccountType, Organization.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(insert, newAccountType, Event.CONTENT_ITEM_TYPE);
@@ -784,6 +785,13 @@ public class ContactEditorFragment extends Fragment implements
         // Set the correct URI for saving the contact as a profile
         if (mNewLocalProfile) {
             insert.setProfileQueryUri();
+            if (RCSUtil.getRcsSupport()) {
+                String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
+                if (!TextUtils.isEmpty(myPhoneNumber)) {
+                    phoneChild.put(Phone.NUMBER, myPhoneNumber);
+                    phoneChild.put(ContactsContract.Data.DATA13, 1);
+                }
+            }
         }
 
         mState.add(insert);
@@ -1272,7 +1280,7 @@ public class ContactEditorFragment extends Fragment implements
                         Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
                                 .show();
                         if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(mContext)
-                                && RCSUtil.isPluginInstalled(mContext)) {
+                                && RCSUtil.isPluginInstalled(mContext) && !isEditingUserProfile()) {
                             RCSUtil.autoBackupOnceChanged(mContext);
                         }
                     } else {
@@ -1319,6 +1327,12 @@ public class ContactEditorFragment extends Fragment implements
                     return;
                 } else if (result == ContactSaveService.RESULT_NUMBER_INVALID) {
                     Toast.makeText(mContext, R.string.invalid_phone_number, Toast.LENGTH_SHORT)
+                            .show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else if (result == ContactSaveService.RESULT_NAME_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_name_is_too_long, Toast.LENGTH_SHORT)
                             .show();
                     mStatus = Status.EDITING;
                     setEnabled(true);

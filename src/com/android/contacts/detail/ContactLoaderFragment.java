@@ -443,7 +443,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
         } else {
             uploadOrDownload.setVisible(false);
         }
-        RCSUtil.initRcsMenu(menu, mContactData);
+        RCSUtil.initRcsMenu(mContext, menu, mContactData);
     }
     private boolean hasPhoneOrEmailDate(Contact contact){
         int phoneCount = 0;
@@ -1038,7 +1038,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                 handleRingtonePicked(pickedUri);
                 break;
             }
-            case 3:{
+            case REQUEST_CODE_ADD_CONTACT_FROM_QRCODE:{
                 if (resultCode == Activity.RESULT_OK) {
                     getActivity().finish();
                 } else {
@@ -1048,7 +1048,8 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                     where.append(ContentUris.parseId(mLookupUri));
                 
                     try{
-                        mContext.getContentResolver().delete(RawContacts.CONTENT_URI, where.toString(),null);
+                        mContext.getContentResolver()
+                               .delete(RawContacts.CONTENT_URI, where.toString(),null);
                     }catch(Exception ex) {
                     }
                 }

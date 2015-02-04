@@ -744,6 +744,7 @@ public class MultiPickContactActivity extends ListActivity implements
                             Bundle bundle = new Bundle();
                             bundle.putBundle(PeopleActivity.RESULT_KEY, mChoiceSet);
                             intent.putExtras(bundle);
+                            intent.putExtra("recipients", getRecipientNumbers());
                             this.setResult(RESULT_OK, intent);
                             finish();
                         }
@@ -802,6 +803,14 @@ public class MultiPickContactActivity extends ListActivity implements
                 enterSearchMode();
                 break;
         }
+    }
+
+    private ArrayList<String> getRecipientNumbers() {
+        ArrayList<String> numbers = new ArrayList<String>();
+        for (String num : mChoiceSet.keySet()) {
+            numbers.add(num);
+        }
+        return numbers;
     }
 
     @Override
@@ -1727,7 +1736,7 @@ public class MultiPickContactActivity extends ListActivity implements
                 operationList.add(builder.build());
             }
         }
-        RCSUtil.importContactUpdateEnhanceScreen(phoneNumber,anrs);
+        RCSUtil.importContactUpdateEnhanceScreen(phoneNumber, anrs);
 
         try {
             resolver.applyBatch(ContactsContract.AUTHORITY, operationList);

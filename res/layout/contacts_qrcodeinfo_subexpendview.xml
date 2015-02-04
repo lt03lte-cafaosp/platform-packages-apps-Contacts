@@ -47,7 +47,7 @@
             android:layout_marginLeft="10dp"
             android:gravity="center_vertical"
             android:minHeight="?android:attr/listPreferredItemHeight"
-            android:textSize="18dp" />
+            android:textSize="18sp" />
     </LinearLayout>
 
 </LinearLayout>

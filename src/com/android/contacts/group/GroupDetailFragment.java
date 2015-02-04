@@ -306,15 +306,19 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
             mMemberListView.setEmptyView(mEmptyView);
             // For starting RCS group-chat.
             StringBuilder sb = new StringBuilder();
-            while(data.moveToNext()){
+            mGroupMembersPhonesList.clear();
+            while (data.moveToNext()) {
                 Long id = data.getLong(0);
                 String phoneNumber = RCSUtil.getPhoneforContactId(mContext, id);
                 sb.append(phoneNumber).append(";");
-                Log.d(TAG,"FormatTel: "+RCSUtil.getFormatNumber(phoneNumber));
-                mGroupMembersPhonesList.add(RCSUtil.getFormatNumber(phoneNumber));
+                String[] groupMemberPhones = RCSUtil.getAllPhoneNumberFromContactId(mContext, id)
+                        .split(";");
+                for (int i = 0 ; i < groupMemberPhones.length; i++) {
+                    mGroupMembersPhonesList.add(RCSUtil.getFormatNumber(groupMemberPhones[i]));
+                }
             }
+            Log.d(TAG,"mGroupMembersPhonesList:"+mGroupMembersPhonesList.toString());
             mGroupMembersPhones = sb.toString();
-            
         }
 
         @Override
@@ -474,12 +478,16 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     public void onPrepareOptionsMenu(Menu menu) {
         mOptionsMenuGroupDeletable = isGroupDeletable() && isVisible();
         mOptionsMenuGroupEditable = isGroupEditableAndPresent() && isVisible();
-
-        final MenuItem optionsGroupChat = menu.findItem(R.id.menu_create_group_chat);
-        optionsGroupChat.setVisible(true);
-
-        final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
-        optionsEnhancedscreen.setVisible(true);
+        if (RCSUtil.getRcsSupport()) {
+            final MenuItem optionsGroupChat = menu.findItem(R.id.menu_create_group_chat);
+            optionsGroupChat.setVisible(true);
+            final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
+            if (RCSUtil.isEnhanceScreenInstalled(mContext)) {
+                optionsEnhancedscreen.setVisible(true);
+            } else {
+                optionsEnhancedscreen.setVisible(false);
+            }
+        }
 
         final MenuItem editMenu = menu.findItem(R.id.menu_edit_group);
         editMenu.setVisible(mOptionsMenuGroupEditable);

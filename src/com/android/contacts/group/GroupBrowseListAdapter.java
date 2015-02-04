@@ -50,6 +50,8 @@ import java.util.List;
 public class GroupBrowseListAdapter extends BaseAdapter {
 
     private static final String TAG = "GroupBrowseListAdapter";
+    private static final String RCS_SOURCE_ID = "RCS";
+    private static final String RCS_ACCOUNT_TYPE = "RCS";
     private final Context mContext;
     private final LayoutInflater mLayoutInflater;
     private final AccountTypeManager mAccountTypeManager;
@@ -59,6 +61,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
     private boolean mSelectionVisible;
     private Uri mSelectedGroupUri;
     private static boolean mShowRcsHeader = true;
+    private int mLocalGroupsCount;
     private ArrayList<GroupChatModel> mRcsChatGroups = new ArrayList<GroupChatModel>();
     private HashMap<String, Integer> mCountMap = new HashMap<String, Integer>();
 
@@ -133,6 +136,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
+        mLocalGroupsCount = RCSUtil.getLocalGroupsCount(mContext);
         return (mCursor == null || mCursor.isClosed()) ? 0 : mCursor.getCount();
     }
 
@@ -155,8 +159,8 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         String title = mCursor.getString(GroupListLoader.TITLE);
         int memberCount = mCursor.getInt(GroupListLoader.MEMBER_COUNT);
 
-        if(RcsApiManager.isRcsServiceInstalled() && (!TextUtils.isEmpty(sourceId))){
-            if(sourceId.equals("RCS")){
+        if(RCSUtil.getRcsSupport() && (!TextUtils.isEmpty(sourceId))){
+            if(RCS_SOURCE_ID.equals(sourceId)){
                 accountType=sourceId;
                 String strGroupId = mCursor.getString(GroupListLoader.SYSTEM_ID);
                 if(TextUtils.isEmpty(strGroupId)){
@@ -195,12 +199,13 @@ public class GroupBrowseListAdapter extends BaseAdapter {
             return null;
         }
 
-        GroupListItem entry = getItem(position);
+        GroupListItem entry = (GroupListItem) getItem(position);
+        Log.i(TAG, entry.getAccountType());
         View result;
         GroupListItemViewCache viewCache = null;
         ViewHolder holder = new ViewHolder();
         if (convertView != null) {
-            if (entry.getAccountType().equals("RCS")) {
+            if (RCS_ACCOUNT_TYPE.equals(entry.getAccountType())) {
                 result = convertView;
                 if ((result.getTag()) instanceof ViewHolder)
                     holder = (ViewHolder) result.getTag();
@@ -227,10 +232,8 @@ public class GroupBrowseListAdapter extends BaseAdapter {
                 }
             }
         } else {
-            if (entry.getAccountType().equals("RCS")) {
-
+            if (RCS_ACCOUNT_TYPE.equals(entry.getAccountType())) {
                 result = mLayoutInflater.inflate(R.layout.rcs_contact_group_item, parent, false);
-
                 holder.group_icon_view = (View) result.findViewById(R.id.group_icon_view);
                 holder.groupName = (TextView) result.findViewById(R.id.group_name);
                 holder.groupCount = (TextView) result.findViewById(R.id.group_count);
@@ -246,7 +249,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         if (entry == null)
             return result;
 
-        if (entry.getAccountType().equals("RCS")) {
+        if (RCS_ACCOUNT_TYPE.equals(entry.getAccountType())) {
             holder = (ViewHolder) result.getTag();
             holder.groupName.setText(entry.getTitle());
             String memberCountString = mContext.getResources()
@@ -325,7 +328,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         }
         return result;
     }
-    
+
     private void showSection(TextView titleView) {
 
         titleView.setVisibility(View.VISIBLE);
@@ -335,9 +338,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
 
     private void bindHeaderView(GroupListItem entry, GroupListItemViewCache viewCache) {
 
-        if (entry.getAccountType().equals("RCS")) {
-
-        } else {
+        if (!RCS_ACCOUNT_TYPE.equals(entry.getAccountType())) {
             AccountType accountType = mAccountTypeManager.getAccountType(
                     entry.getAccountType(), entry.getDataSet());
             viewCache.accountType.setText(accountType.getDisplayLabel(mContext));
