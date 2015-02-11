@@ -57,4 +57,29 @@
     <item
         android:id="@+id/menu_create_contact_shortcut"
         android:title="@string/menu_create_contact_shortcut" />
+
+    <item
+        android:id="@+id/menu_upload_download"
+        android:title="@string/menu_local_profile_upload_download"/>
+
+    <item
+        android:id="@+id/menu_qrcode"
+        android:title="@string/menu_qrcode"
+        android:alphabeticShortcut="q" />
+
+    <item
+        android:id="@+id/menu_enhancedscreen"
+        android:title="@string/menu_enhancedscreen"
+        android:alphabeticShortcut="q" />
+
+    <item
+        android:id="@+id/menu_updateenhancedscreen"
+        android:title="@string/menu_updateenhancedscreen"
+        android:alphabeticShortcut="q" />
+        
+    <item
+        android:id="@+id/menu_plugin_center"
+        android:title="@string/menu_plugin_center"
+        android:alphabeticShortcut="p" />
+
 </menu>
