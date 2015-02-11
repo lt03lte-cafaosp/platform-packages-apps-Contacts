@@ -324,16 +324,20 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     private void addPublicAccountView() {
         ListView list = getListView();
         mPulicAccountView = new ContactListItemView(getActivity(), null);
-        mPulicAccountView.getPhotoView().setBackground(getActivity().getResources().getDrawable(R.drawable.public_account));
-        mPulicAccountView.setDisplayName(getActivity().getResources().getString(R.string.public_account));
-        //mPulicAccountView.setIsSectionHeaderEnabled(true);
+        mPulicAccountView.getPhotoView().setBackground(
+                getActivity().getResources().getDrawable(
+                R.drawable.public_account));
+        mPulicAccountView.setDisplayName(getActivity().getResources()
+                .getString(R.string.public_account));
+        // mPulicAccountView.setIsSectionHeaderEnabled(true);
         list.addHeaderView(mPulicAccountView);
         mPulicAccountView.setOnClickListener(new View.OnClickListener() {
-          @Override
-          public void onClick(View v) {
-                Intent intent = new Intent(RCSUtil.ACTION_PUBLIC_ACCOUNT_ACTIVITY);
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(
+                        RCSUtil.ACTION_PUBLIC_ACCOUNT_ACTIVITY);
                 startActivity(intent);
-          }
+            }
         });
     }
 

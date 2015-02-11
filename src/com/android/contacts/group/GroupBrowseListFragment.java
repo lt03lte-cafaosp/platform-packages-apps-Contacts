@@ -55,6 +55,7 @@ import com.android.contacts.group.local.LocalGroupListAdapter;
 import com.android.contacts.group.local.LocalGroupListLoader;
 import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.group.GroupBrowseListAdapter.GroupListItemViewCache;
 import com.android.contacts.util.RCSUtil;
 import com.android.contacts.common.ContactsUtils;
@@ -62,8 +63,6 @@ import com.android.contacts.common.list.AutoScrollListView;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
-import com.android.contacts.RcsApiManager;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -99,7 +98,7 @@ public class GroupBrowseListFragment extends Fragment
 
     private static final int LOADER_GROUPS = 1;
     private static final int LOADER_LOCAL_GROUPS = 2;
-
+    private static final long SLEEP_DURATION = 500;
     private Context mContext;
     private Cursor mGroupListCursor;
 
@@ -154,18 +153,20 @@ public class GroupBrowseListFragment extends Fragment
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (mListView.getAdapter() instanceof GroupBrowseListAdapter) {
-                    GroupListItem entry = ((GroupBrowseListAdapter)mListView.getAdapter()).getItem(position);
+                    GroupListItem entry = ((GroupBrowseListAdapter)mListView
+                            .getAdapter()).getItem(position);
                     if ("RCS".equals(entry.getAccountType())) {
                     RCSUtil.startChatGroupManagementActivity(mContext, entry);
                     } else {
-                        GroupListItemViewCache groupListItem = (GroupListItemViewCache) view.getTag();
+                        GroupListItemViewCache groupListItem =
+                                (GroupListItemViewCache) view.getTag();
                         if (groupListItem != null) {
                            viewGroup(groupListItem.getUri());
                         }
                     }
                  } else {
                      goToGroupEdit(getSelectUri(((Group) view.getTag()).getId()));
-                 }             
+                 }
             }
         });
 
@@ -295,7 +296,8 @@ public class GroupBrowseListFragment extends Fragment
         if (!isLocalShown()) {
             updateGroupData();
         }
-        SharedPreferences groupStatus = mContext.getSharedPreferences("RcsSharepreferences", Context.MODE_PRIVATE);
+        SharedPreferences groupStatus = mContext.getSharedPreferences("RcsSharepreferences",
+                Context.MODE_PRIVATE);
         boolean isRcsGroupDataLoaded = groupStatus.getBoolean("isRcsGroupDataLoaded", false);
         // start to load chat-group data when first initialization.
         if(RCSUtil.getRcsSupport() && (!isRcsGroupDataLoaded)){
@@ -454,7 +456,7 @@ public class GroupBrowseListFragment extends Fragment
         protected ArrayList<GroupChatModel> doInBackground(Void... params) {
 
             try {
-			    RCSUtil.sleep(1000);
+                RCSUtil.sleep(SLEEP_DURATION);
                 rcsChatGroups.addAll(RcsApiManager.getMessageApi()
                         .getAllGroupChat());
             } catch (ServiceDisconnectedException e) {
@@ -503,7 +505,8 @@ public class GroupBrowseListFragment extends Fragment
                 loaderManager.restartLoader(LOADER_GROUPS, null, mGroupLoaderListener);
             mAdapter.setRcsGroupsData(result,contactCountMap);
             mAdapter.notifyDataSetChanged();
-            SharedPreferences groupStatus = activityContext.getSharedPreferences("RcsSharepreferences", Context.MODE_PRIVATE);
+            SharedPreferences groupStatus = activityContext.getSharedPreferences(
+                    "RcsSharepreferences", Context.MODE_PRIVATE);
             Editor editor = groupStatus.edit();
             editor.putBoolean("isRcsGroupDataLoaded", true);
             editor.commit();

@@ -32,14 +32,17 @@ package com.android.contacts.group.local;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.ProgressDialog;
+import android.content.AsyncQueryHandler;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -54,6 +57,7 @@ import android.preference.PreferenceScreen;
 import android.provider.ContactsContract;
 import android.provider.LocalGroups;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
+import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.LocalGroups.Group;
@@ -65,12 +69,15 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.editor.MultiPickContactActivity;
 import com.android.contacts.common.list.AccountFilterActivity;
 import com.android.contacts.common.list.ContactListFilter;
 import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.model.account.PhoneAccountType;
-
+import com.android.contacts.util.RCSUtil;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
@@ -100,6 +107,16 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
 
     private int mChangeStartPos;
     private int mChangeCount;
+    // for RCS
+    private static final int QUERY_TOKEN = 100;
+    private static final int MENU_DELETE = 0;
+    private static final int MENU_START_GROUPCHAT = 1;
+    private static final int MENU_ENHANCE = 2;
+    private QueryHandler mQueryHandler;
+    private int selectMenu = 0;
+    static final String[] CONTACTS_SUMMARY_PROJECTION = new String[] {
+        Contacts._ID,Data.RAW_CONTACT_ID
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -190,14 +207,20 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 0, 0, R.string.menu_option_delete);
+        menu.add(0, MENU_DELETE, 0, R.string.menu_option_delete);
+        if (RCSUtil.getRcsSupport()) {
+            menu.add(0, MENU_START_GROUPCHAT, 0, R.string.menu_create_group_chat);
+            if (RCSUtil.isEnhanceScreenInstalled(getApplicationContext())) {
+               menu.add(0, MENU_ENHANCE, 0, R.string.menu_enhancedscreen);
+            }
+        }
         return super.onCreateOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case 0:
+            case MENU_DELETE:
                 new AlertDialog.Builder(this)
                         .setMessage(R.string.delete_locale_group_dialog_message)
                         .setTitle(R.string.delete_group_dialog_title)
@@ -221,6 +244,18 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
                         }).show();
 
                 break;
+            case MENU_ENHANCE:{
+                mQueryHandler = new QueryHandler(this);
+                startQuery();
+                selectMenu = MENU_ENHANCE;
+            }
+            break;
+            case MENU_START_GROUPCHAT:{
+                mQueryHandler = new QueryHandler(this);
+                startQuery();
+                selectMenu = MENU_START_GROUPCHAT;
+            }
+            break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -517,5 +552,35 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
             }
         }
         super.onStop();
+    }
+
+    private void startQuery() {
+        mQueryHandler.cancelOperation(QUERY_TOKEN);
+
+        mQueryHandler.startQuery(QUERY_TOKEN, null,
+                        Uri.withAppendedPath(LocalGroup.CONTENT_FILTER_URI, Uri
+                        .encode(getIntent().getData()
+                        .getLastPathSegment())),
+                        CONTACTS_SUMMARY_PROJECTION, null, null, null);
+    }
+
+    private class QueryHandler extends AsyncQueryHandler {
+        protected final WeakReference<GroupEditActivity> mActivity;
+
+        public QueryHandler(Context context) {
+            super(context.getContentResolver());
+            mActivity = new WeakReference<GroupEditActivity>(
+                    (GroupEditActivity) context);
+        }
+
+        @Override
+        protected void onQueryComplete(int token, Object cookie, Cursor data) {
+            final GroupEditActivity activity = mActivity.get();
+            if (null == data) {
+                return;
+            }
+            RCSUtil.responeGroupDetailOption(getApplicationContext(), data,
+                    selectMenu);
+        }
     }
 }

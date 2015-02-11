@@ -35,7 +35,6 @@ import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
 import com.suntek.mway.rcs.client.api.mcontact.McontactApi;
 import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 import com.suntek.mway.rcs.client.api.publicaccount.impl.PublicAccountApi;
-//import com.suntek.mway.rcs.client.api.qrcode.impl.QRCodePluginApi;
 import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.voip.impl.RichScreenApi;
@@ -171,16 +170,7 @@ public class RcsApiManager {
 
         return mRcsAccountApi;
     }
-/*
-    public static QRCodePluginApi getQRCodeApi() {
-        if (mQrcodeApi == null) {
-            mQrcodeApi = new QRCodePluginApi();
-            mQrcodeApi.init(mContext, null);
-        }
 
-        return mQrcodeApi;
-    }
-*/
     public static ConfApi getConfApi() {
         if (mConfApi == null) {
             mConfApi = new ConfApi();
@@ -197,6 +187,7 @@ public class RcsApiManager {
         }
         return mProfileApi;
     }
+
     public static RichScreenApi getRichScreenApi() {
         if (mRichScreenApi == null) {
             mRichScreenApi = new RichScreenApi(null);
@@ -205,7 +196,7 @@ public class RcsApiManager {
         }
         return mRichScreenApi;
     }
-    
+
     public static PluginCenterApi getPluginCenterApi() {
         if (mPluginCenterApi == null) {
             mPluginCenterApi = new PluginCenterApi();
@@ -223,11 +214,15 @@ public class RcsApiManager {
         return mCapabilityApi;
     }
 
-    public static boolean isRcsServiceInstalled() {
-        return mIsRcsServiceInstalled;
+    public static McontactApi getMcontactApi() {
+        if (mMcontactApi == null) {
+            mMcontactApi = new McontactApi();
+            mMcontactApi.init(mContext, null);
+        }
+        return mMcontactApi;
     }
 
-    public static McontactApi getMcontactApi() {
-        return mMcontactApi;
+    public static boolean isRcsServiceInstalled() {
+        return mIsRcsServiceInstalled;
     }
 }

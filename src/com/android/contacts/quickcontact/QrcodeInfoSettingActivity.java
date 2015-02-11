@@ -20,6 +20,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
 package com.android.contacts.quickcontact;
 
 import java.util.ArrayList;
@@ -88,11 +89,11 @@ import com.android.contacts.R;
 import android.util.Log;
 import android.content.SharedPreferences;
 import com.android.contacts.RcsApiManager;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar.IMAGE_TYPE;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Profile;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.TelephoneModel;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.profile.callback.ProfileListener;
 import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 
@@ -171,7 +172,7 @@ public class QrcodeInfoSettingActivity extends Activity {
                 .getString(R.string.qrcode_setting_complete));
         actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
                 ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_SHOW_HOME
-                        | ActionBar.DISPLAY_SHOW_TITLE);
+                | ActionBar.DISPLAY_SHOW_TITLE);
         actionBar.setCustomView(customActionBarView);
         setContentView(R.layout.qrcode_info_setting);
         mChoiceSet = new Bundle();
@@ -196,11 +197,11 @@ public class QrcodeInfoSettingActivity extends Activity {
         if (mRawContact == null)
             return;
 
-        SharedPreferences myQrcodeSharedPreferences= getSharedPreferences("QrcodePersonalCheckState",
-              Activity.MODE_PRIVATE);
-        String value = myQrcodeSharedPreferences.getString("value","");
+        SharedPreferences myQrcodeSharedPreferences = getSharedPreferences(
+                "QrcodePersonalCheckState", Activity.MODE_PRIVATE);
+        String value = myQrcodeSharedPreferences.getString("value", "");
         String[] initChecked = value.split(",");
-        int total = myQrcodeSharedPreferences.getInt("total",0);
+        int total = myQrcodeSharedPreferences.getInt("total", 0);
         String myAccountNumber = "+8613522631112";
         try {
             myAccountNumber = RcsApiManager.getRcsAccoutApi()
@@ -221,29 +222,30 @@ public class QrcodeInfoSettingActivity extends Activity {
             if (dataItem instanceof PhoneDataItem) {
                 int phoneType = ((PhoneDataItem) dataItem).getContentValues()
                         .getAsInteger(Phone.TYPE);
-                if (Phone.TYPE_WORK == phoneType && !TextUtils.isEmpty(((PhoneDataItem) dataItem)
-                            .getNumber())) {
+                if (Phone.TYPE_WORK == phoneType
+                        && !TextUtils.isEmpty(((PhoneDataItem) dataItem)
+                        .getNumber())) {
                     group2_list_key.add(getString(R.string.rcs_company_number));
-                    group2_list_value.add(((PhoneDataItem) dataItem)
-                            .getNumber());
+                    group2_list_value.add(((PhoneDataItem) dataItem).getNumber());
                     contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_NUMBER;
                     Log.d(TAG, "rcs_company_number=" + QRCODE_COMPANY_NUMBER);
 
-                } else if (Phone.TYPE_FAX_WORK == phoneType && !TextUtils.isEmpty(((PhoneDataItem) dataItem)
-                        .getNumber())) {
+                } else if (Phone.TYPE_FAX_WORK == phoneType
+                        && !TextUtils.isEmpty(((PhoneDataItem) dataItem).getNumber())) {
                     group2_list_key.add(getString(R.string.rcs_company_fax));
                     group2_list_value.add(((PhoneDataItem) dataItem)
                             .getNumber());
                     contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_FAX;
                     Log.d(TAG, "rcs_company_fax=" + QRCODE_COMPANY_FAX);
                 }
-            } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType) && !TextUtils.isEmpty(entryValues.getAsString(Email.ADDRESS))) {
+            } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType)
+                    && !TextUtils.isEmpty(entryValues.getAsString(Email.ADDRESS))) {
                 group2_list_key.add(getString(R.string.rcs_email_address));
                 group2_list_value.add(entryValues.getAsString(Email.ADDRESS));
                 contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_EMAIL;
                 Log.d(TAG, "rcs_email_address=" + QRCODE_EMAIL);
-            } else if (Organization.CONTENT_ITEM_TYPE.equals(mimeType)&& !TextUtils.isEmpty(entryValues.getAsString(Organization.COMPANY))) {
-
+            } else if (Organization.CONTENT_ITEM_TYPE.equals(mimeType)
+                    && !TextUtils.isEmpty(entryValues.getAsString(Organization.COMPANY))) {
                 String company = entryValues.getAsString(Organization.COMPANY);
                 group2_list_key.add(getString(R.string.rcs_company_name));
                 group2_list_value.add(company);
@@ -258,9 +260,9 @@ public class QrcodeInfoSettingActivity extends Activity {
                 Log.d("RCSUtil", "title=" + title);
             }
         }
-        for(int i = 0; i < group2_list_key.size(); i++){
-            for(int j = 0 ;j < total ; j++){
-                if(group2_list_key.get(i).equals(initChecked[j])){
+        for (int i = 0; i < group2_list_key.size(); i++) {
+            for (int j = 0; j < total; j++) {
+                if (group2_list_key.get(i).equals(initChecked[j])) {
                     isDataCheck[BUSINESS_ID][i] = true;
                 }
             }
@@ -280,7 +282,8 @@ public class QrcodeInfoSettingActivity extends Activity {
             Log.d(TAG, "childCount" + childCount);
             for (int j = 0; j < childCount; j++) {
                 if (isDataCheck[BUSINESS_ID][j] == true) {
-                    Log.d(TAG, "isDataCheck[i][j] is" + i+j+isDataCheck[i][j]);
+                    Log.d(TAG, "isDataCheck[i][j] is" + i + j
+                            + isDataCheck[i][j]);
                     if (i == BUSINESS_ID) {
                         isHasBusiness = true;
                     }
@@ -299,7 +302,7 @@ public class QrcodeInfoSettingActivity extends Activity {
             Log.d(TAG, "mChoiceSet is null");
             return null;
         } else {
-            saveSharePrefence(index,sb.toString(),isHasBusiness);
+            saveSharePrefence(index, sb.toString(), isHasBusiness);
             return converToProfile();
         }
     }
@@ -353,7 +356,6 @@ public class QrcodeInfoSettingActivity extends Activity {
                     tele.setType(TelephoneModel.TYPE_HOME);
                     tele.setTelephone(value);
                     profile.getOtherTels().add(tele);
-
                     tele = new TelephoneModel();
                     tele.setType(TelephoneModel.TYPE_FIXED);
                     tele.setTelephone(value);
@@ -388,7 +390,6 @@ public class QrcodeInfoSettingActivity extends Activity {
                     profile.setCompanyName(value);
                 } else if (contactType == QRCODE_COMPANY_TITLE) {
                     profile.setCompanyDuty(value);
-
                 } else if (contactType == QRCODE_COMPANY_NUMBER) {
                     profile.setCompanyTel(value);
                 } else if (contactType == QRCODE_COMPANY_ADDRESS) {
@@ -398,7 +399,6 @@ public class QrcodeInfoSettingActivity extends Activity {
                     profile.setCompanyFax(value);
                 }
             }
-
         }
         return profile;
     }
@@ -410,32 +410,35 @@ public class QrcodeInfoSettingActivity extends Activity {
         switch (id) {
         case DIALOG_COMFIR_FOR_PROFILE_UPDATE:
             dialog = new AlertDialog.Builder(this)
-            .setMessage(R.string.rcs_confirom_upload_profile)
-            .setPositiveButton(R.string.btn_ok,
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog,
-                                int which) {
-                            Profile prfile = saveContactInfo();
-                            if (null != prfile) {
-                                Intent intent = new Intent();
-                                Bundle bundle = new Bundle();
-                                intent.putExtra("isHasBusiness", isHasBusiness);
-                                bundle.putParcelable("Profile", prfile);
-                                intent.putExtras(bundle);
-                                QrcodeInfoSettingActivity.this.setResult(RESULT_OK, intent);
-                            } else {
-                                QrcodeInfoSettingActivity.this.setResult(RESULT_CANCELED);
-                            }
-                            finish();
-                        }
-                    })
-            .setNegativeButton(R.string.btn_cancel,
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog,
-                                int whichButton) {
-                            finish();
-                        }
-                    }).create();
+                    .setMessage(R.string.rcs_confirom_upload_profile)
+                    .setPositiveButton(R.string.btn_ok,
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog,
+                                        int which) {
+                                    Profile prfile = saveContactInfo();
+                                    if (null != prfile) {
+                                        Intent intent = new Intent();
+                                        Bundle bundle = new Bundle();
+                                        intent.putExtra("isHasBusiness",
+                                                isHasBusiness);
+                                        bundle.putParcelable("Profile", prfile);
+                                        intent.putExtras(bundle);
+                                        QrcodeInfoSettingActivity.this
+                                                .setResult(RESULT_OK, intent);
+                                    } else {
+                                        QrcodeInfoSettingActivity.this
+                                                .setResult(RESULT_CANCELED);
+                                    }
+                                    finish();
+                                }
+                            })
+                    .setNegativeButton(R.string.btn_cancel,
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog,
+                                        int whichButton) {
+                                    finish();
+                                }
+                            }).create();
             break;
         case DIALOG_PRIVATE_ID:
             dialog = new AlertDialog.Builder(this)
@@ -446,7 +449,7 @@ public class QrcodeInfoSettingActivity extends Activity {
                                         int which) {
                                     startActivityForResult(
                                             new Intent(Intent.ACTION_EDIT,
-                                                    mCurrContactUri),
+                                            mCurrContactUri),
                                             REQUEST_EDIT_CONTACT);
                                 }
                             })
@@ -466,19 +469,16 @@ public class QrcodeInfoSettingActivity extends Activity {
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog,
                                         int which) {
-                                    //
                                     startActivityForResult(
                                             new Intent(Intent.ACTION_EDIT,
-                                                    mCurrContactUri),
+                                            mCurrContactUri),
                                             REQUEST_EDIT_CONTACT);
                                 }
-
                             })
                     .setNegativeButton(R.string.btn_cancel,
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog,
                                         int whichButton) {
-
                                 }
                             }).create();
             break;
@@ -505,8 +505,8 @@ public class QrcodeInfoSettingActivity extends Activity {
                         if (BUSINESS_ID == position
                                 && 0 == item_list.get(position).size()) {
                             showDialog(DIALOG_BUSINESS_ID);
-                        } else if(PRIVATE_ID == position
-                                && 0 == item_list.get(position).size()){
+                        } else if (PRIVATE_ID == position
+                                && 0 == item_list.get(position).size()) {
                             showDialog(DIALOG_PRIVATE_ID);
                         }
                     }
@@ -609,7 +609,8 @@ public class QrcodeInfoSettingActivity extends Activity {
                 itemHolder.txt = (TextView) convertView
                         .findViewById(R.id.label);
                 itemHolder.img = (TextView) convertView.findViewById(R.id.data);
-                itemHolder.checkbox = (CheckBox) convertView.findViewById(R.id.checkbox);
+                itemHolder.checkbox = (CheckBox) convertView
+                        .findViewById(R.id.checkbox);
 
                 convertView.setTag(itemHolder);
 
@@ -617,29 +618,32 @@ public class QrcodeInfoSettingActivity extends Activity {
                 itemHolder = (ItemHolder) convertView.getTag();
 
             }
-            //isCheck = true;
-            itemHolder.txt.setText(item_list.get(groupPosition).get(childPosition));
-            itemHolder.img.setText(item_list2.get(groupPosition).get(childPosition));
-            if(groupPosition == PRIVATE_ID){
+            // isCheck = true;
+            itemHolder.txt.setText(item_list.get(groupPosition).get(
+                    childPosition));
+            itemHolder.img.setText(item_list2.get(groupPosition).get(
+                    childPosition));
+            if (groupPosition == PRIVATE_ID) {
                 itemHolder.checkbox.setVisibility(View.GONE);
             } else {
                 itemHolder.checkbox.setVisibility(View.VISIBLE);
             }
-            itemHolder.checkbox.setChecked(isDataCheck[groupPosition][childPosition]);
-            itemHolder.checkbox.setOnClickListener(new CheckBox.OnClickListener(){
+            itemHolder.checkbox
+                    .setChecked(isDataCheck[groupPosition][childPosition]);
+            itemHolder.checkbox
+                    .setOnClickListener(new CheckBox.OnClickListener() {
 
-                @Override
-                public void onClick(View v) {
-                    // TODO Auto-generated method stub
-                    CheckBox cb = (CheckBox)v;
-                    if(cb.isChecked()){
-                        isDataCheck[groupPosition][childPosition] = true;
-                    } else {
-                        isDataCheck[groupPosition][childPosition] = false;
-                    }
-                }
-
-            });
+                        @Override
+                        public void onClick(View v) {
+                            // TODO Auto-generated method stub
+                            CheckBox cb = (CheckBox) v;
+                            if (cb.isChecked()) {
+                                isDataCheck[groupPosition][childPosition] = true;
+                            } else {
+                                isDataCheck[groupPosition][childPosition] = false;
+                            }
+                        }
+                    });
             return convertView;
         }
 
@@ -661,9 +665,10 @@ public class QrcodeInfoSettingActivity extends Activity {
         public CheckBox checkbox;
     }
 
-    private void saveSharePrefence(int index, String result,boolean isHasBusiness){
-        SharedPreferences myQrcodeSharedPreferences= getSharedPreferences("QrcodePersonalCheckState",
-            Activity.MODE_PRIVATE);
+    private void saveSharePrefence(int index, String result,
+            boolean isHasBusiness) {
+        SharedPreferences myQrcodeSharedPreferences = getSharedPreferences(
+                "QrcodePersonalCheckState", Activity.MODE_PRIVATE);
         SharedPreferences.Editor editor = myQrcodeSharedPreferences.edit();
 
         editor.putInt("total", index);

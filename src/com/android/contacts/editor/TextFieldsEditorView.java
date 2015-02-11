@@ -20,7 +20,9 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -38,6 +40,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import com.android.contacts.editor.Editor.EditorListener;
 import com.android.contacts.editor.LocalGroupsSelector.OnGroupSelectListener;
+import com.android.contacts.util.RCSUtil;
 import com.android.contacts.R;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.ContactsUtils;
@@ -283,8 +286,16 @@ public class TextFieldsEditorView extends LabeledEditorView {
                     }
                 });
 
-                fieldView.setEnabled(isEnabled() && !readOnly);
-
+                if (RCSUtil.getRcsSupport()
+                        && null != entry.getAsInteger(ContactsContract.Data.DATA13)
+                        && 1 == entry.getAsInteger(ContactsContract.Data.DATA13)) {
+                    setDeleteButtonVisible(false);
+                    fieldView.setEnabled(false);
+                } else {
+                    // Show the delete button if we have a non-null value
+                    setDeleteButtonVisible(value != null);
+                    fieldView.setEnabled(isEnabled() && !readOnly);
+                }
                 if (field.shortForm) {
                     hidePossible = true;
                     mHasShortAndLongForms = true;

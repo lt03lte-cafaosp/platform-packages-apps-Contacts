@@ -76,10 +76,16 @@
         android:id="@+id/menu_updateenhancedscreen"
         android:title="@string/menu_updateenhancedscreen"
         android:alphabeticShortcut="q" />
-        
+
     <item
         android:id="@+id/menu_plugin_center"
         android:title="@string/menu_plugin_center"
         android:alphabeticShortcut="p" />
+
+    <item
+        android:id="@+id/menu_online_business_hall"
+        android:title="@string/menu_online_business_hall"
+        android:alphabeticShortcut="p"
+         />
 
 </menu>
