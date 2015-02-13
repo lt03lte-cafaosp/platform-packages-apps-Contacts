@@ -17,9 +17,11 @@
 package com.android.contacts.editor;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
@@ -289,6 +291,17 @@ public class TextFieldsEditorView extends LabeledEditorView {
                 if (RCSUtil.getRcsSupport()
                         && null != entry.getAsInteger(ContactsContract.Data.DATA13)
                         && 1 == entry.getAsInteger(ContactsContract.Data.DATA13)) {
+                    String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
+                    SharedPreferences prefs = PreferenceManager
+                            .getDefaultSharedPreferences(mContext);
+                    String latestTerminal = prefs.getString(RCSUtil.PREF_MY_TEMINAL, "");
+                    if (!TextUtils.isEmpty(myPhoneNumber)
+                            && !TextUtils.equals(latestTerminal, myPhoneNumber)) {
+                        fieldView.setText(myPhoneNumber);
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putString(RCSUtil.PREF_MY_TEMINAL, myPhoneNumber);
+                        editor.apply();
+                    }
                     setDeleteButtonVisible(false);
                     fieldView.setEnabled(false);
                 } else {

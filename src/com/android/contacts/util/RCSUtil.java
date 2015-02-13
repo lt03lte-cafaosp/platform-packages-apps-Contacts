@@ -52,13 +52,24 @@ import com.android.contacts.group.GroupBrowseListFragment;
 import com.android.contacts.group.GroupListItem;
 import com.android.contacts.quickcontact.MyQrcodeActivity;
 import com.android.contacts.quickcontact.QuickContactActivity;
-import com.suntek.mway.rcs.client.aidl.plugin.callback.IMContactSyncListener;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.mcontact.Auth;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.mcontact.SyncAction;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.QRCardImg;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.QRCardInfo;
-import com.suntek.mway.rcs.client.api.profile.callback.QRImgListener;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.QRCardInfo;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.preference.PreferenceManager;
+import android.provider.ContactsContract.CommonDataKinds.Email;
+import android.provider.ContactsContract.CommonDataKinds.Event;
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
+import android.provider.ContactsContract.CommonDataKinds.Identity;
+import android.provider.ContactsContract.CommonDataKinds.Im;
+import android.provider.ContactsContract.CommonDataKinds.Nickname;
+import android.provider.ContactsContract.CommonDataKinds.Note;
+import android.provider.ContactsContract.CommonDataKinds.Organization;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.CommonDataKinds.Relation;
+import android.provider.ContactsContract.CommonDataKinds.SipAddress;
+import android.provider.ContactsContract.CommonDataKinds.Organization;
+import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
+import android.provider.ContactsContract.CommonDataKinds.Website;
 import android.database.sqlite.SqliteWrapper;
 import android.content.SharedPreferences;
 import com.google.common.collect.ImmutableList;
@@ -67,17 +78,27 @@ import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar.IMAGE_TYPE;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Profile;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.TelephoneModel;
-import com.suntek.mway.rcs.client.api.profile.callback.ProfileListener;
-import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
+import com.suntek.mway.rcs.client.aidl.plugin.callback.IMContactSyncListener;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.mcontact.Auth;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.mcontact.SyncAction;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.QRCardImg;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.QRCardInfo;
+import com.suntek.mway.rcs.client.api.profile.callback.QRImgListener;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
+import com.suntek.mway.rcs.client.aidl.capability.RCSCapabilities;
+import com.suntek.mway.rcs.client.api.profile.callback.ProfileListener;
+import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 import com.suntek.mway.rcs.client.aidl.capability.RCSCapabilities;
 import com.suntek.mway.rcs.client.api.capability.callback.CapabiltyListener;
 import com.android.contacts.RcsApiManager;
+
 import com.android.contacts.R;
+
 import android.app.Activity;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.app.AlertDialog;
@@ -116,26 +137,17 @@ import android.os.Handler;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.Telephony;
-import android.preference.PreferenceManager;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Event;
-import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
-import android.provider.ContactsContract.CommonDataKinds.Identity;
-import android.provider.ContactsContract.CommonDataKinds.Im;
-import android.provider.ContactsContract.CommonDataKinds.Nickname;
-import android.provider.ContactsContract.CommonDataKinds.Note;
 import android.provider.ContactsContract.CommonDataKinds.Organization;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
-import android.provider.ContactsContract.CommonDataKinds.Relation;
-import android.provider.ContactsContract.CommonDataKinds.SipAddress;
-import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
-import android.provider.ContactsContract.CommonDataKinds.Website;
 import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.Contacts;
-import android.provider.ContactsContract.Contacts.Data;
 import android.provider.ContactsContract.Groups;
 import android.provider.ContactsContract.QuickContact;
+import android.provider.ContactsContract.Contacts.Data;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.Telephony.Threads;
 import android.text.TextUtils;
@@ -249,6 +261,8 @@ public class RCSUtil {
 
     private static final String ONLINE_BUSINESS_HALL = "cn.com.onlinebusiness";
 
+    private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
+
     public static boolean getRcsSupport() {
         return isRcsSupport;
     }
@@ -275,6 +289,18 @@ public class RCSUtil {
 
     public static boolean isPluginInstalled(Context context) {
         return isPackageInstalled(context, PLUGIN_PACKAGE);
+    }
+
+    public static boolean isEnhanceScreenInstalled(Context context) {
+        return isPackageInstalled(context, ENHANCE_SCREEN_APK_NAME);
+    }
+
+    public static boolean isOnlineBusinessHallInstalled(Context context) {
+        return isPackageInstalled(context, ONLINE_BUSINESS_HALL);
+    }
+
+    public static boolean isPlunginCenterInstalled(Context context) {
+        return isPackageInstalled(context, PLUNGIN_CENTER);
     }
 
     public static void resotreContactIfTerminalChanged(final Context context) {
@@ -479,7 +505,6 @@ public class RCSUtil {
         deleteRcsCapa(context, contactId);
         boolean hasPhoneNumber = false;
         ContactsCommonRcsUtil.RcsCapabilityMapCache.clear();
-        ContactsCommonRcsUtil.RcsCapabilityMap.remove(contactId);
         for (RawContact rawContact : contactData.getRawContacts()) {
             final long rawContactId = rawContact.getId();
             for (DataItem dataItem : rawContact.getDataItems()) {
@@ -528,10 +553,10 @@ public class RCSUtil {
         int height = tempBitmap.getHeight();
         int width = tempBitmap.getWidth();
         if (height <= 120 || width <= 120) {
-            return Bitmap2Bytes(zoomBitmap(tempBitmap, 160, 160));
+            return Bitmap2Bytes(zoomBitmap(tempBitmap, 720, 720));
         }
         if (height >= 1024 || width >= 1024) {
-            return Bitmap2Bytes(zoomBitmap(tempBitmap, 160, 160));
+            return Bitmap2Bytes(zoomBitmap(tempBitmap, 720, 720));
         }
         if (height != width) {
             int len = (width > height) ? height : width;
@@ -589,9 +614,8 @@ public class RCSUtil {
         @Override
         protected Void doInBackground(Void... params) {
             ContentResolver resolver = mContext.getContentResolver();
-            Cursor c = resolver.query(Contacts.CONTENT_URI, new String[] {
-                Contacts._ID
-            }, null, null, null);
+            Cursor c = resolver.query(Contacts.CONTENT_URI,
+                    new String[] { Contacts._ID }, null, null, null);
             ArrayList<Long> contactIdList = new ArrayList<Long>();
             try {
                 if (c != null && c.moveToFirst()) {
@@ -749,14 +773,13 @@ public class RCSUtil {
                 phoneNumberList.add(Number);
             }
             if (!TextUtils.isEmpty(anrs)){
-                final String[] anrArray;
-                anrArray = anrs.split(",");
+                String[] anrArray = anrs.split(",");
                 for (String anr : anrArray) {
                     phoneNumberList.add(anrs);
                 }
             }
             try {
-                Log.d(TAG,"import contact downloadRichScrnObj"+phoneNumberList.toString());
+                Log.d(TAG,"import contact downloadRichScrnObj" + phoneNumberList.toString());
                 for(int i = 0; i < phoneNumberList.size(); i++ ){
                     String phoneNumber = getFormatNumber(phoneNumberList.get(i)
                         .replaceAll(",",""));
@@ -846,7 +869,7 @@ public class RCSUtil {
     private static String getRawContactId(Context context) {
         String rawContactId = null;
         Cursor cursor = context.getContentResolver().query(
-                PROFILE_URI, null,
+                PROFILE_RAW_CONTACTS_URI, null,
                 ACCOUNT_ID + " = 1 AND " + RawContacts.CONTACT_ID + " != '' ", null, null);
         try {
             if (cursor != null && cursor.moveToFirst() && !cursor.isAfterLast()) {
@@ -863,7 +886,7 @@ public class RCSUtil {
         if (rawContactId == null) {
             ContentValues values = new ContentValues();
             Uri rawContactUri = context.getContentResolver()
-                    .insert(PROFILE_URI, values);
+                    .insert(PROFILE_RAW_CONTACTS_URI, values);
             rawContactId = String.valueOf(ContentUris.parseId(rawContactUri));
         }
         return rawContactId;
@@ -1575,13 +1598,23 @@ public class RCSUtil {
         }
 
         if (insertOrganization) {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
-            contentValues.put(Organization.COMPANY, profile.getCompanyName());
-            contentValues.put(Organization.TITLE, profile.getCompanyDuty());
-            contentValues.put(Data.MIMETYPE, Organization.CONTENT_ITEM_TYPE);
-            ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI).withValues(contentValues)
-                    .build());
+            //is empty del row
+            if(TextUtils.isEmpty(profile.getCompanyName())
+                    && TextUtils.isEmpty(profile.getCompanyDuty())){
+                ops.add(ContentProviderOperation.newDelete(PROFILE_DATA_URI).withSelection(
+                        Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE
+                        + " = ? ",
+                new String[] { String.valueOf(rawContactId),
+                        Organization.CONTENT_ITEM_TYPE }).build());
+            }else{
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
+                contentValues.put(Organization.COMPANY, profile.getCompanyName());
+                contentValues.put(Organization.TITLE, profile.getCompanyDuty());
+                contentValues.put(Data.MIMETYPE, Organization.CONTENT_ITEM_TYPE);
+                ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
+                        .withValues(contentValues).build());
+            }
         } else if (updateOrganization) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Organization.COMPANY, profile.getCompanyName());
@@ -1791,7 +1824,6 @@ public class RCSUtil {
                 @Override
                 public void onProfileGet(final Profile profile, final int resultCode,
                         final String resultDesc) throws RemoteException {
-                    Log.d("RCS_Service", "Get profile first name: " + profile.getFirstName());
                     if (resultCode == 0) {
                         SharedPreferences myProfileSharedPreferences = context
                                 .getSharedPreferences("RcsSharepreferences", Activity.MODE_PRIVATE);
@@ -1881,6 +1913,13 @@ public class RCSUtil {
                                 }
                             });
                         }
+                    } else {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                makeToast(context, R.string.get_photo_profile_failed);
+                            }
+                        });
                     }
                 }
 
@@ -2328,71 +2367,36 @@ public class RCSUtil {
         return false;
     }
 
-    public static void initRcsMenu(Context context, Menu menu,
-            Contact contactData) {
-        if (contactData == null) {
+    public static void initRcsMenu(Context context, Menu menu, Contact contactData) {
+        if (contactData == null || !getRcsSupport()) {
             return;
         }
-        if (contactData.isUserProfile() && RCSUtil.getRcsSupport()) {
-            final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
-            if (optionsQrcode != null) {
-                optionsQrcode.setVisible(true);
-            }
-            final MenuItem optionsPluginCenter = menu
-                    .findItem(R.id.menu_plugin_center);
-            if (optionsPluginCenter != null) {
-                optionsPluginCenter.setVisible(true);
-            }
-
-        } else {
-            final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
-            if (optionsQrcode != null) {
-                optionsQrcode.setVisible(false);
-            }
-            final MenuItem optionsPluginCenter = menu
-                    .findItem(R.id.menu_plugin_center);
-            if (optionsPluginCenter != null) {
-                optionsPluginCenter.setVisible(false);
-            }
-        }
-        if (RCSUtil.getRcsSupport() && isEnhanceScreenInstalled(context)) {
-            final MenuItem optionsEnhancedscreen = menu
-                    .findItem(R.id.menu_enhancedscreen);
-            if (optionsEnhancedscreen != null) {
-                optionsEnhancedscreen.setVisible(true);
-            }
-            if (!contactData.isUserProfile()) {
-                final MenuItem optionsUpdateEnhanceScreen = menu
-                        .findItem(R.id.menu_updateenhancedscreen);
-                if (optionsUpdateEnhanceScreen != null) {
-                    optionsUpdateEnhanceScreen.setVisible(true);
-                }
-            } else {
-                final MenuItem optionsUpdateEnhanceScreen = menu
-                        .findItem(R.id.menu_updateenhancedscreen);
-                if (optionsUpdateEnhanceScreen != null) {
-                    optionsUpdateEnhanceScreen.setVisible(false);
-                }
-            }
-        } else {
-            final MenuItem optionsEnhancedscreen = menu
-                    .findItem(R.id.menu_enhancedscreen);
-            if (optionsEnhancedscreen != null) {
-                optionsEnhancedscreen.setVisible(false);
-            }
-            final MenuItem optionsUpdateEnhanceScreen = menu
-                    .findItem(R.id.menu_updateenhancedscreen);
-            if (optionsUpdateEnhanceScreen != null) {
-                optionsUpdateEnhanceScreen.setVisible(false);
-            }
+        final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
+        if (optionsQrcode != null) {
+            optionsQrcode.setVisible(contactData.isUserProfile());
         }
 
+        final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
+        if (optionsPluginCenter != null) {
+            optionsPluginCenter.setVisible(isPlunginCenterInstalled(context) &&
+                    contactData.isUserProfile());
+        }
+        final MenuItem optionsUpdateEnhanceScreen = menu
+                .findItem(R.id.menu_updateenhancedscreen);
+        if (optionsUpdateEnhanceScreen != null) {
+            optionsUpdateEnhanceScreen.setVisible(isEnhanceScreenInstalled(context)
+                    && !contactData.isUserProfile());
+        }
+        final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
+        if (optionsEnhancedscreen != null) {
+            optionsEnhancedscreen.setVisible(isEnhanceScreenInstalled(context));
+        }
         // Display/Hide the online business hall menu item.
-        MenuItem onlineBusinessHall = menu
-                .findItem(R.id.menu_online_business_hall);
-        onlineBusinessHall.setVisible(contactData.isUserProfile()
-                && RCSUtil.getRcsSupport()
-                && isOnlineBusinessHallInstalled(context));
+        MenuItem onlineBusinessHall = menu.findItem(R.id.menu_online_business_hall);
+        if (onlineBusinessHall != null) {
+            onlineBusinessHall.setVisible(contactData.isUserProfile()
+                    && isOnlineBusinessHallInstalled(context));
+        }
     }
 
     public static void startQrCodeActivity(Context context, Contact contactData) {
@@ -2472,6 +2476,7 @@ public class RCSUtil {
 
     }
 
+
     public static void startCreateGroupChatActivity(Context context, String number,
             String message) {
         Intent sendIntent = new Intent(Intent.ACTION_VIEW);
@@ -2505,75 +2510,81 @@ public class RCSUtil {
 
     public static String getPhoneforContactId(Context context, long contactId) {
 
-        String phone = null;
+        String phone = "";
         Cursor phonesCursor = null;
         phonesCursor = RCSUtil.queryPhoneNumbers(context, contactId);
-        if(null == phonesCursor) {
-            return "";
-        }
-        if (phonesCursor.getCount() == 0) {
-            // No valid number
-            // signalError();
-            if (!phonesCursor.isClosed()) {
+        try {
+            if(null != phonesCursor) {
+                if (phonesCursor.getCount() == 0) {
+                    // No valid number
+                    // signalError();
+                    if (!phonesCursor.isClosed()) {
+                        phonesCursor.close();
+                    }
+                    return phone;
+                } else if (phonesCursor.getCount() == 1) {
+                    // only one number, call it.
+                    phone = phonesCursor.getString(phonesCursor
+                            .getColumnIndex(Phone.NUMBER));
+                } else {
+                    phonesCursor.moveToPosition(-1);
+                    boolean first = true;
+                    while (phonesCursor.moveToNext()) {
+                        if (first) {
+                            //
+                            phone = phonesCursor.getString(phonesCursor
+                                    .getColumnIndex(Phone.NUMBER));
+                            first = false;
+                        }
+                        if (phonesCursor.getInt(phonesCursor.getColumnIndex
+
+                        (Phone.IS_SUPER_PRIMARY)) != 0) {
+                            // Found super primary, call it.
+                            phone = phonesCursor.getString(phonesCursor
+                                    .getColumnIndex(Phone.NUMBER));
+                            break;
+                        }
+                    }
+                }
+            }
+        } finally {
+            if (null != phonesCursor) {
                 phonesCursor.close();
             }
-            return phone;
-        } else if (phonesCursor.getCount() == 1) {
-            // only one number, call it.
-            phone = phonesCursor.getString(phonesCursor
-                    .getColumnIndex(Phone.NUMBER));
-        } else {
-            phonesCursor.moveToPosition(-1);
-            boolean first = true;
-            while (phonesCursor.moveToNext()) {
-                if (first) {
-                    //
-                    phone = phonesCursor.getString(phonesCursor
-                            .getColumnIndex(Phone.NUMBER));
-                    first = false;
-                }
-                if (phonesCursor.getInt(phonesCursor.getColumnIndex
-
-                (Phone.IS_SUPER_PRIMARY)) != 0) {
-                    // Found super primary, call it.
-                    phone = phonesCursor.getString(phonesCursor
-                            .getColumnIndex(Phone.NUMBER));
-                    break;
-                }
-            }
         }
-        phonesCursor.close();
         return phone;
     }
 
     public static String getAllPhoneNumberFromContactId(Context context, long contactId) {
 
-        String phone = null;
+        String phone = "";
         Cursor phonesCursor = null;
         StringBuilder sb = new StringBuilder();
         phonesCursor = RCSUtil.queryPhoneNumbers(context, contactId);
-        if (phonesCursor == null) {
-            return "";
-        }
-        if (phonesCursor.getCount() == 0) {
-            // No valid number
-            // signalError();
-            phonesCursor.close();
-            return phone;
-        } else if (phonesCursor.getCount() == 1) {
-            // only one number, call it.
-            phone = phonesCursor.getString(phonesCursor
-                    .getColumnIndex(Phone.NUMBER));
-        } else {
-            while (phonesCursor.moveToNext()) {
-                //
-                phone = phonesCursor.getString(phonesCursor
-                        .getColumnIndex(Phone.NUMBER));
-                sb.append(phone).append(";");
+
+        try {
+            if (phonesCursor != null) {
+                if (phonesCursor.getCount() == 0) {
+                    phone = "";
+                } else if (phonesCursor.getCount() == 1) {
+                    // only one number, call it.
+                    phone = phonesCursor.getString(phonesCursor
+                            .getColumnIndex(Phone.NUMBER));
+                } else {
+                    while (phonesCursor.moveToNext()) {
+                        phone = phonesCursor.getString(phonesCursor
+                                .getColumnIndex(Phone.NUMBER));
+                        sb.append(phone).append(";");
+                    }
+                    phone = sb.toString();
+                }
             }
-            phone = sb.toString();
+        } finally {
+            if (null != phonesCursor) {
+                phonesCursor.close();
+            }
+
         }
-        phonesCursor.close();
         return phone;
     }
 
@@ -2614,17 +2625,6 @@ public class RCSUtil {
             Log.w(TAG, "Exception initRcsComponents()" + e);
         }
         return size;
-    }
-
-    private static boolean isTopActivity(Activity activity){
-        boolean isTop = false;
-        ActivityManager am = (ActivityManager)activity.getSystemService(
-                activity.ACTIVITY_SERVICE);
-        ComponentName cn = am.getRunningTasks(1).get(0).topActivity;
-        if (cn.getClassName().contains(activity.getClass().getName())){
-            isTop = true;
-        }
-        return isTop;
     }
 
     public static String getFormatNumber(String number){
@@ -2722,6 +2722,19 @@ public class RCSUtil {
                             }
 
                             @Override
+                            public void onThrowException(Auth auth, int syncAction,
+                                    String exceptionMessage) {
+                                Log.e(TAG, "Exception: " + exceptionMessage);
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        makeToast(context,
+                                                R.string.contact_backup_fail);
+                                    }
+                                });
+                            }
+
+                            @Override
                             public void onSync(Auth auto, final int action,
                                     final boolean isSuccess)
                                     throws RemoteException {
@@ -2759,37 +2772,13 @@ public class RCSUtil {
         }
     }
 
-    public static boolean isEnhanceScreenInstalled(Context context) {
-        boolean installed = false;
-        try {
-            ApplicationInfo info = context.getPackageManager().getApplicationInfo(
-                    ENHANCE_SCREEN_APK_NAME, PackageManager.GET_PROVIDERS);
-            installed = (info != null);
-        } catch (NameNotFoundException e) {
-        }
-        Log.i(TAG, "Is Enhance Screen installed ? " + installed);
-        return installed;
-    }
-
-    public static boolean isOnlineBusinessHallInstalled(Context context) {
-        boolean installed = false;
-        try {
-            ApplicationInfo info = context.getPackageManager().getApplicationInfo(
-                    ONLINE_BUSINESS_HALL, PackageManager.GET_PROVIDERS);
-            installed = (info != null);
-        } catch (NameNotFoundException e) {
-        }
-        Log.i(TAG, "Is Enhance Screen installed ? " + installed);
-        return installed;
-    }
-
     public static void startOnlineBusinessHallActivity(Context context) {
         Intent intent = context.getPackageManager()
                 .getLaunchIntentForPackage(ONLINE_BUSINESS_HALL);
         context.startActivity(intent);
     }
 
-    public static void makeToast(Context context, int stringId) {
+    private static void makeToast(Context context, int stringId) {
         Toast.makeText(context, stringId, Toast.LENGTH_SHORT).show();
     }
 
@@ -2951,7 +2940,7 @@ public class RCSUtil {
             }
             String phoneNumber = RCSUtil.getPhoneforContactId(
                     context, contactsId);
-            groupMembersPhones = groupMembersPhones.replaceAll(phoneNumber, "");
+            groupMembersPhones = groupMembersPhones.replace(phoneNumber, "");
             groupMembersPhones += phoneNumber;
             groupMembersPhones += ";";
             if (MENU_ENHANCE == selectMenu) {

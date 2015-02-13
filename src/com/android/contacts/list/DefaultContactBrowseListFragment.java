@@ -329,7 +329,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
                 R.drawable.public_account));
         mPulicAccountView.setDisplayName(getActivity().getResources()
                 .getString(R.string.public_account));
-        // mPulicAccountView.setIsSectionHeaderEnabled(true);
+        //mPulicAccountView.setIsSectionHeaderEnabled(true);
         list.addHeaderView(mPulicAccountView);
         mPulicAccountView.setOnClickListener(new View.OnClickListener() {
             @Override
