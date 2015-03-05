@@ -233,7 +233,7 @@ public class MyQrcodeActivity extends Activity {
             return;
         }
         mCurrContactPhone = "";
-        String myAccountNumber = "+8613522631112";
+        String myAccountNumber = "";
         try {
             myAccountNumber = RcsApiManager.getRcsAccoutApi()
                     .getRcsUserProfileInfo().getUserName();
@@ -359,9 +359,7 @@ public class MyQrcodeActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuItem item = menu.add(0, MENU_QRCODE_SETTING, 0,
-                R.string.qrcode_setting)
-                .setIcon(R.drawable.qrcode_setting);
-        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+                R.string.qrcode_setting);
         return super.onCreateOptionsMenu(menu);
     }
 

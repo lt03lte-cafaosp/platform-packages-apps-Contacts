@@ -756,6 +756,7 @@ public class MultiPickContactActivity extends ListActivity implements
                     Bundle bundle = new Bundle();
                     bundle.putBundle(PeopleActivity.RESULT_KEY, mChoiceSet);
                     intent.putExtras(bundle);
+                    intent.putExtra("recipients", getRecipientNumbers());
                     this.setResult(RESULT_OK, intent);
                     finish();
                 } else if (mMode == MODE_DEFAULT_SIM) {

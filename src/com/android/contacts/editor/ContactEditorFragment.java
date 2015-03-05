@@ -31,12 +31,14 @@ import android.content.CursorLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Event;
@@ -790,6 +792,14 @@ public class ContactEditorFragment extends Fragment implements
                 if (!TextUtils.isEmpty(myPhoneNumber)) {
                     phoneChild.put(Phone.NUMBER, myPhoneNumber);
                     phoneChild.put(ContactsContract.Data.DATA13, 1);
+                }
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+                String latestTerminal = prefs.getString(RCSUtil.PREF_MY_TEMINAL, "");
+                if (!TextUtils.isEmpty(myPhoneNumber)
+                        && !TextUtils.equals(latestTerminal, myPhoneNumber)) {
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString(RCSUtil.PREF_MY_TEMINAL, myPhoneNumber);
+                    editor.apply();
                 }
             }
         }
