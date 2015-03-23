@@ -32,6 +32,7 @@ import android.content.CursorLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -40,6 +41,8 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.Organization;
@@ -85,6 +88,7 @@ import com.android.contacts.common.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.detail.PhotoSelectionHandler;
 import com.android.contacts.editor.AggregationSuggestionEngine.Suggestion;
 import com.android.contacts.editor.Editor.EditorListener;
+import com.android.contacts.editor.StructuredNameEditorView.ExpandListener;
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.ContactLoader;
 import com.android.contacts.common.model.RawContact;
@@ -350,6 +354,7 @@ public class ContactEditorFragment extends Fragment implements
     private boolean mNewLocalProfile = false;
     private boolean mIsUserProfile = false;
     private boolean mDisableDeleteMenuOption = false;
+    private boolean mEditorsIsExpand = false;
 
     public ContactEditorFragment() {
     }
@@ -802,7 +807,7 @@ public class ContactEditorFragment extends Fragment implements
 
         // Ensure we have some default fields (if the account type does not support a field,
         // ensureKind will not add it, so it is safe to add e.g. Event)
-        RawContactModifier.ensureKindExists(insert, newAccountType, Phone.CONTENT_ITEM_TYPE);
+        ValuesDelta phoneChild = RawContactModifier.ensureKindExists(insert, newAccountType, Phone.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(insert, newAccountType, Email.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(insert, newAccountType, Organization.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(insert, newAccountType, Event.CONTENT_ITEM_TYPE);
@@ -910,6 +915,12 @@ public class ContactEditorFragment extends Fragment implements
                     public void onDeleteRequested(Editor removedEditor) {
                     }
                 };
+                ExpandListener expandListener = new ExpandListener(){
+                    @Override
+                    public void onExpand(boolean isExpand) {
+                        mEditorsIsExpand = isExpand;
+                    }
+                };
 
                 final StructuredNameEditorView nameEditor = rawContactEditor.getNameEditor();
                 if (mRequestFocus) {
@@ -917,6 +928,7 @@ public class ContactEditorFragment extends Fragment implements
                     mRequestFocus = false;
                 }
                 nameEditor.setEditorListener(listener);
+                nameEditor.setExpandListener(expandListener);
                 if (!TextUtils.isEmpty(mDefaultDisplayName)) {
                     nameEditor.setDisplayName(mDefaultDisplayName);
                 }
@@ -1084,6 +1096,8 @@ public class ContactEditorFragment extends Fragment implements
         final MenuItem sendToVoiceMailMenu = menu.findItem(R.id.menu_send_to_voicemail);
         final MenuItem ringToneMenu = menu.findItem(R.id.menu_set_ringtone);
         final MenuItem deleteMenu = menu.findItem(R.id.menu_delete);
+        deleteMenu.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        deleteMenu.setIcon(R.drawable.ic_trash_white_24);
 
         // Set visibility of menus
         doneMenu.setVisible(false);
@@ -1530,7 +1544,7 @@ public class ContactEditorFragment extends Fragment implements
     public static interface Listener {
         /**
          * Contact was not found, so somehow close this fragment. This is raised after a contact
-         * is removed via Menu/Delete (unless it was a new contact)
+         * is removed via Menu/Delete
          */
         void onContactNotFound();
 
@@ -1887,7 +1901,7 @@ public class ContactEditorFragment extends Fragment implements
         outState.putBoolean(KEY_EXISTING_CONTACT_READY, mExistingContactDataReady);
         outState.putParcelableArrayList(KEY_RAW_CONTACTS,
                 mRawContacts == null ?
-                Lists.<RawContact> newArrayList() :  Lists.newArrayList(mRawContacts));
+                Lists.<RawContact>newArrayList() : Lists.newArrayList(mRawContacts));
         outState.putBoolean(KEY_SEND_TO_VOICE_MAIL_STATE, mSendToVoicemailState);
         outState.putString(KEY_CUSTOM_RINGTONE, mCustomRingtone);
         outState.putBoolean(KEY_ARE_PHONE_OPTIONS_CHANGEABLE, mArePhoneOptionsChangable);
@@ -2054,8 +2068,9 @@ public class ContactEditorFragment extends Fragment implements
             final long loaderCurrentTime = SystemClock.elapsedRealtime();
             Log.v(TAG, "Time needed for loading: " + (loaderCurrentTime-mLoaderStartTime));
             if (!data.isLoaded()) {
-                // Item has been deleted
+                // Item has been deleted. Close activity without saving again.
                 Log.i(TAG, "No contact found. Closing activity");
+                mStatus = Status.CLOSING;
                 if (mListener != null) mListener.onContactNotFound();
                 return;
             }
