@@ -23,6 +23,7 @@
 
 package com.android.contacts;
 
+import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.suntek.mway.rcs.client.api.RCSServiceListener;
 import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 import com.suntek.mway.rcs.client.api.blacklist.impl.BlackListApi;
@@ -135,6 +136,7 @@ public class RcsApiManager {
                 Log.d(TAG, "mRichScreenApi connected");
             }
         });
+        ContactsCommonRcsUtil.setRichScreenApi(mRichScreenApi);
         mPluginCenterApi.init(context,new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
