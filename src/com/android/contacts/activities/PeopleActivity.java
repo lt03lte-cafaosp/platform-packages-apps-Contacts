@@ -289,7 +289,7 @@ public class PeopleActivity extends ContactsActivity implements
         getWindow().setBackgroundDrawable(null);
         registerReceiver();
         mResolver = getContentResolver();
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             RCSUtil.resotreContactIfTerminalChanged(this);
         }
     }
@@ -1286,36 +1286,35 @@ public class PeopleActivity extends ContactsActivity implements
             clearFrequentsMenu.setVisible(false);
             helpMenu.setVisible(false);
             makeMenuItemVisible(menu, R.id.menu_delete, false);
-            if (RCSUtil.getRcsSupport()) {
-                contactsPhotoUpdateMenu.setVisible(false);
-                cloudMenu.setVisible(false);
-            }
+
+            // RCS Menus
+            contactsPhotoUpdateMenu.setVisible(false);
+            cloudMenu.setVisible(false);
+            scanMenu.setVisible(false);
         } else {
             switch (mActionBarAdapter.getCurrentTab()) {
                 case TabState.FAVORITES:
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(hasFrequents());
-                    if (RCSUtil.getRcsSupport()) {
-                        contactsPhotoUpdateMenu.setVisible(false);
-                        cloudMenu.setVisible(false);
-                    }
+
+                    // RCS Menus
+                    contactsPhotoUpdateMenu.setVisible(false);
+                    cloudMenu.setVisible(false);
+                    scanMenu.setVisible(false);
                     break;
                 case TabState.ALL:
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(true);
                     clearFrequentsMenu.setVisible(false);
-                    if (RCSUtil.getRcsSupport()) {
-                        if (RCSUtil.isNativeUiInstalled(this) && RCSUtil.isPluginInstalled(this)) {
-                            cloudMenu.setVisible(true);
-                        } else {
-                            cloudMenu.setVisible(false);
-                        }
-                        contactsPhotoUpdateMenu.setVisible(true);
-                    } else {
-                        cloudMenu.setVisible(false);
-                        contactsPhotoUpdateMenu.setVisible(false);
-                    }
+
+                    // RCS Menus
+                    boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
+                    boolean isRcsPluginInstalled = RCSUtil.isPluginInstalled(this);
+                    boolean isNativeUIInstalled = RCSUtil.isNativeUiInstalled(this);
+                    scanMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
+                    cloudMenu.setVisible(isRcsSupport && isNativeUIInstalled && isRcsPluginInstalled);
+                    contactsPhotoUpdateMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
                     break;
                 case TabState.GROUPS:
                     // Do not display the "new group" button if no accounts are available
@@ -1327,10 +1326,11 @@ public class PeopleActivity extends ContactsActivity implements
                     addGroupMenu.setVisible(true);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
-                    if (RCSUtil.getRcsSupport()) {
-                        contactsPhotoUpdateMenu.setVisible(false);
-                        cloudMenu.setVisible(false);
-                    }
+
+                    // RCS Menus
+                    contactsPhotoUpdateMenu.setVisible(false);
+                    cloudMenu.setVisible(false);
+                    scanMenu.setVisible(false);
                     break;
             }
             HelpUtils.prepareHelpMenuItem(this, helpMenu, R.string.help_url_people_main);

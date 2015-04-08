@@ -476,7 +476,7 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     @Override
     public void onCreateOptionsMenu(Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.view_group, menu);
-        mOptionsMenuRcsSupported = RCSUtil.getRcsSupport();
+        mOptionsMenuRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
         mOptionsMenuRcsEnhanceScreenSupported = mOptionsMenuRcsSupported
                 && RCSUtil.isEnhanceScreenInstalled(mContext);
     }
