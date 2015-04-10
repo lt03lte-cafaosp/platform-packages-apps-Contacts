@@ -259,6 +259,12 @@ public class RCSUtil {
 
     private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
 
+    //add firewall menu
+    private static final Uri WHITELIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/whitelistitems");
+    private static final Uri BLACKLIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/blacklistitems");
+
     private static boolean isPackageInstalled(Context context, String packageName) {
         boolean installed = false;
         try {
@@ -3052,4 +3058,31 @@ public class RCSUtil {
         return m.matches();
     }
 
+    public static boolean checkNumberInFirewall(ContentResolver resolver,
+            boolean isBlacklist, String number) {
+        if (TextUtils.isEmpty(number)) {
+            return false;
+        }
+        String queryNumber = number.replaceAll("[\\-\\/ ]", "");
+        int len = queryNumber.length();
+        if (len > 11) {
+            queryNumber = number.substring(len - 11, len);
+        }
+        Uri firewallUri = isBlacklist? BLACKLIST_CONTENT_URI: WHITELIST_CONTENT_URI;
+        Cursor fiewallCursor = resolver.query(firewallUri,
+                new String[] { "_id", "number", "person_id", "name"},
+                "number" + " LIKE '%" + queryNumber + "'",
+                null, null);
+        try {
+            if (fiewallCursor != null && fiewallCursor.getCount() > 0) {
+                return false;
+            }
+        } finally {
+            if (fiewallCursor != null) {
+                fiewallCursor.close();
+                fiewallCursor = null;
+            }
+        }
+        return true;
+    }
 }

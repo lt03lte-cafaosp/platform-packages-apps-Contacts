@@ -486,13 +486,16 @@ public class QuickContactActivity extends ContactsActivity {
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
                 if (isFireWallInstalled) {
-                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
-                        ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
-                        info.getBlackIntent());
-
-                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
-                        ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
-                        info.getWhiteIntent());
+                    if (RCSUtil.checkNumberInFirewall(mResolver, true, info.getData())) {
+                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                                ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                                info.getBlackIntent());
+                    }
+                    if (RCSUtil.checkNumberInFirewall(mResolver, false, info.getData())) {
+                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                                 ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
+                                 info.getWhiteIntent());
+                    }
                 }
 
                 // add limit length to show IP call item
