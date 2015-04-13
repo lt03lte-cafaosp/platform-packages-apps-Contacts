@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.net.ParseException;
 import android.net.Uri;
 import android.net.WebAddress;
 import android.provider.ContactsContract.CommonDataKinds.Im;
@@ -167,10 +168,15 @@ public class DataAction implements Action {
 
         } else if (item instanceof WebsiteDataItem) {
             final WebsiteDataItem website = (WebsiteDataItem) item;
-            final String url = website.getUrl();
+            String url = website.getUrl();
             if (!TextUtils.isEmpty(url)) {
-                WebAddress webAddress = new WebAddress(url);
-                mIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(webAddress.toString()));
+                try {
+                    WebAddress webAddress = new WebAddress(url);
+                    url = webAddress.toString();
+                } catch (ParseException e) {
+                    Log.e(TAG, "WebAddress's url format is invalid!");
+                }
+                mIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             }
 
         } else if (item instanceof ImDataItem) {
