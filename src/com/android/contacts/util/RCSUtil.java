@@ -101,6 +101,7 @@ import android.app.ActivityManager.RunningTaskInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.LoaderManager;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentProviderOperation;
@@ -331,8 +332,13 @@ public class RCSUtil {
                                         @Override
                                         public void onClick(DialogInterface dialog,
                                                 int whichButton) {
-                                            context.startActivity(new Intent(
-                                                    RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                                            try {
+                                                context.startActivity(new Intent(
+                                                        RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                                            } catch (ActivityNotFoundException ex) {
+                                                Toast.makeText(context, R.string.missing_app,
+                                                        Toast.LENGTH_SHORT).show();
+                                            }
                                         }
                                     }).create();
                             dialog.show();
@@ -2840,7 +2846,9 @@ public class RCSUtil {
     public static void startOnlineBusinessHallActivity(Context context) {
         Intent intent = context.getPackageManager()
                 .getLaunchIntentForPackage(ONLINE_BUSINESS_HALL);
-        context.startActivity(intent);
+        if (intent != null) {
+            context.startActivity(intent);
+        }
     }
 
     private static void makeToast(Context context, int stringId) {
