@@ -184,6 +184,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.ref.WeakReference;
 
 /**
  * Mostly translucent {@link Activity} that shows QuickContact dialog. It loads
@@ -2021,7 +2022,10 @@ public class QuickContactActivity extends ContactsActivity {
                 }
                 if (mNeverQueryRcsPhoto) {
                     mNeverQueryRcsPhoto = false;
-                    RCSUtil.updateContactPhotoViaServer(QuickContactActivity.this, mContactData);
+                    WeakReference<QuickContactActivity> activityRef = new WeakReference<QuickContactActivity>(
+                            QuickContactActivity.this);
+                    WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
+                    RCSUtil.updateContactPhotoViaServer(activityRef, contactRef);
                 }
             }
             Trace.endSection();
@@ -2654,16 +2658,17 @@ public class QuickContactActivity extends ContactsActivity {
                 createLauncherShortcutWithContact();
                 return true;
             case R.id.menu_upload_download: {
-                RCSUtil.createLocalProfileBackupRestoreDialog(this, mContactData,
-                    new RestoreFinishedListener() {
-                        public void onRestoreFinished() {
-                            if (QuickContactActivity.this != null
-                                    && !QuickContactActivity.this
-                                            .isFinishing()) {
-                                onNewIntent(getIntent());
+                final WeakReference<QuickContactActivity> activityRef = new WeakReference<QuickContactActivity>(
+                        QuickContactActivity.this);
+                final WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
+                RCSUtil.createLocalProfileBackupRestoreDialog(this, contactRef.get(),
+                        new RestoreFinishedListener() {
+                            public void onRestoreFinished() {
+                                if (activityRef.get() != null && !activityRef.get().isFinishing()) {
+                                    activityRef.get().onNewIntent(activityRef.get().getIntent());
+                                }
                             }
-                        }
-                    }).show();
+                        }).show();
                 return true;
             }
             case R.id.menu_online_business_hall:
