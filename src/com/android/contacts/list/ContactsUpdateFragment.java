@@ -50,88 +50,88 @@ import com.android.contacts.R;
  */
 public class ContactsUpdateFragment extends DialogFragment {
 
-	public static final String CONTACT_UPDATE_DIALOG_TAG = "contact_update_dialog_tag";
+    public static final String CONTACT_UPDATE_DIALOG_TAG = "contact_update_dialog_tag";
 
-	boolean mUpdateContactPhotosItemSelected;
+    boolean mUpdateContactPhotosItemSelected;
 
-	public static void show(FragmentManager fragmentManager) {
-		ContactsUpdateFragment dialog = new ContactsUpdateFragment();
-		// dialog.show(getFragmentManager(), CALL_FILTER_DIALOG_TAG);
-		dialog.show(fragmentManager, CONTACT_UPDATE_DIALOG_TAG);
-	}
+    public static void show(FragmentManager fragmentManager) {
+        ContactsUpdateFragment dialog = new ContactsUpdateFragment();
+        // dialog.show(getFragmentManager(), CALL_FILTER_DIALOG_TAG);
+        dialog.show(fragmentManager, CONTACT_UPDATE_DIALOG_TAG);
+    }
 
-	public ContactsUpdateFragment() {
-		
-	}
+    public ContactsUpdateFragment() {
 
-	private class SelectItem {
-		public String mName;
-		public String mPref;
-		public boolean mIsSelceted;
-		public SelectItem(String name, String pref, boolean isSelected) {
-			mName = name;
-			mPref = pref;
-			mIsSelceted = isSelected;
-		}
-	}
+    }
 
-	private SelectItem[] selectItems;
+    private class SelectItem {
+        public String mName;
+        public String mPref;
+        public boolean mIsSelceted;
+        public SelectItem(String name, String pref, boolean isSelected) {
+            mName = name;
+            mPref = pref;
+            mIsSelceted = isSelected;
+        }
+    }
+
+    private SelectItem[] selectItems;
 
 
-	@Override
-	public Dialog onCreateDialog(Bundle savedInstanceState) {
-		final SharedPreferences prefs = PreferenceManager
-				.getDefaultSharedPreferences(getActivity());
-		selectItems = new SelectItem[] { new SelectItem(
-				getActivity().getResources()
-						.getString(R.string.rcs_wlan_first_connection_per_week),
-				RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
-				prefs.getBoolean(
-						RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
-						false)) };
-		final SharedPreferences.Editor editor = prefs.edit();
-		mUpdateContactPhotosItemSelected = prefs
-				.getBoolean(
-						RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
-						false);
-		
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        final SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(getActivity());
+        selectItems = new SelectItem[] { new SelectItem(
+                getActivity().getResources()
+                        .getString(R.string.rcs_wlan_first_connection_per_week),
+                RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
+                prefs.getBoolean(
+                        RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
+                        false)) };
+        final SharedPreferences.Editor editor = prefs.edit();
+        mUpdateContactPhotosItemSelected = prefs
+                .getBoolean(
+                        RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
+                        false);
+
         final ContactsPhotoUpdateAdapter adapter = new ContactsPhotoUpdateAdapter(getActivity());
         final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setAdapter(adapter, null);
-		AlertDialog dialog = builder
-				.setTitle(getActivity().getResources()
-						.getString(R.string.rcs_update_contact_photos))
-				.setNegativeButton(android.R.string.cancel, null)
-				.setPositiveButton(android.R.string.ok,
-						new DialogInterface.OnClickListener() {
-							@Override
-							public void onClick(DialogInterface dialog,
-									int whichButton) {
-								for (SelectItem selectItem : selectItems) {
-									editor.putBoolean(selectItem.mPref,
-											selectItem.mIsSelceted);
-								}
-								editor.apply();
-								dialog.dismiss();
-							}
-						}).create();
+        AlertDialog dialog = builder
+                .setTitle(getActivity().getResources()
+                        .getString(R.string.rcs_update_contact_photos))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog,
+                                    int whichButton) {
+                                for (SelectItem selectItem : selectItems) {
+                                    editor.putBoolean(selectItem.mPref,
+                                            selectItem.mIsSelceted);
+                                }
+                                editor.apply();
+                                dialog.dismiss();
+                            }
+                        }).create();
         dialog.getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
         dialog.getListView().setOnItemClickListener(new OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
-            	boolean isChecked = selectItems[position].mIsSelceted;
-            	selectItems[position].mIsSelceted = !isChecked;
+                boolean isChecked = selectItems[position].mIsSelceted;
+                selectItems[position].mIsSelceted = !isChecked;
                 adapter.notifyDataSetChanged();
             }
         });
-		return dialog;
-	}
+        return dialog;
+    }
 
-	private static final class ViewHolder {
+    private static final class ViewHolder {
         TextView selectItemText;
         CheckedTextView checkListItem;
     }
 
-	private class ContactsPhotoUpdateAdapter extends BaseAdapter {
+    private class ContactsPhotoUpdateAdapter extends BaseAdapter {
 
         public ContactsPhotoUpdateAdapter(Context context) {
         }

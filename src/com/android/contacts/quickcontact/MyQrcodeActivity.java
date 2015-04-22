@@ -55,10 +55,10 @@ import com.android.contacts.util.RCSUtil;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Profile;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.QRCardImg;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.QRCardInfo;
+import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar;
 import com.suntek.mway.rcs.client.api.profile.callback.QRImgListener;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.profile.callback.ProfileListener;
-import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar;
 import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.dataitem.DataItem;
@@ -111,6 +111,7 @@ public class MyQrcodeActivity extends Activity {
     private static final int QRCODE_INIT_GET_QRCODE_BITMAP = 13;
     private static final int QRCODE_RESULT_BACK_GET_QRCODE_BITMAP = 14;
     private static final int DIALOG_UPLOAD_PROFILE = 15;
+    private static final int MENU_QRCODE_SETTING = 1;
     private Context mContext;
     private TextView name, phone_number, introContent;
     private ImageView qrcode_img, photo;
@@ -120,11 +121,12 @@ public class MyQrcodeActivity extends Activity {
     private String mCurrContactName = "";
     private String mCurrContactPhone = "";
     private int mGgetBitmapAction = QRCODE_INIT_GET_QRCODE_BITMAP;
-//  private ContactLoader mContactLoader;
+    // private ContactLoader mContactLoader;
     private QRImgListener mQrcodeListener;
     private Profile myProfile;
     boolean isHasBusiness = false;
     private final Handler mhandler = new Handler();
+
     @SuppressWarnings("deprecation")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,10 +134,11 @@ public class MyQrcodeActivity extends Activity {
         mContext = this;
         processIntent(getIntent());
         setContentView(R.layout.show_my_qrcode);
-         // We want the UP affordance but no app icon.
+        // We want the UP affordance but no app icon.
         ActionBar actionBar = getActionBar();
         if (actionBar != null) {
-            actionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_TITLE,
+            actionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP
+                    | ActionBar.DISPLAY_SHOW_TITLE,
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_TITLE
                     | ActionBar.DISPLAY_SHOW_HOME);
         }
@@ -146,26 +149,27 @@ public class MyQrcodeActivity extends Activity {
         introContent = (TextView) findViewById(R.id.intro);
 
         name.setText(mCurrContactName);
-        phone_number.setText(mCurrContactPhone);
-
         long contactId = mRawContact.getContactId();
-        mContactPhoto = loadContactPhoto(contactId,null);
+        mContactPhoto = loadContactPhoto(contactId, null);
         photo.setImageBitmap(mContactPhoto);
 
         mQrcodeListener = new QRImgListener() {
 
             @Override
-            public void onQRImgDecode(QRCardInfo imgObj,int resultCode,String arg2) throws RemoteException {
+            public void onQRImgDecode(QRCardInfo imgObj, int resultCode,
+                    String arg2) throws RemoteException {
 
             }
 
             public void onQRImgGet(QRCardImg imgObj, int resultCode, String arg2)
                     throws RemoteException {
-                Log.d(TAG,"__________resultCode= "+resultCode);
+                Log.d(TAG, "__________resultCode= " + resultCode);
                 dismissProgressDialog();
                 if (resultCode == 0) {
-                    if (imgObj != null && !TextUtils.isEmpty(imgObj.getImgBase64Str())) {
-                        byte[] imageByte = Base64.decode(imgObj.getImgBase64Str(), Base64.DEFAULT);
+                    if (imgObj != null
+                            && !TextUtils.isEmpty(imgObj.getImgBase64Str())) {
+                        byte[] imageByte = Base64.decode(
+                                imgObj.getImgBase64Str(), Base64.DEFAULT);
                         final Bitmap qrcodeBitmap = BitmapFactory
                                 .decodeByteArray(imageByte, 0, imageByte.length);
                         if (qrcodeBitmap != null) {
@@ -174,7 +178,7 @@ public class MyQrcodeActivity extends Activity {
                             runOnUiThread(new Runnable() {
                                 public void run() {
                                     qrcode_img.setImageBitmap(qrcodeBitmap);
-                                    Log.d(TAG,"set qrcode successfull ");
+                                    Log.d(TAG, "set qrcode successfull ");
                                 }
                             });
 
@@ -187,12 +191,16 @@ public class MyQrcodeActivity extends Activity {
                         @Override
                         public void run() {
                             // TODO Auto-generated method stub
-                            if(mGgetBitmapAction == QRCODE_INIT_GET_QRCODE_BITMAP){
-                                Toast.makeText(mContext, getString(R.string.rcs_create_qrcode_fail_upload_profile_first),
+                            if (mGgetBitmapAction == QRCODE_INIT_GET_QRCODE_BITMAP) {
+                                Toast.makeText(
+                                        mContext,
+                                        getString(R.string.rcs_create_qrcode_fail_upload_profile_first),
                                         Toast.LENGTH_LONG).show();
                                 finish();
                             } else {
-                                Toast.makeText(mContext, getString(R.string.refresh_qrcode_fail),
+                                Toast.makeText(
+                                        mContext,
+                                        getString(R.string.refresh_qrcode_fail),
                                         Toast.LENGTH_LONG).show();
                             }
                         }
@@ -200,16 +208,17 @@ public class MyQrcodeActivity extends Activity {
                 }
             }
         };
-        if(mRawContact!=null){
+        if (mRawContact != null) {
             String rawContactId = String.valueOf(mRawContact.getId());
-            Log.i(TAG,rawContactId);
+            Log.i(TAG, "rawContactId:" + rawContactId);
             String imgString = RCSUtil.GetQrCode(mContext, rawContactId);
-
-            if(!decodeStringAndSetBitmap(imgString)){
-                myProfile = RCSUtil.createLocalProfile(mRawContact);
-                if(null != myProfile.getFirstName() || !TextUtils.isEmpty(myProfile.getFirstName())){
+            myProfile = RCSUtil.createLocalProfile(mRawContact);
+            updateDisplayNumber(myProfile);
+            if (!decodeStringAndSetBitmap(imgString)) {
+                if (null != myProfile.getFirstName()
+                        || !TextUtils.isEmpty(myProfile.getFirstName())) {
                     createProgressDialog();
-                    //downloadProfile(myProfile);
+                    // downloadProfile(myProfile);
                     getQRcodeFromService(myProfile);
                     mGgetBitmapAction = QRCODE_INIT_GET_QRCODE_BITMAP;
                 } else {
@@ -217,6 +226,42 @@ public class MyQrcodeActivity extends Activity {
                 }
             }
         }
+    }
+
+    private void updateDisplayNumber(Profile profile) {
+        if (null == profile) {
+            return;
+        }
+        mCurrContactPhone = "";
+        String myAccountNumber = "";
+        try {
+            myAccountNumber = RcsApiManager.getRcsAccoutApi()
+                    .getRcsUserProfileInfo().getUserName();
+        } catch (ServiceDisconnectedException e1) {
+            Log.w("RCS_UI", e1);
+        }
+        mCurrContactPhone = myAccountNumber;
+        SharedPreferences myQrcodeSharedPreferences = getSharedPreferences(
+                "QrcodePersonalCheckState", Activity.MODE_PRIVATE);
+        String value = myQrcodeSharedPreferences.getString("value", "");
+        String[] initChecked = value.split(",");
+        int total = myQrcodeSharedPreferences.getInt("total", 0);
+        for (int i = 0; i < total; i++) {
+            if (initChecked[i].equals(getString(R.string.rcs_company_number))) {
+                if (null != profile.getCompanyTel()
+                        || !TextUtils.isEmpty(profile.getCompanyTel())) {
+                    mCurrContactPhone += profile.getCompanyTel();
+                }
+            } else if (initChecked[i]
+                    .equals(getString(R.string.rcs_company_fax))) {
+                if (null != profile.getCompanyFax()
+                        || !TextUtils.isEmpty(profile.getCompanyFax())) {
+                    mCurrContactPhone = mCurrContactPhone + ","
+                            + profile.getCompanyFax();
+                }
+            }
+        }
+        phone_number.setText(mCurrContactPhone);
     }
 
     @Override
@@ -228,18 +273,21 @@ public class MyQrcodeActivity extends Activity {
     @Override
     protected Dialog onCreateDialog(int id) {
         Dialog dialog = new Dialog(this);
-        if(id == DIALOG_EDIT_CONTACT){
+        if (id == DIALOG_EDIT_CONTACT) {
             dialog = new AlertDialog.Builder(this)
-            .setMessage(R.string.qrcode_setting_private_message)
-            .setPositiveButton(R.string.btn_ok,
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog,
-                                int which) {
-                            startActivity(new Intent(Intent.ACTION_EDIT,Uri.withAppendedPath(RawContacts.CONTENT_URI,
-                                    String.valueOf(mRawContact.getId()))));
-                            finish();
-                        }
-
+                    .setMessage(R.string.qrcode_setting_private_message)
+                    .setPositiveButton(R.string.btn_ok,
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog,
+                                        int which) {
+                                    startActivity(new Intent(
+                                            Intent.ACTION_EDIT,
+                                            Uri.withAppendedPath(
+                                                    RawContacts.CONTENT_URI,
+                                                    String.valueOf(mRawContact
+                                                    .getId()))));
+                                    finish();
+                            }
                     })
             .setNegativeButton(R.string.btn_cancel,
                     new DialogInterface.OnClickListener() {
@@ -250,62 +298,48 @@ public class MyQrcodeActivity extends Activity {
                     }).create();
         } else if (id == DIALOG_UPLOAD_PROFILE){
             dialog = new AlertDialog.Builder(this)
-            .setMessage(R.string.qrcode_upload_profile)
-            .setPositiveButton(R.string.btn_ok,
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog,
-                                int which) {
-
-                        }
-
-                    })
-            .setNegativeButton(R.string.btn_cancel,
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog,
-                                int whichButton) {
-                            finish();
-                        }
+                    .setMessage(R.string.qrcode_upload_profile)
+                    .setPositiveButton(R.string.btn_ok,
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog,
+                                        int which) {
+                                }
+                            })
+                    .setNegativeButton(R.string.btn_cancel,
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog,
+                                        int whichButton) {
+                                    finish();
+                                }
                     }).create();
         }
         return dialog;
     }
 
-    private boolean decodeStringAndSetBitmap(String imgString){
-        if(null == imgString || TextUtils.isEmpty(imgString)){
+    private boolean decodeStringAndSetBitmap(String imgString) {
+        if (null == imgString || TextUtils.isEmpty(imgString)) {
             return false;
         }
         byte[] imageByte = Base64.decode(imgString, Base64.DEFAULT);
-        final Bitmap qrcodeBitmap = BitmapFactory
-                .decodeByteArray(imageByte, 0, imageByte.length);
-        if(null != qrcode_img){
+        final Bitmap qrcodeBitmap = BitmapFactory.decodeByteArray(imageByte, 0,
+                imageByte.length);
+        if (null != qrcode_img) {
             qrcode_img.setImageBitmap(qrcodeBitmap);
-            Log.d(TAG,"set qrcode successfull ");
+            Log.d(TAG, "set qrcode successfull ");
         }
         return true;
     }
 
-    public void getQRcodeFromService(Profile profile){
-        Log.d(TAG,"getQRcodeFromService");
-        //boolean isBInfo = RCSUtil.getCompanyFromProfile(profile);
+    public void getQRcodeFromService(Profile profile) {
+        Log.d(TAG, "getQRcodeFromService");
+        // boolean isBInfo = RCSUtil.getCompanyFromProfile(profile);
         try {
-            RcsApiManager.getProfileApi()
-                    .refreshMyQRImg(profile, isHasBusiness, mQrcodeListener);
+            RcsApiManager.getProfileApi().refreshMyQRImg(profile,
+                    isHasBusiness, mQrcodeListener);
         } catch (ServiceDisconnectedException e) {
             e.printStackTrace();
         }
     }
-
-/*
-    public void getQRcodeFromService(Profile profile,boolean isBInfo){
-        Log.d(TAG,"getQRcodeFromService"+isBInfo);
-        try {
-            RcsApiManager.getProfileApi()
-                    .refreshMyQRImg(profile, isBInfo, mQrcodeListener);
-        } catch (ServiceDisconnectedException e) {
-            e.printStackTrace();
-        }
-    }
-*/
 
     private void processIntent(Intent intent) {
 
@@ -313,30 +347,19 @@ public class MyQrcodeActivity extends Activity {
         Bundle bundle = new Bundle();
         bundle = getIntent().getExtras();
         mRawContact = (RawContact) bundle.getParcelable("raw_contact");
-        mContactPhoto = bundle.getParcelable("contact_photo");
         for (DataItem dataItem : mRawContact.getDataItems()) {
             final ContentValues entryValues = dataItem.getContentValues();
             final String mimeType = dataItem.getMimeType();
             if (mimeType == null)
                 continue;
-            if (Phone.CONTENT_ITEM_TYPE.equals(mimeType)) { // Get phone string
-                if (contactPhone == null) {
-                    contactPhone = entryValues.getAsString(Phone.NUMBER);
-                } else {
-                    contactPhone = contactPhone + ", " + entryValues.getAsString(Phone.NUMBER);
-                }
-            }
         }
         mCurrContactName = bundle.getString("contact_name");
-        mCurrContactPhone = contactPhone;
-
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuItem item1 = menu.add(0, 1, 0, R.string.qrcode_setting)
-                .setIcon(R.drawable.qrcode_setting);
-        item1.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        MenuItem item = menu.add(0, MENU_QRCODE_SETTING, 0,
+                R.string.qrcode_setting);
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -348,7 +371,7 @@ public class MyQrcodeActivity extends Activity {
                 this.finish();
                 break;
 
-            case 1:
+            case MENU_QRCODE_SETTING:
                 // setting QR code datasource
                 Intent intent = new Intent(this,QrcodeInfoSettingActivity.class);
                 Bundle bundle = new Bundle();
@@ -363,28 +386,32 @@ public class MyQrcodeActivity extends Activity {
     }
 
     @Override
-     public void startActivityForResult(Intent intent, int requestCode) {
-         // requestCode >= 0 means the activity in question is a sub-activity.
-         if (requestCode >= 0) {
-             // mWaitingForSubActivity = true;
-         }
+    public void startActivityForResult(Intent intent, int requestCode) {
+        // requestCode >= 0 means the activity in question is a sub-activity.
+        if (requestCode >= 0) {
+            // mWaitingForSubActivity = true;
+        }
 
-         super.startActivityForResult(intent, requestCode);
-     }
+        super.startActivityForResult(intent, requestCode);
+    }
 
-    private Bitmap loadContactPhoto(long contactId, BitmapFactory.Options options) {
+    private Bitmap loadContactPhoto(long contactId,
+            BitmapFactory.Options options) {
         Cursor cursor = null;
         Bitmap bm = null;
 
         try {
-            Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId);
-            Uri photoUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY);
-            cursor = getContentResolver().query(photoUri, new String[] {Photo.PHOTO},
-                    null, null, null);
+            Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI,
+                    contactId);
+            Uri photoUri = Uri.withAppendedPath(contactUri,
+                    Contacts.Photo.CONTENT_DIRECTORY);
+            cursor = getContentResolver().query(photoUri,
+                    new String[] { Photo.PHOTO }, null, null, null);
             if (cursor != null && cursor.moveToFirst()) {
 
                 byte[] data = cursor.getBlob(0);
-                bm = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+                bm = BitmapFactory.decodeByteArray(data, 0, data.length,
+                        options);
             }
         } finally {
             if (cursor != null) {
@@ -393,66 +420,47 @@ public class MyQrcodeActivity extends Activity {
         }
 
         if (bm == null) {
-
         }
-
         return bm;
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d(TAG,"__________resultCode= "+resultCode);
-        Log.d(TAG,"__________data = "+data);
+        Log.d(TAG, "__________resultCode= " + resultCode);
         if (resultCode != RESULT_OK) {
             return;
         }
-        if(requestCode == QRCODE_SETTING_REQUST && null != data){
+        if (requestCode == QRCODE_SETTING_REQUST && null != data) {
             Bundle bundle = data.getExtras();
             Profile profile = (Profile) bundle.getParcelable("Profile");
             isHasBusiness = data.getBooleanExtra("isHasBusiness", false);
             myProfile = profile;
-            refrashInterface(profile,isHasBusiness);
+            refrashInterface(profile, isHasBusiness);
         }
     }
 
-    private void refrashInterface(Profile profile, boolean isHasBusiness){
+    private void refrashInterface(Profile profile, boolean isHasBusiness) {
         TextView name = (TextView) findViewById(R.id.name);
         TextView phone_number = (TextView) findViewById(R.id.phone_number);
         ImageView qrcode_img = (ImageView) findViewById(R.id.qrcode_img);
         TextView introContent = (TextView) findViewById(R.id.intro);
         createProgressDialog();
         downloadProfile(profile);
-        //getQRcodeFromService(profile,isHasBusiness);
+        // getQRcodeFromService(profile,isHasBusiness);
         mGgetBitmapAction = QRCODE_RESULT_BACK_GET_QRCODE_BITMAP;
         name.setText(mCurrContactName);
-        phone_number.setText(mCurrContactPhone);
+        updateDisplayNumber(myProfile);
     }
-/*
-    private boolean getCompanyFromProfile(Profile profile){
-        boolean result = false;
-        if(null != profile.getCompanyName() || !TextUtils.isEmpty(profile.getCompanyName())){
-            result = true;
-        }
-        if(null != profile.getCompanyDuty() || !TextUtils.isEmpty(profile.getCompanyDuty())){
-            result = true;
-        }
-        if(null != profile.getCompanyTel() || !TextUtils.isEmpty(profile.getCompanyTel())){
-            result = true;
-        }
-        if(null != profile.getCompanyAddress() || !TextUtils.isEmpty(profile.getCompanyAddress())){
-            result = true;
-        }
-        if(null != profile.getCompanyFax() || !TextUtils.isEmpty(profile.getCompanyFax())){
-            result = true;
-        }
-        return result;
-    }
-*/
-    /*actually we do not need to download the profile first ,because the network issuess, i add download profile first to
-     * make sure we can upload the profile first,why we need to upload the profile first ,because service need to update
-     * profile first ,then it can create the qrcode what we modify from qrcode setting*/
-    private void downloadProfile(Profile prfile){
-        //final Handler handler = new Handler();
+
+    /*
+     * actually we do not need to download the profile first ,because the
+     * network issuess, i add download profile first to make sure we can upload
+     * the profile first,why we need to upload the profile first ,because
+     * service need to update profile first ,then it can create the qrcode what
+     * we modify from qrcode setting
+     */
+    private void downloadProfile(Profile prfile) {
+        // final Handler handler = new Handler();
         try {
             RcsApiManager.getProfileApi().getMyProfile(new ProfileListener() {
 
@@ -465,18 +473,18 @@ public class MyQrcodeActivity extends Activity {
                 public void onAvatarUpdated(int arg0, String arg1)
                         throws RemoteException {
                     // TODO Auto-generated method stub
-
                 }
 
                 @Override
                 public void onProfileGet(final Profile profile,
                         final int resultCode, final String resultDesc)
                         throws RemoteException {
-                    Log.d(TAG,"getProfileApi resultCode= "+resultCode);
-                    if(resultCode == 0){
-                        SharedPreferences myProfileSharedPreferences= getSharedPreferences("RcsSharepreferences",
-                              Activity.MODE_PRIVATE);
-                                SharedPreferences.Editor editor = myProfileSharedPreferences.edit();
+                    Log.d(TAG, "getProfileApi resultCode= " + resultCode);
+                    if (resultCode == 0) {
+                        SharedPreferences myProfileSharedPreferences = getSharedPreferences(
+                                "RcsSharepreferences", Activity.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = myProfileSharedPreferences
+                                .edit();
                         editor.putString("ProfileTextEtag", profile.getEtag());
                         editor.commit();
                         uploadProfile(myProfile);
@@ -489,21 +497,20 @@ public class MyQrcodeActivity extends Activity {
                                 // TODO Auto-generated method stub
                                 Toast.makeText(mContext, getString(R.string.refresh_qrcode_fail),
                                         Toast.LENGTH_LONG).show();
-                            }});
-
-
+                            }
+                        });
                     }
-
                 }
+
                 @Override
                 public void onProfileUpdated(int arg0, String arg1)
                         throws RemoteException {
                     // TODO Auto-generated method stub
-
                 }
 
                 @Override
-                public void onQRImgDecode(QRCardInfo imgObj,int resultCode,String arg2) throws RemoteException {
+                public void onQRImgDecode(QRCardInfo imgObj, int resultCode,
+                        String arg2) throws RemoteException {
 
                 }
 
@@ -514,77 +521,81 @@ public class MyQrcodeActivity extends Activity {
         }
     }
 
-    private void uploadProfile(Profile profile){
-        //final Handler handler = new Handler();
-        SharedPreferences myProfileSharedPreferences= getSharedPreferences("RcsSharepreferences",
-              Activity.MODE_WORLD_READABLE);
-        String etag = myProfileSharedPreferences.getString("ProfileTextEtag",null);
+    private void uploadProfile(Profile profile) {
+        // final Handler handler = new Handler();
+        SharedPreferences myProfileSharedPreferences = getSharedPreferences(
+                "RcsSharepreferences", Activity.MODE_WORLD_READABLE);
+        String etag = myProfileSharedPreferences.getString("ProfileTextEtag",
+                null);
         profile.setEtag(etag);
         try {
-            RcsApiManager.getProfileApi().setMyProfile(profile, new ProfileListener() {
+            RcsApiManager.getProfileApi().setMyProfile(profile,
+                    new ProfileListener() {
 
-                @Override
-                public void onAvatarGet(Avatar arg0, int arg1, String arg2)
-                        throws RemoteException {
-                    // TODO Auto-generated method stub
-                }
+                        @Override
+                        public void onAvatarGet(Avatar arg0, int arg1,
+                                String arg2) throws RemoteException {
+                            // TODO Auto-generated method stub
+                        }
 
-                @Override
-                public void onAvatarUpdated(int resultCode, String resultDesc)
-                        throws RemoteException {
-                    // TODO Auto-generated method stub
-                }
+                        @Override
+                        public void onAvatarUpdated(int resultCode,
+                                String resultDesc) throws RemoteException {
+                            // TODO Auto-generated method stub
+                        }
 
-                @Override
-                public void onProfileGet(Profile arg0, int arg1, String arg2)
-                        throws RemoteException {
-                    // TODO Auto-generated method stub
-                }
+                        @Override
+                        public void onProfileGet(Profile arg0, int arg1,
+                                String arg2) throws RemoteException {
+                            // TODO Auto-generated method stub
+                        }
 
-                @Override
-                public void onProfileUpdated(final int resultCode,
-                        final String resultDesc) throws RemoteException {
-                       Log.d(TAG,"setMyProfile resultCode= "+resultCode);
-                        if (resultCode == 0) {
-                            getQRcodeFromService(myProfile);
-                        } else {
-                            dismissProgressDialog();
-                            mhandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    // TODO Auto-generated method stub
-                                    Toast.makeText(mContext, getString(R.string.refresh_qrcode_fail),
-                                            Toast.LENGTH_LONG).show();
-                                }
-                            });
+                        @Override
+                        public void onProfileUpdated(final int resultCode,
+                                final String resultDesc) throws RemoteException {
+                            Log.d(TAG, "setMyProfile resultCode= " + resultCode);
+                            if (resultCode == 0) {
+                                getQRcodeFromService(myProfile);
+                            } else {
+                                dismissProgressDialog();
+                                mhandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        // TODO Auto-generated method stub
+                                        Toast.makeText(mContext,
+                                                getString(R.string.refresh_qrcode_fail),
+                                                Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            }
+                        }
+
+                        @Override
+                        public void onQRImgDecode(QRCardInfo imgObj,
+                                int resultCode, String arg2)
+                                throws RemoteException {
 
                         }
-                }
-
-                @Override
-                public void onQRImgDecode(QRCardInfo imgObj,int resultCode,String arg2) throws RemoteException {
-
-                }
-            });
+                    });
         } catch (ServiceDisconnectedException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
 
-    private void createProgressDialog(){
+    private void createProgressDialog() {
         mProgressDialog = new ProgressDialog(this);
-        mProgressDialog.setMessage(mContext.getResources()
-                .getString(
-                        R.string.please_wait));
+        mProgressDialog.setMessage(mContext.getResources().getString(
+                R.string.please_wait));
         mProgressDialog.setIndeterminate(true);
         mProgressDialog.setCancelable(false);
         mProgressDialog.show();
     }
 
-    private void dismissProgressDialog(){
-        if(mProgressDialog != null){
+    private void dismissProgressDialog() {
+        if (mProgressDialog != null) {
             mProgressDialog.dismiss();
+            mProgressDialog = null;
         }
     }
 
