@@ -587,6 +587,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                     RcsApiManager.getPluginCenterApi().intentApk();
                 } catch (ServiceDisconnectedException e) {
                     e.printStackTrace();
+                } catch (NullPointerException e) {
                 }
                 return true;
             }
