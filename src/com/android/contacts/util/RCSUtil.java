@@ -246,8 +246,11 @@ public class RCSUtil {
 
     private static final String KEY_BACKUP_ONCE_CHANGED = "key_backup_once_changed";
 
-    private static final String PREF_BACKUP_ONCE_CHANGED_NAME =
-            "pref_backup_once_changed_name";
+    private static final String KEY_AUTO_BACKUP = "key_auto_backup";
+
+    private static final String PREF_BACKUP_RESTORE_NAME = "pref_backup_restore_name";
+
+    private static final String KEY_ONLY_WIFI_BACKUP_RESOTORE = "key_only_wifi_backup_restore";
 
     private static final String ENHANCE_SCREEN_APK_NAME = "com.cmdm.rcs";
 
@@ -439,6 +442,14 @@ public class RCSUtil {
     public static void updateRCSCapability(final Activity activity,
             final Contact contactData) {
         final Handler handler = new Handler();
+        try {
+            if (!RcsApiManager.getRcsAccoutApi().isOnline()) {
+                Log.d(TAG, "Calling updateRCSCapability Rcs is offline!");
+                return;
+            }
+        } catch (ServiceDisconnectedException e) {
+            return;
+        }
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -2741,19 +2752,18 @@ public class RCSUtil {
         }
         if (nativeUiContext == null)
             return;
-        SharedPreferences pref = nativeUiContext.getSharedPreferences(
-                PREF_BACKUP_ONCE_CHANGED_NAME, Activity.MODE_WORLD_READABLE
+        SharedPreferences backupRestorePref = nativeUiContext.getSharedPreferences(
+                PREF_BACKUP_RESTORE_NAME, Activity.MODE_WORLD_READABLE
                         | Activity.MODE_MULTI_PROCESS);
-        boolean isBackup = pref.getBoolean(KEY_BACKUP_ONCE_CHANGED, false);
-        boolean isAutoBackup = false;
-        boolean isOnlySyncViaWifi = false;
+        boolean isBackup = backupRestorePref.getBoolean(KEY_BACKUP_ONCE_CHANGED, false);
+        boolean isAutoBackup = backupRestorePref.getBoolean(KEY_AUTO_BACKUP, false);
+        boolean isOnlySyncViaWifi = backupRestorePref.getBoolean(KEY_ONLY_WIFI_BACKUP_RESOTORE,
+                false);
 
         Log.d(TAG, "Calling autoBackupOnceChanged!");
         try {
-            isAutoBackup = RcsApiManager.getMcontactApi().getEnableAutoSync();
-            isOnlySyncViaWifi = RcsApiManager.getMcontactApi()
-                    .getOnlySyncEnableViaWifi();
-            if (isBackup && isAutoBackup && isOnlySyncViaWifi) {
+            if (isBackup && isAutoBackup
+                    && (isOnlySyncViaWifi && RCSUtil.isWifiEnabled(context) || !isOnlySyncViaWifi)) {
                 Log.d(TAG, "Auto backup started!");
                 RcsApiManager.getMcontactApi().doSync(SyncAction.CONTACT_UPLOAD,
                         new IMContactSyncListener.Stub() {
@@ -2761,42 +2771,30 @@ public class RCSUtil {
                             @Override
                             public void onAuthSession(Auth arg0, boolean arg1)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
-
                             }
 
                             @Override
                             public void onExecuting(Auth arg0, int arg1)
                                    throws RemoteException {
-                                // TODO Auto-generated method stub
-
                             }
 
                             @Override
                             public void onHttpResponeText(String arg0, String arg1)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
-
                             }
 
                             @Override
                             public void onPreExecuteAuthSession(Auth arg0)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
-
                             }
 
                             @Override
                             public void onProgress(Auth arg0, int arg1, int arg2, int arg3)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
-
                             }
 
                             @Override
                             public void onRunning() throws RemoteException {
-                                // TODO Auto-generated method stub
-
                             }
 
                             @Override
