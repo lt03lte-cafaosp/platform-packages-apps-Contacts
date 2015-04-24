@@ -39,6 +39,7 @@ import android.os.ServiceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.AggregationExceptions;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
+import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Groups;
@@ -46,6 +47,8 @@ import android.provider.ContactsContract.PinnedPositions;
 import android.provider.ContactsContract.Profile;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract.RawContactsEntity;
+import android.provider.ContactsContract.CommonDataKinds.Organization;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.text.TextUtils;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
@@ -58,6 +61,7 @@ import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.model.RawContactDeltaList;
 import com.android.contacts.common.model.RawContactModifier;
+import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.android.contacts.common.SimContactsConstants;
@@ -175,10 +179,23 @@ public class ContactSaveService extends IntentService {
     public static final int RESULT_MEMORY_FULL_FAILURE = 11; //for memory full exception
     public static final int RESULT_NUMBER_TYPE_FAILURE =12;  //only for sim failure of number TYPE
 
+    // only for RCS
+    public static final int RESULT_ADDRESS_IS_TOO_LONG_FAILURE = 13;
+    public static final int RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE = 14;
+    public static final int RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE = 15;
+    public static final int RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE = 16;
+    public static final int RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE = 17;
+
     private final int MAX_NUM_LENGTH = 20;
     private final int MAX_EMAIL_LENGTH = 40;
     private final int MAX_EN_LENGTH = 14;
     private final int MAX_CH_LENGTH = 6;
+
+    // only for RCS
+    private static final int RCS_MAX_ADDRESS_LENGTH = 40;
+    private static final int RCS_MAX_COMPANY_TITLE_LENGTH = 20;
+    private static final int RCS_MAX_COMPANY_NAME_LENGTH = 40;
+    private static final int RCS_MAX_EMAIL_LENGTH = 50;
 
     // Only for request accessing SIM card
     // when device is in the "AirPlane" mode.
@@ -414,6 +431,80 @@ public class ContactSaveService extends IntentService {
         return serviceIntent;
     }
 
+    private boolean deliverCallbackRorRcsEdit(Intent callbackIntent, RawContactDelta entity,
+            String mimeType) {
+        ArrayList<ValuesDelta> valueList = entity.getMimeEntries(mimeType);
+        if (valueList != null) {
+            for (ValuesDelta aValue : valueList) {
+                if (TextUtils.equals(mimeType, StructuredPostal.CONTENT_ITEM_TYPE)) {
+                    String formattedAddress = aValue
+                            .getAsString(StructuredPostal.FORMATTED_ADDRESS);
+                    if (formattedAddress != null
+                            && formattedAddress.length() > RCS_MAX_ADDRESS_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_ADDRESS_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+                if (TextUtils.equals(mimeType, Organization.CONTENT_ITEM_TYPE)) {
+                    String companyName = aValue.getAsString(Organization.COMPANY);
+                    if (companyName != null && companyName.length() > RCS_MAX_COMPANY_NAME_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                    String companyTitle = aValue.getAsString(Organization.TITLE);
+                    if (companyTitle != null
+                            && companyTitle.length() > RCS_MAX_COMPANY_TITLE_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+                if (TextUtils.equals(mimeType, Email.CONTENT_ITEM_TYPE)) {
+                    String emailAddress = aValue.getAsString(Email.ADDRESS);
+                    if (emailAddress != null && emailAddress.length() > RCS_MAX_EMAIL_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                    if (emailAddress != null && !RCSUtil.isRegularEmail(emailAddress)) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+
+            }
+        }
+        return false;
+    }
+
     private void saveContact(Intent intent) {
         RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
         boolean isProfile = intent.getBooleanExtra(EXTRA_SAVE_IS_PROFILE, false);
@@ -456,6 +547,18 @@ public class ContactSaveService extends IntentService {
                         break;
                     default:
                         break;
+                }
+            }
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity, StructuredPostal.CONTENT_ITEM_TYPE)) {
+                    return;
+                }
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity, Organization.CONTENT_ITEM_TYPE)) {
+                    return;
+                }
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity, Email.CONTENT_ITEM_TYPE)) {
+                    return;
                 }
             }
         }

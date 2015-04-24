@@ -105,12 +105,6 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         adapter.setDisplayPhotos(true);
         adapter.setPhotoPosition(
                 ContactListItemView.getDefaultPhotoPosition(/* opposite = */ false));
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
-            if (ContactsCommonRcsUtil.RcsCapabilityMap != null
-                    && ContactsCommonRcsUtil.RcsCapabilityMap.isEmpty()) {
-                ContactsCommonRcsUtil.loadRcsCapabilityOfContacts(getContext(), adapter);
-            }
-        }
         return adapter;
     }
 

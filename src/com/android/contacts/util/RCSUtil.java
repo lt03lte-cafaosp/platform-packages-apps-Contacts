@@ -37,6 +37,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.RawContact;
 import com.android.contacts.common.model.dataitem.DataItem;
@@ -1265,12 +1268,13 @@ public class RCSUtil {
         RawContact rawContact = contact.getRawContacts().get(0);
         Profile profile = new Profile();
         profile.setOtherTels(new ArrayList<TelephoneModel>());
-
+        String firstName = "";
+        String lastName = "";
         for (DataItem dataItem : rawContact.getDataItems()) {
             if (dataItem instanceof StructuredNameDataItem) {
-                String firstName = ((StructuredNameDataItem) dataItem)
+                firstName = ((StructuredNameDataItem) dataItem)
                         .getGivenName();
-                String lastName = ((StructuredNameDataItem) dataItem)
+                lastName = ((StructuredNameDataItem) dataItem)
                         .getFamilyName();
                 Log.d(TAG, "The first name is " + firstName);
                 Log.d(TAG, "The last name is " + lastName);
@@ -1364,7 +1368,9 @@ public class RCSUtil {
                 }
             }
         }
-
+        if (TextUtils.isEmpty(firstName)) {
+            return null;
+        }
         return profile;
     }
 
@@ -2466,7 +2472,7 @@ public class RCSUtil {
         final MenuItem optionsUpdateEnhanceScreen = menu.findItem(R.id.menu_updateenhancedscreen);
         if (optionsUpdateEnhanceScreen != null) {
             optionsUpdateEnhanceScreen.setVisible(isRcsSupport && isEnhanceScreenInstalled(context)
-                    && isUserProfile);
+                    && !isUserProfile);
         }
         final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
         if (optionsEnhancedscreen != null) {
@@ -3047,6 +3053,15 @@ public class RCSUtil {
         }
         return true;
     }
+
+    public static boolean isRegularEmail(String emailString) {
+        String patten = "^[a-zA-Z0-9][\\w\\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\\w\\.-]*[a-zA-Z0-9]\\.[a-z"
+                + "A-Z][a-zA-Z\\.]*[a-zA-Z]$";
+        Pattern p = Pattern.compile(patten);
+        Matcher m = p.matcher(emailString);
+        return m.matches();
+    }
+
     public static boolean checkNumberInFirewall(ContentResolver resolver,
             boolean isBlacklist, String number) {
         if (TextUtils.isEmpty(number)) {
