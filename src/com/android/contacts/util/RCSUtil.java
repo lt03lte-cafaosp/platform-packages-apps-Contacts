@@ -37,6 +37,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.RawContact;
 import com.android.contacts.common.model.dataitem.DataItem;
@@ -89,6 +92,7 @@ import com.suntek.mway.rcs.client.api.profile.callback.QRImgListener;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
 import com.suntek.mway.rcs.client.aidl.capability.RCSCapabilities;
+import com.suntek.mway.rcs.client.aidl.setting.RcsUserProfileInfo;
 import com.suntek.mway.rcs.client.api.profile.callback.ProfileListener;
 import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
@@ -1083,11 +1087,14 @@ public class RCSUtil {
         context.startActivity(intent);
     }
 
-    public static String getProfileAccountNumber(){
-    String myAccountNumber = "";
+    public static String getProfileAccountNumber() {
+        String myAccountNumber = "";
         try {
-            myAccountNumber = RcsApiManager.getRcsAccoutApi()
-                    .getRcsUserProfileInfo().getUserName();
+            RcsUserProfileInfo rcsUserProfileInfo = RcsApiManager.getRcsAccoutApi()
+                    .getRcsUserProfileInfo();
+            if (rcsUserProfileInfo != null) {
+                myAccountNumber = rcsUserProfileInfo.getUserName();
+            }
         } catch (ServiceDisconnectedException e1) {
             Log.w(TAG, e1);
         }
