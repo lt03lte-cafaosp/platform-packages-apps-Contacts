@@ -185,6 +185,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.lang.ref.WeakReference;
 
 /**
  * Mostly translucent {@link Activity} that shows QuickContact dialog. It loads
@@ -2048,12 +2049,14 @@ public class QuickContactActivity extends ContactsActivity {
             if (RCSUtil.getRcsSupport() && !RCSUtil.isLocalProfile(mContactData)) {
                 if (mNeverQueryRcsCapability) {
                     mNeverQueryRcsCapability = false;
-                    RCSUtil.updateRCSCapability(QuickContactActivity.this,
-                            mContactData);
+                    RCSUtil.updateRCSCapability(QuickContactActivity.this, mContactData);
                 }
                 if (mNeverQueryRcsPhoto) {
                     mNeverQueryRcsPhoto = false;
-                    RCSUtil.updateContactPhotoViaServer(QuickContactActivity.this, mContactData);
+                    WeakReference<QuickContactActivity> quickRef;
+                    quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
+                    WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
+                    RCSUtil.updateContactPhotoViaServer(quickRef, contactRef);
                 }
             }
             Trace.endSection();
@@ -2701,16 +2704,18 @@ public class QuickContactActivity extends ContactsActivity {
                 createLauncherShortcutWithContact();
                 return true;
             case R.id.menu_upload_download: {
-                RCSUtil.createLocalProfileBackupRestoreDialog(this, mContactData,
-                    new RestoreFinishedListener() {
-                        public void onRestoreFinished() {
-                            if (QuickContactActivity.this != null
-                                    && !QuickContactActivity.this
-                                            .isFinishing()) {
-                                onNewIntent(getIntent());
+                final WeakReference<QuickContactActivity> quickRef;
+                quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
+                final WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
+                RCSUtil.createLocalProfileBackupRestoreDialog(this, contactRef.get(),
+                        new RestoreFinishedListener() {
+                            public void onRestoreFinished() {
+                                QuickContactActivity activity = quickRef.get();
+                                if (activity != null && !activity.isFinishing()) {
+                                    activity.onNewIntent(activity.getIntent());
+                                }
                             }
-                        }
-                    }).show();
+                        }).show();
                 return true;
             }
             case R.id.menu_online_business_hall:
