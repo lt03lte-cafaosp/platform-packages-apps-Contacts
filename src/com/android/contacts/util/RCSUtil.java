@@ -29,7 +29,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -37,9 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.RawContact;
 import com.android.contacts.common.model.dataitem.DataItem;
@@ -105,7 +101,6 @@ import android.app.ActivityManager.RunningTaskInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.LoaderManager;
-import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentProviderOperation;
@@ -261,12 +256,6 @@ public class RCSUtil {
 
     private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
 
-    //add firewall menu
-    private static final Uri WHITELIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/whitelistitems");
-    private static final Uri BLACKLIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/blacklistitems");
-
     private static boolean isPackageInstalled(Context context, String packageName) {
         boolean installed = false;
         try {
@@ -342,13 +331,8 @@ public class RCSUtil {
                                         @Override
                                         public void onClick(DialogInterface dialog,
                                                 int whichButton) {
-                                            try {
-                                                context.startActivity(new Intent(
-                                                        RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
-                                            } catch (ActivityNotFoundException ex) {
-                                                Toast.makeText(context, R.string.missing_app,
-                                                        Toast.LENGTH_SHORT).show();
-                                            }
+                                            context.startActivity(new Intent(
+                                                    RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
                                         }
                                     }).create();
                             dialog.show();
@@ -459,11 +443,11 @@ public class RCSUtil {
             @Override
             public void run() {
                 sleep(1000);
-                if (activity == null || activity.isFinishing() || !activity.isResumed()) {
+                if (activity == null || activity.isFinishing()) {
                     return;
                 }
                 Log.d(TAG, "Calling updateRCSCapability!");
-                queryRCSCapability(activity.getApplicationContext(), contactData, handler);
+                queryRCSCapability(activity, contactData, handler);
             }
         });
         t.start();
@@ -589,13 +573,15 @@ public class RCSUtil {
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        okToRestoreLocalProfile(context.getApplicationContext(), whichBtn,
-                                contactData, listener);
-                    }
-                }).create();
+                .setPositiveButton(android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog,
+                                    int whichButton) {
+                                okToRestoreLocalProfile(context, whichBtn,
+                                        contactData, listener);
+                            }
+                        }).create();
         return alertDialog;
     }
 
@@ -1268,13 +1254,12 @@ public class RCSUtil {
         RawContact rawContact = contact.getRawContacts().get(0);
         Profile profile = new Profile();
         profile.setOtherTels(new ArrayList<TelephoneModel>());
-        String firstName = "";
-        String lastName = "";
+
         for (DataItem dataItem : rawContact.getDataItems()) {
             if (dataItem instanceof StructuredNameDataItem) {
-                firstName = ((StructuredNameDataItem) dataItem)
+                String firstName = ((StructuredNameDataItem) dataItem)
                         .getGivenName();
-                lastName = ((StructuredNameDataItem) dataItem)
+                String lastName = ((StructuredNameDataItem) dataItem)
                         .getFamilyName();
                 Log.d(TAG, "The first name is " + firstName);
                 Log.d(TAG, "The last name is " + lastName);
@@ -1368,21 +1353,21 @@ public class RCSUtil {
                 }
             }
         }
-        if (TextUtils.isEmpty(firstName)) {
-            return null;
-        }
+
         return profile;
     }
 
-    private static void updateOneContactPhoto(Context context, Contact contactData,
-            byte[] contactPhoto) {
-        if (contactPhoto == null || contactData == null)
+    private static void updateOneContactPhoto(Context context,
+            Contact contactData, byte[] contactPhoto) {
+        if (contactPhoto == null)
             return;
-        for (RawContact rawContact : contactData.getRawContacts()) {
+        ImmutableList<RawContact> rawContacts = contactData.getRawContacts();
+        for (RawContact rawContact : rawContacts) {
             long rawContactId = rawContact.getId();
-            if (!RCSUtil.hasLocalSetted(context.getContentResolver(), rawContactId)) {
-                final Uri outputUri = Uri.withAppendedPath(
-                        ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawContactId),
+            if (!RCSUtil.hasLocalSetted(context.getContentResolver(),
+                    rawContactId)) {
+                final Uri outputUri = Uri.withAppendedPath(ContentUris
+                        .withAppendedId(RawContacts.CONTENT_URI, rawContactId),
                         RawContacts.DisplayPhoto.CONTENT_DIRECTORY);
                 RCSUtil.setContactPhoto(context, contactPhoto, outputUri);
             }
@@ -2156,95 +2141,98 @@ public class RCSUtil {
         }
     }
 
-    public static void getOneContactPhotoFromServer(
-            final WeakReference<QuickContactActivity> activityRef,
-            final WeakReference<Contact> contactRef, final ProfileApi profileApi,
+    public static void getOneContactPhotoFromServer(final Activity activity,
+            final Contact contactData, final ProfileApi profileApi,
             final RestoreFinishedListener listener) {
-        QuickContactActivity activity = activityRef.get();
-        Contact ContactData = contactRef.get();
-        if (activity == null || ContactData == null) {
+        if (contactData == null) {
             return;
         }
-        final long contactId = ContactData.getRawContacts().get(0).getContactId();
+        final long contactId = contactData.getRawContacts().get(0).getContactId();
         final Handler handler = new Handler();
-        final Context appContext = activity.getApplicationContext();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     sleep(1000);
-                    QuickContactActivity activity = activityRef.get();
                     if (activity == null || activity.isFinishing()) {
                         return;
                     }
                     profileApi.getHeadPicByContact(contactId, new ProfileListener() {
-                        @Override
-                        public void onAvatarGet(final Avatar photo, final int resultCode,
-                                final String resultDesc) throws RemoteException {
-                            QuickContactActivity activity = activityRef.get();
-                            Contact contactData = contactRef.get();
-                            if (resultCode == 0) {
-                                final byte[] contactPhoto = Base64.decode(photo.getImgBase64Str(),
-                                        android.util.Base64.DEFAULT);
-                                if (activity == null || activity.isFinishing()
-                                        || contactData == null) {
-                                    return;
-                                }
-                                updateOneContactPhoto(appContext, contactData, contactPhoto);
-                                sleep(1000);
-                                if (activity == null || activity.isFinishing()) {
-                                    return;
-                                }
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (listener != null) {
-                                            listener.onRestoreFinished();
+                                @Override
+                                public void onAvatarGet(final Avatar photo,
+                                        final int resultCode,
+                                        final String resultDesc)
+                                        throws RemoteException {
+                                    if (resultCode == 0) {
+                                        final byte[] contactPhoto = Base64.decode(
+                                                photo.getImgBase64Str(),
+                                                android.util.Base64.DEFAULT);
+                                        if (activity == null
+                                                || activity.isFinishing()) {
+                                            return;
                                         }
+                                        updateOneContactPhoto(activity,
+                                                contactData, contactPhoto);
+                                        sleep(1000);
+                                        if (activity == null
+                                                || activity.isFinishing()) {
+                                            return;
+                                        }
+                                        handler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                if (listener != null) {
+                                                    listener.onRestoreFinished();
+                                                }
+                                            }
+                                        });
+                                        handler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                makeToast(activity,
+                                                        R.string.get_photo_profile_successfully);
+                                            }
+                                        });
+                                    } else {
+                                        handler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                makeToast(activity,
+                                                        R.string.get_photo_profile_failed);
+                                            }
+                                        });
                                     }
-                                });
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        makeToast(appContext,
-                                                R.string.get_photo_profile_successfully);
-                                    }
-                                });
-                            } else {
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        makeToast(appContext, R.string.get_photo_profile_failed);
-                                    }
-                                });
-                            }
-                        }
+                                }
 
-                        @Override
-                        public void onAvatarUpdated(int arg0, String arg1) throws RemoteException {
-                            // TODO Auto-generated method stub
+                                @Override
+                                public void onAvatarUpdated(int arg0,
+                                        String arg1) throws RemoteException {
+                                    // TODO Auto-generated method stub
 
-                        }
+                                }
 
-                        @Override
-                        public void onProfileGet(Profile arg0, int arg1, String arg2)
-                                throws RemoteException {
-                            // TODO Auto-generated method stub
+                                @Override
+                                public void onProfileGet(Profile arg0,
+                                        int arg1, String arg2)
+                                        throws RemoteException {
+                                    // TODO Auto-generated method stub
 
-                        }
+                                }
 
-                        @Override
-                        public void onProfileUpdated(int arg0, String arg1) throws RemoteException {
-                            // TODO Auto-generated method stub
+                                @Override
+                                public void onProfileUpdated(int arg0,
+                                        String arg1) throws RemoteException {
+                                    // TODO Auto-generated method stub
 
-                        }
+                                }
 
-                        @Override
-                        public void onQRImgDecode(QRCardInfo imgObj, int resultCode, String arg2)
-                                throws RemoteException {
+                                @Override
+                                public void onQRImgDecode(QRCardInfo imgObj,
+                                        int resultCode, String arg2)
+                                        throws RemoteException {
 
-                        }
-                    });
+                                }
+                            });
                 } catch (ServiceDisconnectedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -2435,22 +2423,14 @@ public class RCSUtil {
         return false;
     }
 
-    public static void updateContactPhotoViaServer(
-            final WeakReference<QuickContactActivity> activityRef,
-            final WeakReference<Contact> contactRef) {
-        QuickContactActivity activity = activityRef.get();
-        Contact contactData = contactRef.get();
-        if (activity == null || contactData == null) {
-            return;
-        }
-        if (RCSUtil.needGetPhotoFromServer(activity.getApplicationContext(), contactData)) {
-            RCSUtil.getOneContactPhotoFromServer(activityRef, contactRef,
+    public static void updateContactPhotoViaServer(final QuickContactActivity activity,
+            final Contact contactData) {
+        if (RCSUtil.needGetPhotoFromServer(activity, contactData)) {
+            RCSUtil.getOneContactPhotoFromServer(activity, contactData,
                     RcsApiManager.getProfileApi(), new RestoreFinishedListener() {
                         public void onRestoreFinished() {
-                            QuickContactActivity activity = activityRef.get();
-                            Contact contactData = contactRef.get();
-                            if (activity != null && !activity.isFinishing() && activity.isResumed()
-                                    && contactData != null) {
+                            Log.d(TAG, "activity.isResumed" + activity.isResumed());
+                            if (activity != null && !activity.isFinishing() && activity.isResumed()) {
                                 Intent resultIntent = QuickContact.composeQuickContactsIntent(
                                         activity.getBaseContext(), (Rect)null,
                                         contactData.getLookupUri(),
@@ -2480,7 +2460,7 @@ public class RCSUtil {
         final MenuItem optionsUpdateEnhanceScreen = menu.findItem(R.id.menu_updateenhancedscreen);
         if (optionsUpdateEnhanceScreen != null) {
             optionsUpdateEnhanceScreen.setVisible(isRcsSupport && isEnhanceScreenInstalled(context)
-                    && !isUserProfile);
+                    && isUserProfile);
         }
         final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
         if (optionsEnhancedscreen != null) {
@@ -2860,9 +2840,7 @@ public class RCSUtil {
     public static void startOnlineBusinessHallActivity(Context context) {
         Intent intent = context.getPackageManager()
                 .getLaunchIntentForPackage(ONLINE_BUSINESS_HALL);
-        if (intent != null) {
-            context.startActivity(intent);
-        }
+        context.startActivity(intent);
     }
 
     private static void makeToast(Context context, int stringId) {
@@ -2972,7 +2950,6 @@ public class RCSUtil {
     private static void okToRestoreLocalProfile(Context context,
             int whichButton, Contact contactData,
             RestoreFinishedListener listener) {
-	    if (contactData == null) return;
         int BACKUP = 0, RESTORE = 1;
         if (whichButton == BACKUP) {
             doBackupLocalProfileInfo(context, contactData);
@@ -3057,42 +3034,6 @@ public class RCSUtil {
                 Toast.makeText(context, R.string.last_name_max_length,
                         Toast.LENGTH_LONG).show();
                 return false;
-            }
-        }
-        return true;
-    }
-
-    public static boolean isRegularEmail(String emailString) {
-        String patten = "^[a-zA-Z0-9][\\w\\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\\w\\.-]*[a-zA-Z0-9]\\.[a-z"
-                + "A-Z][a-zA-Z\\.]*[a-zA-Z]$";
-        Pattern p = Pattern.compile(patten);
-        Matcher m = p.matcher(emailString);
-        return m.matches();
-    }
-
-    public static boolean checkNumberInFirewall(ContentResolver resolver,
-            boolean isBlacklist, String number) {
-        if (TextUtils.isEmpty(number)) {
-            return false;
-        }
-        String queryNumber = number.replaceAll("[\\-\\/ ]", "");
-        int len = queryNumber.length();
-        if (len > 11) {
-            queryNumber = number.substring(len - 11, len);
-        }
-        Uri firewallUri = isBlacklist? BLACKLIST_CONTENT_URI: WHITELIST_CONTENT_URI;
-        Cursor fiewallCursor = resolver.query(firewallUri,
-                new String[] { "_id", "number", "person_id", "name"},
-                "number" + " LIKE '%" + queryNumber + "'",
-                null, null);
-        try {
-            if (fiewallCursor != null && fiewallCursor.getCount() > 0) {
-                return false;
-            }
-        } finally {
-            if (fiewallCursor != null) {
-                fiewallCursor.close();
-                fiewallCursor = null;
             }
         }
         return true;

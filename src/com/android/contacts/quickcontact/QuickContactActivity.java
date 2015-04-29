@@ -184,7 +184,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.lang.ref.WeakReference;
 
 /**
  * Mostly translucent {@link Activity} that shows QuickContact dialog. It loads
@@ -487,16 +486,13 @@ public class QuickContactActivity extends ContactsActivity {
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
                 if (isFireWallInstalled) {
-                    if (RCSUtil.checkNumberInFirewall(mResolver, true, info.getData())) {
-                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
-                                ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
-                                info.getBlackIntent());
-                    }
-                    if (RCSUtil.checkNumberInFirewall(mResolver, false, info.getData())) {
-                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
-                                 ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
-                                 info.getWhiteIntent());
-                    }
+                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                        ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                        info.getBlackIntent());
+
+                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                        ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
+                        info.getWhiteIntent());
                 }
 
                 // add limit length to show IP call item
@@ -2017,14 +2013,12 @@ public class QuickContactActivity extends ContactsActivity {
                     && !RCSUtil.isLocalProfile(mContactData)) {
                 if (mNeverQueryRcsCapability) {
                     mNeverQueryRcsCapability = false;
-                    RCSUtil.updateRCSCapability(QuickContactActivity.this, mContactData);
+                    RCSUtil.updateRCSCapability(QuickContactActivity.this,
+                            mContactData);
                 }
                 if (mNeverQueryRcsPhoto) {
                     mNeverQueryRcsPhoto = false;
-                    WeakReference<QuickContactActivity> quickRef;
-                    quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
-                    WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
-                    RCSUtil.updateContactPhotoViaServer(quickRef, contactRef);
+                    RCSUtil.updateContactPhotoViaServer(QuickContactActivity.this, mContactData);
                 }
             }
             Trace.endSection();
@@ -2657,18 +2651,16 @@ public class QuickContactActivity extends ContactsActivity {
                 createLauncherShortcutWithContact();
                 return true;
             case R.id.menu_upload_download: {
-                final WeakReference<QuickContactActivity> quickRef;
-                quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
-                final WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
-                RCSUtil.createLocalProfileBackupRestoreDialog(this, contactRef.get(),
-                        new RestoreFinishedListener() {
-                            public void onRestoreFinished() {
-                                QuickContactActivity activity = quickRef.get();
-                                if (activity != null && !activity.isFinishing()) {
-                                    activity.onNewIntent(activity.getIntent());
-                                }
+                RCSUtil.createLocalProfileBackupRestoreDialog(this, mContactData,
+                    new RestoreFinishedListener() {
+                        public void onRestoreFinished() {
+                            if (QuickContactActivity.this != null
+                                    && !QuickContactActivity.this
+                                            .isFinishing()) {
+                                onNewIntent(getIntent());
                             }
-                        }).show();
+                        }
+                    }).show();
                 return true;
             }
             case R.id.menu_online_business_hall:

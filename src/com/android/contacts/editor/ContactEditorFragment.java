@@ -1447,36 +1447,6 @@ public class ContactEditorFragment extends Fragment implements
                 } else if(result == ContactSaveService.RESULT_NUMBER_TYPE_FAILURE) {
                     Toast.makeText(mContext, R.string.invalid_number_type, Toast.LENGTH_SHORT)
                     .show();
-                } else if (result == ContactSaveService.RESULT_ADDRESS_IS_TOO_LONG_FAILURE) {
-                    Toast.makeText(mContext, R.string.rcs_address_is_too_long, Toast.LENGTH_SHORT)
-                            .show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    return;
-                } else if (result == ContactSaveService.RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE) {
-                    Toast.makeText(mContext, R.string.rcs_company_name_is_too_long,
-                            Toast.LENGTH_SHORT).show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    return;
-                } else if (result == ContactSaveService.RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE) {
-                    Toast.makeText(mContext, R.string.rcs_company_title_is_too_long,
-                            Toast.LENGTH_SHORT).show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    return;
-                } else if (result == ContactSaveService.RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE) {
-                    Toast.makeText(mContext, R.string.rcs_email_address_is_too_long,
-                            Toast.LENGTH_SHORT).show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    return;
-                } else if (result == ContactSaveService.RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE) {
-                    Toast.makeText(mContext, R.string.rcs_email_address_is_invalid,
-                            Toast.LENGTH_SHORT).show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    return;
                 } else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                             .show();
