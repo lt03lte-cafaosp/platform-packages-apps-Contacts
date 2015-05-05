@@ -23,6 +23,7 @@
 
 package com.android.contacts;
 
+import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.suntek.mway.rcs.client.api.RCSServiceListener;
 import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 import com.suntek.mway.rcs.client.api.blacklist.impl.BlackListApi;
@@ -39,6 +40,7 @@ import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.voip.impl.RichScreenApi;
 import com.suntek.mway.rcs.client.api.plugincenter.PluginCenterApi;
+import com.android.contacts.util.RCSUtil;
 
 import android.content.Context;
 import android.os.RemoteException;
@@ -56,11 +58,16 @@ public class RcsApiManager {
     private static RichScreenApi mRichScreenApi = new RichScreenApi(null);
     private static PluginCenterApi mPluginCenterApi = new PluginCenterApi();
     private static McontactApi mMcontactApi = new McontactApi();
+    private static RcsSupportApi mSupportApi = new RcsSupportApi();
 
     public static void init(Context context) {
         mContext = context;
-        mIsRcsServiceInstalled = RcsSupportApi.isRcsServiceInstalled(context);
-        if (!mIsRcsServiceInstalled) {
+        mSupportApi.init(context);
+        boolean isRcsSupport = mSupportApi.isRcsSupported();
+        ContactsCommonRcsUtil.setIsRcs(isRcsSupport);
+        boolean isNativeUIInstalled  = RCSUtil.isNativeUiInstalled(context);
+        RCSUtil.setNativeUIInstalled(isNativeUIInstalled);
+        if (!RcsSupportApi.isRcsServiceInstalled(context)) {
             Log.d(TAG, "_________mIsRcsServiceInstalled false__________");
             return;
         }
@@ -135,6 +142,7 @@ public class RcsApiManager {
                 Log.d(TAG, "mRichScreenApi connected");
             }
         });
+        ContactsCommonRcsUtil.setRichScreenApi(mRichScreenApi);
         mPluginCenterApi.init(context,new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
@@ -221,7 +229,11 @@ public class RcsApiManager {
         return mMcontactApi;
     }
 
-    public static boolean isRcsServiceInstalled() {
-        return mIsRcsServiceInstalled;
+    public static RcsSupportApi getSupportApi() {
+        if (mSupportApi == null) {
+            mSupportApi = new RcsSupportApi();
+            mSupportApi.init(mContext);
+        }
+        return mSupportApi;
     }
 }
