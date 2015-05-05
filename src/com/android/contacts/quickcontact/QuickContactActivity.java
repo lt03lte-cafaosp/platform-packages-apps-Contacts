@@ -185,6 +185,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.lang.ref.WeakReference;
 
 /**
  * Mostly translucent {@link Activity} that shows QuickContact dialog. It loads
@@ -503,13 +504,16 @@ public class QuickContactActivity extends ContactsActivity {
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
                 if (isFireWallInstalled) {
-                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
-                        ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
-                        info.getBlackIntent());
-
-                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
-                        ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
-                        info.getWhiteIntent());
+                    if (RCSUtil.checkNumberInFirewall(mResolver, true, info.getData())) {
+                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                                ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                                info.getBlackIntent());
+                    }
+                    if (RCSUtil.checkNumberInFirewall(mResolver, false, info.getData())) {
+                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                                 ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
+                                 info.getWhiteIntent());
+                    }
                 }
 
                 // add limit length to show IP call item
@@ -750,7 +754,7 @@ public class QuickContactActivity extends ContactsActivity {
 
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
              mNeverQueryRcsPhoto = true;
              mNeverQueryRcsCapability = true;
         }
@@ -919,7 +923,7 @@ public class QuickContactActivity extends ContactsActivity {
         mHasAlreadyBeenOpened = true;
         mIsEntranceAnimationFinished = true;
         mHasComputedThemeColor = false;
-        if (RCSUtil.getRcsSupport()){
+        if (RcsApiManager.getSupportApi().isRcsSupported()){
             mNeverQueryRcsCapability = true;
         }
         processIntent(intent);
@@ -2045,15 +2049,18 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             bindContactData(data);
-            if (RCSUtil.getRcsSupport() && !RCSUtil.isLocalProfile(mContactData)) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()
+                    && !RCSUtil.isLocalProfile(mContactData)) {
                 if (mNeverQueryRcsCapability) {
                     mNeverQueryRcsCapability = false;
-                    RCSUtil.updateRCSCapability(QuickContactActivity.this,
-                            mContactData);
+                    RCSUtil.updateRCSCapability(QuickContactActivity.this, mContactData);
                 }
                 if (mNeverQueryRcsPhoto) {
                     mNeverQueryRcsPhoto = false;
-                    RCSUtil.updateContactPhotoViaServer(QuickContactActivity.this, mContactData);
+                    WeakReference<QuickContactActivity> quickRef;
+                    quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
+                    WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
+                    RCSUtil.updateContactPhotoViaServer(quickRef, contactRef);
                 }
             }
             Trace.endSection();
@@ -2531,7 +2538,8 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
-            if (RCSUtil.getRcsSupport() && RCSUtil.isLocalProfile(mContactData)) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()
+                    && RCSUtil.isLocalProfile(mContactData)) {
                 uploadOrDownload.setVisible(true);
             } else {
                 uploadOrDownload.setVisible(false);
@@ -2701,14 +2709,16 @@ public class QuickContactActivity extends ContactsActivity {
                 createLauncherShortcutWithContact();
                 return true;
             case R.id.menu_upload_download: {
-                RCSUtil.createLocalProfileBackupRestoreDialog(this, mContactData,
-                    new RestoreFinishedListener() {
-                        public void onRestoreFinished() {
-                            if (QuickContactActivity.this != null
-                                    && !QuickContactActivity.this
-                                            .isFinishing()) {
-                                onNewIntent(getIntent());
-                            }
+                final WeakReference<QuickContactActivity> quickRef;
+                quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
+                final WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
+                RCSUtil.createLocalProfileBackupRestoreDialog(this, contactRef.get(),
+                        new RestoreFinishedListener() {
+                            public void onRestoreFinished() {
+                                QuickContactActivity activity = quickRef.get();
+                                if (activity != null && !activity.isFinishing()) {
+                                    activity.onNewIntent(activity.getIntent());
+                                }
                         }
                     }).show();
                 return true;

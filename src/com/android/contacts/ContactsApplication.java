@@ -131,14 +131,7 @@ public final class ContactsApplication extends Application {
         if (Log.isLoggable(Constants.PERFORMANCE_TAG, Log.DEBUG)) {
             Log.d(Constants.PERFORMANCE_TAG, "ContactsApplication.onCreate finish");
         }
-        if (RcsSupportApi.isRcsServiceInstalled(this)) {
-            RcsApiManager.init(this);
-            ContactsCommonRcsUtil.setIsRcs(true);
-            RCSUtil.setRcsSupport(true);
-        } else {
-            ContactsCommonRcsUtil.setIsRcs(false);
-            RCSUtil.setRcsSupport(false);
-        }
+        RcsApiManager.init(this);
     }
 
     private class DelayedInitializer extends AsyncTask<Void, Void, Void> {

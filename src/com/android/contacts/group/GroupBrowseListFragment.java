@@ -219,16 +219,17 @@ public class GroupBrowseListFragment extends Fragment
     @Override
     public void onStart() {
         getLoaderManager().initLoader(LOADER_GROUPS, null, mGroupLoaderListener);
-        SharedPreferences groupStatus = mContext.getSharedPreferences("RcsSharepreferences",
-                Context.MODE_PRIVATE);
-        boolean isRcsGroupDataLoaded = groupStatus.getBoolean("isRcsGroupDataLoaded", false);
-        // start to load chat-group data when first initialization.
-        if(RCSUtil.getRcsSupport() && (!isRcsGroupDataLoaded)){
-            new AsyncDataLoaderTask(GroupBrowseListFragment.this).execute();
-        }
         super.onStart();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // start to load chat-group data when first initialization.
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+             new AsyncDataLoaderTask(GroupBrowseListFragment.this).execute();
+         }
+    }
     /**
      * The listener for the group meta data loader for all groups.
      */
@@ -420,11 +421,6 @@ public class GroupBrowseListFragment extends Fragment
                 loaderManager.restartLoader(LOADER_GROUPS, null, mGroupLoaderListener);
             mAdapter.setRcsGroupsData(result,contactCountMap);
             mAdapter.notifyDataSetChanged();
-            SharedPreferences groupStatus = activityContext.getSharedPreferences(
-                    "RcsSharepreferences", Context.MODE_PRIVATE);
-            Editor editor = groupStatus.edit();
-            editor.putBoolean("isRcsGroupDataLoaded", true);
-            editor.commit();
 
         }
 

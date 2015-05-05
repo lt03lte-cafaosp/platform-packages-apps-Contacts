@@ -105,4 +105,13 @@
     <string name="first_name_max_length">the first name must not exceed 20 bytes.</string>
     <string name="last_name_max_length">the last name must not exceed 20 bytes.</string>
     <string name="full_name_max_length">the full name must not exceed 40 bytes.</string>
+    <string name="rcs_address_is_too_long">Error! The address is longer than 40 bytes.</string>
+    <string name="rcs_company_name_is_too_long">Error! The company name
+        is longer than 40 bytes.</string>
+    <string name="rcs_company_title_is_too_long">Error! The company title
+        is longer than 20 bytes.</string>
+    <string name="rcs_email_address_is_too_long">Error! The email address
+        is longer than 50 bytes.</string>
+    <string name="rcs_email_address_is_invalid">Error! The email address is
+        invalid.</string>
 </resources>
