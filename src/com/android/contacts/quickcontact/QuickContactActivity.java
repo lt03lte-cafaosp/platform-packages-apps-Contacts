@@ -459,6 +459,8 @@ public class QuickContactActivity extends ContactsActivity {
         static final int ADD_TO_WHITELIST = 5;
         static final int IPCALL1 = 6;
         static final int IPCALL2 = 7; // add for new feature: ip call prefix
+        static final int REMOVE_FROM_BLACKLIST = 8;
+        static final int REMOVE_FROM_WHITELIST = 9;
     }
 
     private final OnCreateContextMenuListener mEntryContextMenuListener =
@@ -503,13 +505,28 @@ public class QuickContactActivity extends ContactsActivity {
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
                 if (isFireWallInstalled) {
-                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
-                        ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
-                        info.getBlackIntent());
-
-                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
-                        ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
-                        info.getWhiteIntent());
+                    if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                        if (RCSUtil.checkNumberInFirewall(mResolver, true, info.getData())) {
+                            menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                                    ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                                    info.getBlackIntent());
+                        } else {
+                            menu.add(ContextMenu.NONE, ContextMenuIds.REMOVE_FROM_BLACKLIST,
+                                    ContextMenu.NONE, getString(R.string.rcs_remove_from_blacklist));
+                        }
+                        if (RCSUtil.checkNumberInFirewall(mResolver, false, info.getData())) {
+                            menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                                    ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
+                                    info.getWhiteIntent());
+                        } else {
+                            menu.add(ContextMenu.NONE, ContextMenuIds.REMOVE_FROM_WHITELIST,
+                                    ContextMenu.NONE, getString(R.string.rcs_remove_from_whitelist));
+                        }
+                    } else {
+                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                                ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                                info.getBlackIntent());
+                    }
                 }
 
                 // add limit length to show IP call item
@@ -567,6 +584,24 @@ public class QuickContactActivity extends ContactsActivity {
                 return false;
             case ContextMenuIds.ADD_TO_WHITELIST:
                 return false;
+            case ContextMenuIds.REMOVE_FROM_BLACKLIST:
+                if (RCSUtil.removeNumberInFirewall(mResolver, true, menuInfo.getData()) > 0) {
+                    Toast.makeText(this, R.string.rcs_remove_from_blacklist_successfully,
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, R.string.rcs_failed_to_remove_from_blacklist,
+                            Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            case ContextMenuIds.REMOVE_FROM_WHITELIST:
+                if (RCSUtil.removeNumberInFirewall(mResolver, false, menuInfo.getData()) > 0) {
+                    Toast.makeText(this, R.string.rcs_remove_from_whitelist_successfully,
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, R.string.rcs_failed_to_remove_from_whitelist,
+                            Toast.LENGTH_SHORT).show();
+                }
+                return true;
             case ContextMenuIds.IPCALL1:
                 ipCallBySlot(menuInfo.getData(), SimContactsConstants.SUB_1);
                 return true;
@@ -750,7 +785,7 @@ public class QuickContactActivity extends ContactsActivity {
 
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
              mNeverQueryRcsPhoto = true;
              mNeverQueryRcsCapability = true;
         }
@@ -919,7 +954,7 @@ public class QuickContactActivity extends ContactsActivity {
         mHasAlreadyBeenOpened = true;
         mIsEntranceAnimationFinished = true;
         mHasComputedThemeColor = false;
-        if (RCSUtil.getRcsSupport()){
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             mNeverQueryRcsCapability = true;
         }
         processIntent(intent);
@@ -2045,7 +2080,8 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             bindContactData(data);
-            if (RCSUtil.getRcsSupport() && !RCSUtil.isLocalProfile(mContactData)) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()
+                    && !RCSUtil.isLocalProfile(mContactData)) {
                 if (mNeverQueryRcsCapability) {
                     mNeverQueryRcsCapability = false;
                     RCSUtil.updateRCSCapability(QuickContactActivity.this,
@@ -2531,7 +2567,8 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
-            if (RCSUtil.getRcsSupport() && RCSUtil.isLocalProfile(mContactData)) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()
+                    && RCSUtil.isLocalProfile(mContactData)) {
                 uploadOrDownload.setVisible(true);
             } else {
                 uploadOrDownload.setVisible(false);

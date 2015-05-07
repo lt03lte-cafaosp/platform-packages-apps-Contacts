@@ -36,6 +36,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.RawContact;
 import com.android.contacts.common.model.dataitem.DataItem;
@@ -101,6 +104,7 @@ import android.app.ActivityManager.RunningTaskInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.LoaderManager;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentProviderOperation;
@@ -234,8 +238,6 @@ public class RCSUtil {
     // RCS capability: not RCS.
     public static final int NOT_RCS = 404;
 
-    private static boolean isRcsSupport = false;
-
     private static int DEFAULT_NUMBER_LENGTH = 11;
 
     //private static final HashMap<Long, Long> latestQuery = new HashMap<Long, Long>();
@@ -246,8 +248,11 @@ public class RCSUtil {
 
     private static final String KEY_BACKUP_ONCE_CHANGED = "key_backup_once_changed";
 
-    private static final String PREF_BACKUP_ONCE_CHANGED_NAME =
-            "pref_backup_once_changed_name";
+    private static final String KEY_AUTO_BACKUP = "key_auto_backup";
+
+    private static final String PREF_BACKUP_RESTORE_NAME = "pref_backup_restore_name";
+
+    private static final String KEY_ONLY_WIFI_BACKUP_RESOTORE = "key_only_wifi_backup_restore";
 
     private static final String ENHANCE_SCREEN_APK_NAME = "com.cmdm.rcs";
 
@@ -255,13 +260,11 @@ public class RCSUtil {
 
     private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
 
-    public static boolean getRcsSupport() {
-        return isRcsSupport;
-    }
-
-    public static void setRcsSupport(boolean flag) {
-        isRcsSupport = flag;
-    }
+    //add firewall menu
+    private static final Uri WHITELIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/whitelistitems");
+    private static final Uri BLACKLIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/blacklistitems");
 
     private static boolean isPackageInstalled(Context context, String packageName) {
         boolean installed = false;
@@ -338,8 +341,13 @@ public class RCSUtil {
                                         @Override
                                         public void onClick(DialogInterface dialog,
                                                 int whichButton) {
-                                            context.startActivity(new Intent(
-                                                    RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                                            try {
+                                                context.startActivity(new Intent(
+                                                        RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                                            } catch (ActivityNotFoundException ex) {
+                                                Toast.makeText(context, R.string.missing_app,
+                                                        Toast.LENGTH_SHORT).show();
+                                            }
                                         }
                                     }).create();
                             dialog.show();
@@ -359,10 +367,9 @@ public class RCSUtil {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            if (!RCSUtil.getRcsSupport())
+            if (!RcsApiManager.getSupportApi().isRcsSupported())
                 return;
-            SharedPreferences prefs = PreferenceManager
-                    .getDefaultSharedPreferences(context);
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
             if (!prefs.getBoolean(
                     RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
                     false)) {
@@ -439,6 +446,14 @@ public class RCSUtil {
     public static void updateRCSCapability(final Activity activity,
             final Contact contactData) {
         final Handler handler = new Handler();
+        try {
+            if (!RcsApiManager.getRcsAccoutApi().isOnline()) {
+                Log.d(TAG, "Calling updateRCSCapability Rcs is offline!");
+                return;
+            }
+        } catch (ServiceDisconnectedException e) {
+            return;
+        }
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -717,7 +732,8 @@ public class RCSUtil {
     public static void newAndEditContactsUpdateEnhanceScreen(Context context,
             ContentResolver resolver, long rawContactId) {
         Log.d(TAG,"new and edit contact rawContactId: "+ rawContactId);
-        if (getRcsSupport() && isEnhanceScreenInstalled(context)){
+        if (RcsApiManager.getSupportApi().isRcsSupported()
+                && isEnhanceScreenInstalled(context)){
             Cursor phone = null;
             try{
                 phone = resolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -750,7 +766,7 @@ public class RCSUtil {
     }
 
     public static void importContactUpdateEnhanceScreen(String Number, String anrs){
-        if (getRcsSupport()){
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             ArrayList<String> phoneNumberList = new ArrayList<String>();
             if (!TextUtils.isEmpty(Number)){
                 phoneNumberList.add(Number);
@@ -1253,12 +1269,13 @@ public class RCSUtil {
         RawContact rawContact = contact.getRawContacts().get(0);
         Profile profile = new Profile();
         profile.setOtherTels(new ArrayList<TelephoneModel>());
-
+        String firstName = "";
+        String lastName = "";
         for (DataItem dataItem : rawContact.getDataItems()) {
             if (dataItem instanceof StructuredNameDataItem) {
-                String firstName = ((StructuredNameDataItem) dataItem)
+                firstName = ((StructuredNameDataItem) dataItem)
                         .getGivenName();
-                String lastName = ((StructuredNameDataItem) dataItem)
+                lastName = ((StructuredNameDataItem) dataItem)
                         .getFamilyName();
                 Log.d(TAG, "The first name is " + firstName);
                 Log.d(TAG, "The last name is " + lastName);
@@ -1352,7 +1369,9 @@ public class RCSUtil {
                 }
             }
         }
-
+        if (TextUtils.isEmpty(firstName)) {
+            return null;
+        }
         return profile;
     }
 
@@ -1570,10 +1589,10 @@ public class RCSUtil {
                         }
                     } else if (TextUtils.equals(Event.CONTENT_ITEM_TYPE,
                             mimeType)) {
-                        insertBirthday = false;
                         int eventType = c.getInt(3);
                         if (eventType == Event.TYPE_BIRTHDAY) {
                             String startDate = c.getString(2);
+                            insertBirthday = false;
                             if (TextUtils.equals(startDate,
                                     profile.getBirthday())) {
                                 updateBirthday = false;
@@ -1587,7 +1606,7 @@ public class RCSUtil {
                 c.close();
             }
         }
-        if (insertCompanyTel) {
+        if (insertCompanyTel && !TextUtils.isEmpty(profile.getCompanyTel())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
@@ -1596,7 +1615,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertCompanyFax) {
+        if (insertCompanyFax && !TextUtils.isEmpty(profile.getCompanyFax())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
@@ -1605,7 +1624,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertHomeAddress) {
+        if (insertHomeAddress && !TextUtils.isEmpty(profile.getHomeAddress())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues
@@ -1617,7 +1636,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertCompanyAddress) {
+        if (insertCompanyAddress && !TextUtils.isEmpty(profile.getCompanyAddress())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues
@@ -1629,7 +1648,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertEmail) {
+        if (insertEmail && !TextUtils.isEmpty(profile.getEmail())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE);
@@ -1640,34 +1659,47 @@ public class RCSUtil {
         }
 
         if (insertOrganization) {
-            //is empty del row
-            if(TextUtils.isEmpty(profile.getCompanyName()) && TextUtils.isEmpty(profile.getCompanyDuty())){
-                ops.add(ContentProviderOperation.newDelete(PROFILE_DATA_URI).withSelection(
-                        Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE
-                        + " = ? ",
-                new String[] { String.valueOf(rawContactId),
-                        Organization.CONTENT_ITEM_TYPE }).build());
-            }else{
+            if (!TextUtils.isEmpty(profile.getCompanyName())
+                    || !TextUtils.isEmpty(profile.getCompanyDuty())) {
+                Log.d(TAG, "insert organization");
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
-                contentValues.put(Organization.COMPANY, profile.getCompanyName());
-                contentValues.put(Organization.TITLE, profile.getCompanyDuty());
+                contentValues
+                        .put(Organization.COMPANY,  profile.getCompanyName());
+                contentValues
+                        .put(Organization.TITLE, profile.getCompanyDuty());
                 contentValues.put(Data.MIMETYPE, Organization.CONTENT_ITEM_TYPE);
                 ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                         .withValues(contentValues).build());
             }
         } else if (updateOrganization) {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(Organization.COMPANY, profile.getCompanyName());
-            contentValues.put(Organization.TITLE, profile.getCompanyDuty());
-            ops.add(ContentProviderOperation
-                    .newUpdate(PROFILE_DATA_URI)
-                    .withValues(contentValues)
-                    .withSelection(
-                            Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE
-                                    + " = ? ",
-                            new String[] { String.valueOf(rawContactId),
-                                    Organization.CONTENT_ITEM_TYPE }).build());
+            Log.d(TAG, "update organization");
+            if (TextUtils.isEmpty(profile.getCompanyName())
+                    && TextUtils.isEmpty(profile.getCompanyDuty())) {
+                ops.add(ContentProviderOperation
+                        .newDelete(PROFILE_DATA_URI)
+                        .withSelection(
+                                Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE + " = ? ",
+                                new String[] {
+                                        String.valueOf(rawContactId),
+                                        Organization.CONTENT_ITEM_TYPE
+                                }).build());
+            } else {
+                ContentValues contentValues = new ContentValues();
+                contentValues
+                        .put(Organization.COMPANY, profile.getCompanyName());
+                contentValues
+                        .put(Organization.TITLE, profile.getCompanyDuty());
+                ops.add(ContentProviderOperation
+                        .newUpdate(PROFILE_DATA_URI)
+                        .withValues(contentValues)
+                        .withSelection(
+                                Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE + " = ? ",
+                                new String[] {
+                                        String.valueOf(rawContactId),
+                                        Organization.CONTENT_ITEM_TYPE
+                                }).build());
+            }
         }
 
         if (insertNameInfo) {
@@ -1712,7 +1744,7 @@ public class RCSUtil {
                                     StructuredName.CONTENT_ITEM_TYPE }).build());
         }
 
-        if (insertBirthday) {
+        if (insertBirthday && !TextUtils.isEmpty(profile.getBirthday())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Event.TYPE, Event.TYPE_BIRTHDAY);
@@ -2443,33 +2475,32 @@ public class RCSUtil {
     }
 
     public static void initRcsMenu(Context context, Menu menu, Contact contactData) {
-        if (contactData == null || !getRcsSupport()) {
-            return;
-        }
+        boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
+        boolean isUserProfile = contactData != null && contactData.isUserProfile();
+
         final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
         if (optionsQrcode != null) {
-            optionsQrcode.setVisible(contactData.isUserProfile());
+            optionsQrcode.setVisible(isRcsSupport && isUserProfile);
         }
 
         final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
         if (optionsPluginCenter != null) {
-            optionsPluginCenter.setVisible(isPlunginCenterInstalled(context) &&
-                    contactData.isUserProfile());
+            optionsPluginCenter.setVisible(isRcsSupport && isPlunginCenterInstalled(context)
+                    && isUserProfile);
         }
-        final MenuItem optionsUpdateEnhanceScreen = menu
-                .findItem(R.id.menu_updateenhancedscreen);
+        final MenuItem optionsUpdateEnhanceScreen = menu.findItem(R.id.menu_updateenhancedscreen);
         if (optionsUpdateEnhanceScreen != null) {
-            optionsUpdateEnhanceScreen.setVisible(isEnhanceScreenInstalled(context)
-                    && !contactData.isUserProfile());
+            optionsUpdateEnhanceScreen.setVisible(isRcsSupport && isEnhanceScreenInstalled(context)
+                    && !isUserProfile);
         }
         final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
         if (optionsEnhancedscreen != null) {
-            optionsEnhancedscreen.setVisible(isEnhanceScreenInstalled(context));
+            optionsEnhancedscreen.setVisible(isRcsSupport && isEnhanceScreenInstalled(context));
         }
         // Display/Hide the online business hall menu item.
         MenuItem onlineBusinessHall = menu.findItem(R.id.menu_online_business_hall);
         if (onlineBusinessHall != null) {
-            onlineBusinessHall.setVisible(contactData.isUserProfile()
+            onlineBusinessHall.setVisible(isRcsSupport && isUserProfile
                     && isOnlineBusinessHallInstalled(context));
         }
     }
@@ -2661,7 +2692,6 @@ public class RCSUtil {
             if (null != phonesCursor) {
                 phonesCursor.close();
             }
-
         }
         return phone;
     }
@@ -2741,19 +2771,21 @@ public class RCSUtil {
         }
         if (nativeUiContext == null)
             return;
-        SharedPreferences pref = nativeUiContext.getSharedPreferences(
-                PREF_BACKUP_ONCE_CHANGED_NAME, Activity.MODE_WORLD_READABLE
+        SharedPreferences backupRestorePref = nativeUiContext.getSharedPreferences(
+                PREF_BACKUP_RESTORE_NAME, Activity.MODE_WORLD_READABLE
                         | Activity.MODE_MULTI_PROCESS);
-        boolean isBackup = pref.getBoolean(KEY_BACKUP_ONCE_CHANGED, false);
-        boolean isAutoBackup = false;
-        boolean isOnlySyncViaWifi = false;
+        boolean isBackup = backupRestorePref.getBoolean(KEY_BACKUP_ONCE_CHANGED, false);
+        boolean isAutoBackup = backupRestorePref.getBoolean(KEY_AUTO_BACKUP, false);
+        boolean isOnlySyncViaWifi = backupRestorePref.getBoolean(KEY_ONLY_WIFI_BACKUP_RESOTORE,
+                false);
 
         Log.d(TAG, "Calling autoBackupOnceChanged!");
         try {
-            isAutoBackup = RcsApiManager.getMcontactApi().getEnableAutoSync();
-            isOnlySyncViaWifi = RcsApiManager.getMcontactApi()
-                    .getOnlySyncEnableViaWifi();
-            if (isBackup && isAutoBackup && isOnlySyncViaWifi) {
+            //isAutoBackup = RcsApiManager.getMcontactApi().getEnableAutoSync();
+            //isOnlySyncViaWifi = RcsApiManager.getMcontactApi()
+                    //.getOnlySyncEnableViaWifi();
+            if (isBackup && isAutoBackup
+                    && (isOnlySyncViaWifi && RCSUtil.isWifiEnabled(context) || !isOnlySyncViaWifi)) {
                 Log.d(TAG, "Auto backup started!");
                 RcsApiManager.getMcontactApi().doSync(SyncAction.CONTACT_UPLOAD,
                         new IMContactSyncListener.Stub() {
@@ -2853,7 +2885,9 @@ public class RCSUtil {
     public static void startOnlineBusinessHallActivity(Context context) {
         Intent intent = context.getPackageManager()
                 .getLaunchIntentForPackage(ONLINE_BUSINESS_HALL);
-        context.startActivity(intent);
+        if (intent != null) {
+            context.startActivity(intent);
+        }
     }
 
     private static void makeToast(Context context, int stringId) {
@@ -3001,7 +3035,7 @@ public class RCSUtil {
 
     public static boolean judgeUserNameLength(Context context,
             RawContactDeltaList rawContactDeltaList, boolean isExpand) {
-        if (!getRcsSupport()) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
             return true;
         }
         RawContactDelta rawContactDelta = rawContactDeltaList.get(0);
@@ -3050,5 +3084,55 @@ public class RCSUtil {
             }
         }
         return true;
+    }
+
+    public static boolean isRegularEmail(String emailString) {
+        String patten = "^[a-zA-Z0-9][\\w\\.-]*[a-zA-Z0-9]@[a-zA-Z0-9]"
+                + "[\\w\\.-]*[a-zA-Z0-9]\\.[a-zA-Z][a-zA-Z\\.]*[a-zA-Z]$";
+        Pattern p = Pattern.compile(patten);
+        Matcher m = p.matcher(emailString);
+        return m.matches();
+    }
+
+    public static boolean checkNumberInFirewall(ContentResolver resolver,
+            boolean isBlacklist, String number) {
+        if (TextUtils.isEmpty(number)) {
+            return false;
+        }
+        String queryNumber = number.replaceAll("[\\-\\/ ]", "");
+        int len = queryNumber.length();
+        if (len > 11) {
+            queryNumber = number.substring(len - 11, len);
+        }
+        Uri firewallUri = isBlacklist? BLACKLIST_CONTENT_URI: WHITELIST_CONTENT_URI;
+        Cursor fiewallCursor = resolver.query(firewallUri,
+                new String[] { "_id", "number", "person_id", "name"},
+                "number" + " LIKE '%" + queryNumber + "'",
+                null, null);
+        try {
+            if (fiewallCursor != null && fiewallCursor.getCount() > 0) {
+                return false;
+            }
+        } finally {
+            if (fiewallCursor != null) {
+                fiewallCursor.close();
+                fiewallCursor = null;
+            }
+        }
+        return true;
+    }
+
+    public static int removeNumberInFirewall(ContentResolver resolver,
+            boolean isBlacklist, String number) {
+        if (TextUtils.isEmpty(number)) {
+            return -1;
+        }
+        String queryNumber = number.replaceAll("[\\-\\/ ]", "");
+        int len = queryNumber.length();
+        if (len > 11) {
+            queryNumber = number.substring(len - 11, len);
+        }
+        Uri firewallUri = isBlacklist? BLACKLIST_CONTENT_URI: WHITELIST_CONTENT_URI;
+        return resolver.delete(firewallUri, "number" + " LIKE '%" + queryNumber + "'", null);
     }
 }
