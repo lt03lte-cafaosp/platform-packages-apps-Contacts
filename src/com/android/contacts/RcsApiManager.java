@@ -68,7 +68,16 @@ public class RcsApiManager {
             Log.d(TAG, "_________mIsRcsServiceInstalled false__________");
             return;
         }
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                rcsApiInit(mContext);
+            }
+        };
+        t.start();
+    }
 
+    private static void rcsApiInit(Context context) {
         mMessageApi.init(context, new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
@@ -128,7 +137,7 @@ public class RcsApiManager {
                 Log.d(TAG, "ConfApi connected");
             }
         });
-        mRichScreenApi.init(context,new RCSServiceListener() {
+        mRichScreenApi.init(context, new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
                 Log.d(TAG, "mRichScreenApi disconnected");
@@ -140,7 +149,7 @@ public class RcsApiManager {
             }
         });
         ContactsCommonRcsUtil.setRichScreenApi(mRichScreenApi);
-        mPluginCenterApi.init(context,new RCSServiceListener() {
+        mPluginCenterApi.init(context, new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
                 Log.d(TAG, "mPluginCenterApi disconnected");
@@ -160,7 +169,7 @@ public class RcsApiManager {
             public void onServiceConnected() throws RemoteException {
             }
         });
-     }
+    }
 
     public static MessageApi getMessageApi() {
 
