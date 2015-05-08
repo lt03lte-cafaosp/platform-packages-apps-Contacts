@@ -99,15 +99,4 @@
     <string name="last_name_max_length">名字不能超过二十个字节。</string>
     <string name="full_name_max_length">姓名不能超过四十个字节。</string>
     <string name="Unformatted_profile_phone_number">当前联系人不支持增强屏显!</string>
-    <string name="rcs_address_is_too_long">错误！地址长度大于40个字节</string>
-    <string name="rcs_company_name_is_too_long">错误！公司名字大于40个字节</string>
-    <string name="rcs_company_title_is_too_long">错误！公司职位大于20个字节</string>
-    <string name="rcs_email_address_is_too_long">错误！邮箱地址大于50个字节</string>
-    <string name="rcs_email_address_is_invalid">错误！邮箱地址无效</string>
-    <string name="rcs_remove_from_blacklist">从黑名单中移除</string>
-    <string name="rcs_remove_from_whitelist">从白名单中移除</string>
-    <string name="rcs_remove_from_blacklist_successfully">已经从黑名单中移除</string>
-    <string name="rcs_remove_from_whitelist_successfully">已经从白名单中移除</string>
-    <string name="rcs_failed_to_remove_from_blacklist">从黑名单中移除失败</string>
-    <string name="rcs_failed_to_remove_from_whitelist">从白名单中移除失败</string>
 </resources>

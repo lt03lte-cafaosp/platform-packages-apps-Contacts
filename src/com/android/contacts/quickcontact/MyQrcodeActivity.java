@@ -212,7 +212,7 @@ public class MyQrcodeActivity extends Activity {
             myProfile = RCSUtil.createLocalProfile(mRawContact);
             updateDisplayNumber(myProfile);
             if (!decodeStringAndSetBitmap(imgString)) {
-                if ((null != myProfile) && !TextUtils.isEmpty(myProfile.getFirstName())) {
+                if (null != myProfile || !TextUtils.isEmpty(myProfile.getFirstName())) {
                     createProgressDialog();
                     // downloadProfile(myProfile);
                     getQRcodeFromService(myProfile);
@@ -410,8 +410,6 @@ public class MyQrcodeActivity extends Activity {
                 bm = BitmapFactory.decodeByteArray(data, 0, data.length,
                         options);
             }
-        } catch (IllegalArgumentException ex) {
-            ex.printStackTrace();
         } finally {
             if (cursor != null) {
                 cursor.close();

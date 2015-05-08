@@ -184,7 +184,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.lang.ref.WeakReference;
 
 /**
  * Mostly translucent {@link Activity} that shows QuickContact dialog. It loads
@@ -443,8 +442,6 @@ public class QuickContactActivity extends ContactsActivity {
         static final int ADD_TO_WHITELIST = 5;
         static final int IPCALL1 = 6;
         static final int IPCALL2 = 7; // add for new feature: ip call prefix
-        static final int REMOVE_FROM_BLACKLIST = 8;
-        static final int REMOVE_FROM_WHITELIST = 9;
     }
 
     private final OnCreateContextMenuListener mEntryContextMenuListener =
@@ -489,31 +486,13 @@ public class QuickContactActivity extends ContactsActivity {
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
                 if (isFireWallInstalled) {
-                    if (RcsApiManager.getSupportApi().isRcsSupported()) {
-                        if (RCSUtil.checkNumberInFirewall(mResolver, true, info.getData())) {
-                            menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
-                                    ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
-                                    info.getBlackIntent());
-                        } else {
-                            menu.add(ContextMenu.NONE, ContextMenuIds.REMOVE_FROM_BLACKLIST,
-                                    ContextMenu.NONE, getString(R.string.rcs_remove_from_blacklist));
-                        }
-                        if (RCSUtil.checkNumberInFirewall(mResolver, false, info.getData())) {
-                            menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
-                                    ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
-                                    info.getWhiteIntent());
-                        } else {
-                            menu.add(ContextMenu.NONE, ContextMenuIds.REMOVE_FROM_WHITELIST,
-                                    ContextMenu.NONE, getString(R.string.rcs_remove_from_whitelist));
-                        }
-                    } else {
-                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
-                                ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
-                                info.getBlackIntent());
-                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
-                                ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
-                                info.getWhiteIntent());
-                    }
+                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                        ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
+                        info.getBlackIntent());
+
+                    menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                        ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
+                        info.getWhiteIntent());
                 }
 
                 // add limit length to show IP call item
@@ -2039,8 +2018,7 @@ public class QuickContactActivity extends ContactsActivity {
                 }
                 if (mNeverQueryRcsPhoto) {
                     mNeverQueryRcsPhoto = false;
-                    new RCSUtil.UpdateContactPhotoTask(QuickContactActivity.this, mContactData)
-                            .execute();
+                    RCSUtil.updateContactPhotoViaServer(QuickContactActivity.this, mContactData);
                 }
             }
             Trace.endSection();
@@ -2673,17 +2651,16 @@ public class QuickContactActivity extends ContactsActivity {
                 createLauncherShortcutWithContact();
                 return true;
             case R.id.menu_upload_download: {
-                final WeakReference<QuickContactActivity> activityRef = new WeakReference<QuickContactActivity>(
-                        QuickContactActivity.this);
-                final WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
-                RCSUtil.createLocalProfileBackupRestoreDialog(this, contactRef.get(),
-                        new RestoreFinishedListener() {
-                            public void onRestoreFinished() {
-                                if (activityRef.get() != null && !activityRef.get().isFinishing()) {
-                                    activityRef.get().onNewIntent(activityRef.get().getIntent());
-                                }
+                RCSUtil.createLocalProfileBackupRestoreDialog(this, mContactData,
+                    new RestoreFinishedListener() {
+                        public void onRestoreFinished() {
+                            if (QuickContactActivity.this != null
+                                    && !QuickContactActivity.this
+                                            .isFinishing()) {
+                                onNewIntent(getIntent());
                             }
-                        }).show();
+                        }
+                    }).show();
                 return true;
             }
             case R.id.menu_online_business_hall:
