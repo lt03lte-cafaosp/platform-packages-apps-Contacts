@@ -40,7 +40,6 @@ import android.widget.LinearLayout;
 
 import com.android.contacts.util.RCSUtil;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.model.ValuesDelta;
@@ -258,7 +257,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
                 }
             });
 
-            if (RcsApiManager.getSupportApi().isRcsSupported()
+            if (RCSUtil.getRcsSupport()
                     && null != entry.getAsInteger(ContactsContract.Data.DATA13)
                     && 1 == entry.getAsInteger(ContactsContract.Data.DATA13)) {
                 String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
