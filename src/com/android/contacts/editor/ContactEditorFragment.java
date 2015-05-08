@@ -817,6 +817,21 @@ public class ContactEditorFragment extends Fragment implements
         // Set the correct URI for saving the contact as a profile
         if (mNewLocalProfile) {
             insert.setProfileQueryUri();
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
+                if (!TextUtils.isEmpty(myPhoneNumber)) {
+                    phoneChild.put(Phone.NUMBER, myPhoneNumber);
+                    phoneChild.put(ContactsContract.Data.DATA13, 1);
+                }
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+                String latestTerminal = prefs.getString(RCSUtil.PREF_MY_TEMINAL, "");
+                if (!TextUtils.isEmpty(myPhoneNumber)
+                        && !TextUtils.equals(latestTerminal, myPhoneNumber)) {
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString(RCSUtil.PREF_MY_TEMINAL, myPhoneNumber);
+                    editor.apply();
+                }
+            }
         }
 
         mState.add(insert);
@@ -1221,7 +1236,13 @@ public class ContactEditorFragment extends Fragment implements
         if (!hasValidState() || mStatus != Status.EDITING) {
             return false;
         }
-
+        if (mIsUserProfile || (mIntentExtras != null &&
+                mIntentExtras.getBoolean(INTENT_EXTRA_NEW_LOCAL_PROFILE))) {
+            if (!RCSUtil
+                    .judgeUserNameLength(mContext, mState, mEditorsIsExpand)) {
+                return false;
+            }
+        }
         // If we are about to close the editor - there is no need to refresh the data
         if (saveMode == SaveMode.CLOSE || saveMode == SaveMode.SPLIT) {
             getLoaderManager().destroyLoader(LOADER_DATA);
@@ -1252,7 +1273,7 @@ public class ContactEditorFragment extends Fragment implements
                 ((Activity)mContext).getClass(), ContactEditorActivity.ACTION_SAVE_COMPLETED,
                 mUpdatedPhotos);
 
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             intent.putExtra(RCSUtil.KEY_IS_INSERT, !mIsEdit);
             intent.putExtra(
                     RCSUtil.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
@@ -1368,8 +1389,10 @@ public class ContactEditorFragment extends Fragment implements
                     if (null != contactLookupUri) {
                         Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
                                 .show();
-                        if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(mContext)
-                                && RCSUtil.isPluginInstalled(mContext)) {
+                        if (RcsApiManager.getSupportApi().isRcsSupported()
+                                && RCSUtil.isNativeUiInstalled(mContext)
+                                && RCSUtil.isPluginInstalled(mContext)
+                                && !isEditingUserProfile()) {
                             RCSUtil.autoBackupOnceChanged(mContext);
                         }
                     } else {
@@ -1426,6 +1449,36 @@ public class ContactEditorFragment extends Fragment implements
                 } else if(result == ContactSaveService.RESULT_NUMBER_TYPE_FAILURE) {
                     Toast.makeText(mContext, R.string.invalid_number_type, Toast.LENGTH_SHORT)
                     .show();
+                } else if (result == ContactSaveService.RESULT_ADDRESS_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_address_is_too_long, Toast.LENGTH_SHORT)
+                    .show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else if (result == ContactSaveService.RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_company_name_is_too_long,
+					    Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else if (result == ContactSaveService.RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_company_title_is_too_long,
+					    Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                }  else if (result == ContactSaveService.RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_email_address_is_too_long,
+					    Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else if (result == ContactSaveService.RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_email_address_is_invalid,
+					    Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
                 } else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                             .show();
@@ -1455,7 +1508,8 @@ public class ContactEditorFragment extends Fragment implements
                         lookupUri = contactLookupUri;
                     }
                     resultIntent = QuickContact.composeQuickContactsIntent(getActivity(),
-                            (Rect) null, lookupUri, QuickContactActivity.MODE_FULLY_EXPANDED, null);
+                            (Rect) null, lookupUri, QuickContactActivity.MODE_FULLY_EXPANDED,
+							    null);
                     // Make sure not to show QuickContacts on top of another QuickContacts.
                     resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 } else {
