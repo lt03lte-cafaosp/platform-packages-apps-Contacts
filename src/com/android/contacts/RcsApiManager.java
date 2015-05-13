@@ -44,11 +44,12 @@ import android.content.Context;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.android.contacts.common.util.ContactsCommonRcsUtil;
+
 public class RcsApiManager {
 
     private static final String TAG = "RcsApiManager";
     private static Context mContext;
-    private static boolean mIsRcsServiceInstalled = false;
     private static MessageApi mMessageApi = new MessageApi();
     private static RcsAccountApi mRcsAccountApi = new RcsAccountApi();
     private static ProfileApi mProfileApi = new ProfileApi();
@@ -57,12 +58,14 @@ public class RcsApiManager {
     private static RichScreenApi mRichScreenApi = new RichScreenApi(null);
     private static PluginCenterApi mPluginCenterApi = new PluginCenterApi();
     private static McontactApi mMcontactApi = new McontactApi();
-
+    private static RcsSupportApi mSupportApi = new RcsSupportApi();
     public static void init(Context context) {
         mContext = context;
-        mIsRcsServiceInstalled = RcsSupportApi.isRcsServiceInstalled(context);
-        if (!mIsRcsServiceInstalled) {
-            Log.d(TAG, "_________mIsRcsServiceInstalled false__________");
+
+        mSupportApi.init(context);
+        boolean isRcsSupport = mSupportApi.isRcsSupported();
+        ContactsCommonRcsUtil.setIsRcs(isRcsSupport);
+        if (!mSupportApi.isRcsServiceInstalled(context)) {
             return;
         }
 
@@ -222,7 +225,11 @@ public class RcsApiManager {
         return mMcontactApi;
     }
 
-    public static boolean isRcsServiceInstalled() {
-        return mIsRcsServiceInstalled;
+    public static RcsSupportApi getSupportApi() {
+        if (mSupportApi == null) {
+            mSupportApi = new RcsSupportApi();
+            mSupportApi.init(mContext);
+        }
+        return mSupportApi;
     }
 }

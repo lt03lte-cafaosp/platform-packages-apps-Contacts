@@ -90,6 +90,7 @@ import com.android.contacts.common.model.RawContactModifier;
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.GroupMetaDataLoader;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.util.ContactPhotoUtils;
 import com.android.contacts.util.DialogManager;
 import com.android.contacts.util.HelpUtils;
@@ -787,7 +788,7 @@ public class ContactEditorFragment extends Fragment implements
         // Set the correct URI for saving the contact as a profile
         if (mNewLocalProfile) {
             insert.setProfileQueryUri();
-            if (RCSUtil.getRcsSupport()) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
                 if (!TextUtils.isEmpty(myPhoneNumber)) {
                     phoneChild.put(Phone.NUMBER, myPhoneNumber);
@@ -1213,7 +1214,7 @@ public class ContactEditorFragment extends Fragment implements
                 ((Activity)mContext).getClass(), ContactEditorActivity.ACTION_SAVE_COMPLETED,
                 mUpdatedPhotos);
 
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             intent.putExtra(RCSUtil.KEY_IS_INSERT, !mIsEdit);
             intent.putExtra(
                     RCSUtil.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
@@ -1289,10 +1290,10 @@ public class ContactEditorFragment extends Fragment implements
                     if (null != contactLookupUri) {
                         Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
                                 .show();
-                        if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(mContext)
-                                && RCSUtil.isPluginInstalled(mContext) && !isEditingUserProfile()) {
-                            RCSUtil.autoBackupOnceChanged(mContext);
-                        }
+                        if (RcsApiManager.getSupportApi().isRcsSupported()
+                                && RCSUtil.isNativeUiInstalled(mContext)
+                                && RCSUtil.isPluginInstalled(mContext)
+                                && !isEditingUserProfile()) {
                     } else {
                         Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)
                                 .show();
@@ -1418,6 +1419,7 @@ public class ContactEditorFragment extends Fragment implements
                     Log.d(TAG, "No listener registered, can not call onSplitFinished");
                 }
                 break;
+            }
         }
     }
 

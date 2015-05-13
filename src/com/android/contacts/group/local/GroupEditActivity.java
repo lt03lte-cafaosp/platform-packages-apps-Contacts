@@ -208,7 +208,7 @@ public class GroupEditActivity extends PreferenceActivity implements OnPreferenc
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add(0, MENU_DELETE, 0, R.string.menu_option_delete);
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             menu.add(0, MENU_START_GROUPCHAT, 0, R.string.menu_create_group_chat);
             if (RCSUtil.isEnhanceScreenInstalled(getApplicationContext())) {
                menu.add(0, MENU_ENHANCE, 0, R.string.menu_enhancedscreen);
