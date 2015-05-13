@@ -102,7 +102,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         if (showPhoto) {
             boolean reverse = getResources().getBoolean(R.bool.config_browse_list_reverse_images);
             adapter.setPhotoPosition(ContactListItemView.getDefaultPhotoPosition(reverse));
-            if (ContactsCommonRcsUtil.getIsRcs()) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 if (ContactsCommonRcsUtil.RcsCapabilityMap != null
                         && ContactsCommonRcsUtil.RcsCapabilityMap.isEmpty()) {
                     ContactsCommonRcsUtil.loadRcsCapabilityOfContacts(
@@ -128,7 +128,8 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
         // Create an empty user profile header and hide it for now (it will be visible if the
         // contacts list will have no user profile).
-        if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(getActivity())
+        boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+        if (isRcsSupported && RCSUtil.isNativeUiInstalled(getActivity())
                 && RCSUtil.isPluginInstalled(getActivity())) {
             addPublicAccountView();
         }
@@ -258,7 +259,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     protected void setProfileHeader() {
         mUserProfileExists = getAdapter().hasProfile();
         showEmptyUserProfile(!mUserProfileExists && !isSearchMode());
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             showPublicAccountView(!isSearchMode());
         }
     }
@@ -334,8 +335,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         mPulicAccountView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(
-                        RCSUtil.ACTION_PUBLIC_ACCOUNT_ACTIVITY);
+                Intent intent = new Intent(RCSUtil.ACTION_PUBLIC_ACCOUNT_ACTIVITY);
                 startActivity(intent);
             }
         });

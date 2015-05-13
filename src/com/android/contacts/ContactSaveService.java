@@ -310,7 +310,8 @@ public class ContactSaveService extends IntentService {
         } else if (ACTION_DELETE_CONTACT.equals(action)) {
             deleteContact(intent);
             CallerInfoCacheUtils.sendUpdateCallerInfoCacheIntent(this);
-            if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(this)
+            boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+            if (isRcsSupported && RCSUtil.isNativeUiInstalled(this)
                     && RCSUtil.isPluginInstalled(this)) {
                 Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
                 if (!TextUtils.isEmpty(contactUri.getPath())
@@ -468,7 +469,7 @@ public class ContactSaveService extends IntentService {
 
         ArrayList<Long> rawContactsList = new ArrayList<Long>();
         boolean isCardOperation = false;
-        if (RCSUtil.getRcsSupport() && isProfile && state.size() > 0
+        if (RcsApiManager.getSupportApi().isRcsSupported() && isProfile && state.size() > 0
                 && state.get(0).getMimeEntries(StructuredName.CONTENT_ITEM_TYPE).size() > 0) {
 
             ValuesDelta aValue = state.get(0).getMimeEntries(StructuredName.CONTENT_ITEM_TYPE)
@@ -650,14 +651,14 @@ public class ContactSaveService extends IntentService {
 
                 if (!saveUpdatedPhoto(rawContactId, photoUri)) {
                     succeeded = false;
-                } else if(RCSUtil.getRcsSupport()) {
+                } else if(RcsApiManager.getSupportApi().isRcsSupported()) {
                     if (!isProfile) {
                         Log.d(TAG, "Setted Local Photo!");
                         RCSUtil.setLocalSetted(resolver, true, rawContactId);
                     }
                 }
             }
-            if (RCSUtil.getRcsSupport()) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 if (updatedPhotos.isEmpty() && !isSomethingChangedExceptPhoto
                         && !isProfile && !isInsert) {
                     Log.d(TAG, "Photo has deleted!");

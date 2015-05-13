@@ -293,7 +293,8 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                     mListener.onContactNotFound();
                 } else {
                     mListener.onDetailsLoaded(mContactData);
-                    if (RCSUtil.getRcsSupport() && !RCSUtil.isLocalProfile(mContactData)) {
+                    boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+                    if (isRcsSupported && !RCSUtil.isLocalProfile(mContactData)) {
                         if (mIsUpdatePhotos) {
                             RCSUtil.getOneContactPhotoFromServer((Activity)mContext, mContactData,
                                     RcsApiManager.getProfileApi(), null);
@@ -438,11 +439,8 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
         }
 
         final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
-        if (RCSUtil.getRcsSupport() && RCSUtil.isLocalProfile(mContactData)) {
-            uploadOrDownload.setVisible(true);
-        } else {
-            uploadOrDownload.setVisible(false);
-        }
+        boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+        uploadOrDownload.setVisible(isRcsSupported && RCSUtil.isLocalProfile(mContactData));
         RCSUtil.initRcsMenu(mContext, menu, mContactData);
     }
     private boolean hasPhoneOrEmailDate(Contact contact){
@@ -567,7 +565,7 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
             case R.id.menu_upload_download: {
                 //LocalProfileBackupRestoreFragment.show(getFragmentManager(), mContactData);
                 RCSUtil.createLocalProfileBackupRestoreDialog(mContext, mContactData,
-                   null, RcsApiManager.getProfileApi()).show();
+                       null, RcsApiManager.getProfileApi()).show();
                 return true;
             }
             case R.id.menu_qrcode: {

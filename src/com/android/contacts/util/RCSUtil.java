@@ -241,8 +241,6 @@ public class RCSUtil {
     // RCS capability: not RCS.
     public static final int NOT_RCS = 404;
 
-    private static boolean isRcsSupport = false;
-
     private static int DEFAULT_NUMBER_LENGTH = 11;
 
     // private static final HashMap<Long, Long> latestQuery = new HashMap<Long,
@@ -262,14 +260,6 @@ public class RCSUtil {
     private static final String ONLINE_BUSINESS_HALL = "cn.com.onlinebusiness";
 
     private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
-
-    public static boolean getRcsSupport() {
-        return isRcsSupport;
-    }
-
-    public static void setRcsSupport(boolean flag) {
-        isRcsSupport = flag;
-    }
 
     private static boolean isPackageInstalled(Context context, String packageName) {
         boolean installed = false;
@@ -367,7 +357,7 @@ public class RCSUtil {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            if (!RCSUtil.getRcsSupport())
+            if (!RcsApiManager.getSupportApi().isRcsSupported())
                 return;
             SharedPreferences prefs = PreferenceManager
                     .getDefaultSharedPreferences(context);
@@ -734,7 +724,7 @@ public class RCSUtil {
     public static void newAndEditContactsUpdateEnhanceScreen(Context context,
             ContentResolver resolver, long rawContactId) {
         Log.d(TAG,"new and edit contact rawContactId: "+ rawContactId);
-        if (getRcsSupport() && isEnhanceScreenInstalled(context)){
+        if (RcsApiManager.getSupportApi().isRcsSupported() && isEnhanceScreenInstalled(context)){
             Cursor phone = null;
             try{
                 phone = resolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -767,7 +757,7 @@ public class RCSUtil {
     }
 
     public static void importContactUpdateEnhanceScreen(String Number, String anrs){
-        if (getRcsSupport()){
+        if (RcsApiManager.getSupportApi().isRcsSupported()){
             ArrayList<String> phoneNumberList = new ArrayList<String>();
             if (!TextUtils.isEmpty(Number)){
                 phoneNumberList.add(Number);
@@ -2368,34 +2358,34 @@ public class RCSUtil {
     }
 
     public static void initRcsMenu(Context context, Menu menu, Contact contactData) {
-        if (contactData == null || !getRcsSupport()) {
-            return;
-        }
+        boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
         final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
         if (optionsQrcode != null) {
-            optionsQrcode.setVisible(contactData.isUserProfile());
+            optionsQrcode.setVisible(isRcsSupported && contactData != null
+                    && contactData.isUserProfile());
         }
 
         final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
         if (optionsPluginCenter != null) {
-            optionsPluginCenter.setVisible(isPlunginCenterInstalled(context) &&
-                    contactData.isUserProfile());
+            optionsPluginCenter.setVisible(isRcsSupported && isPlunginCenterInstalled(context)
+                    && contactData != null && contactData.isUserProfile());;
         }
         final MenuItem optionsUpdateEnhanceScreen = menu
                 .findItem(R.id.menu_updateenhancedscreen);
         if (optionsUpdateEnhanceScreen != null) {
-            optionsUpdateEnhanceScreen.setVisible(isEnhanceScreenInstalled(context)
+            optionsUpdateEnhanceScreen.setVisible(isRcsSupported
+                    && isEnhanceScreenInstalled(context) && contactData != null
                     && !contactData.isUserProfile());
         }
         final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
         if (optionsEnhancedscreen != null) {
-            optionsEnhancedscreen.setVisible(isEnhanceScreenInstalled(context));
+            optionsEnhancedscreen.setVisible(isRcsSupported && isEnhanceScreenInstalled(context));
         }
         // Display/Hide the online business hall menu item.
         MenuItem onlineBusinessHall = menu.findItem(R.id.menu_online_business_hall);
         if (onlineBusinessHall != null) {
-            onlineBusinessHall.setVisible(contactData.isUserProfile()
-                    && isOnlineBusinessHallInstalled(context));
+            onlineBusinessHall.setVisible(isRcsSupported && contactData != null
+                    && contactData.isUserProfile() && isOnlineBusinessHallInstalled(context));
         }
     }
 

@@ -344,7 +344,7 @@ public class PeopleActivity extends ContactsActivity
             .INTENT_EXPORT_COMPLETE);
         registerReceiver(mExportToSimCompleteListener, exportCompleteFilter);
         mIsReceiverRegistered = true;
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             RCSUtil.resotreContactIfTerminalChanged(this);
         }
     }
@@ -710,7 +710,7 @@ public class PeopleActivity extends ContactsActivity
     }
 
     private void setupContactDetailFragment(final Uri contactLookupUri) {
-        if (RCSUtil.getRcsSupport()) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             mContactDetailLoaderFragment.setIsUpdatePhotos(true);
         }
         mContactDetailLoaderFragment.loadUri(contactLookupUri);
@@ -1538,6 +1538,7 @@ public class PeopleActivity extends ContactsActivity
         switchGroupsMenu = menu.findItem(R.id.menu_switch_group);
 
         final MenuItem cloudMenu = menu.findItem(R.id.menu_cloud);
+        final MenuItem scanMenu = menu.findItem(R.id.menu_scan);
         addGroupMenu = menu.findItem(R.id.menu_add_group);
 
         final MenuItem clearFrequentsMenu = menu.findItem(R.id.menu_clear_frequents);
@@ -1555,6 +1556,7 @@ public class PeopleActivity extends ContactsActivity
             makeMenuItemVisible(menu, R.id.menu_delete, false);
             contactsPhotoUpdateMenu.setVisible(false);
             cloudMenu.setVisible(false);
+            scanMenu.setVisible(false);
         } else {
             switch (mActionBarAdapter.getCurrentTab()) {
                 case TabState.FAVORITES:
@@ -1565,6 +1567,7 @@ public class PeopleActivity extends ContactsActivity
                     clearFrequentsMenu.setVisible(hasFrequents());
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
+                    scanMenu.setVisible(false);
                     break;
                 case TabState.ALL:
                     addContactMenu.setVisible(true);
@@ -1572,17 +1575,13 @@ public class PeopleActivity extends ContactsActivity
                     contactsFilterMenu.setVisible(true);
                     switchGroupsMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
-                    if (RCSUtil.getRcsSupport()) {
-                        if (RCSUtil.isNativeUiInstalled(this) && RCSUtil.isPluginInstalled(this)) {
-                            cloudMenu.setVisible(true);
-                        } else {
-                            cloudMenu.setVisible(false);
-                        }
-                        contactsPhotoUpdateMenu.setVisible(true);
-                    } else {
-                        cloudMenu.setVisible(false);
-                        contactsPhotoUpdateMenu.setVisible(false);
-                    }
+
+                    boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+                    boolean isRcsPluginInstalled = RCSUtil.isPluginInstalled(this);
+                    cloudMenu.setVisible(isRcsSupported && RCSUtil.isNativeUiInstalled(this)
+                            && isRcsPluginInstalled);
+                    scanMenu.setVisible(isRcsSupported && isRcsPluginInstalled);
+                    contactsPhotoUpdateMenu.setVisible(isRcsSupported);
                     break;
                 case TabState.GROUPS:
                     addContactMenu.setVisible(false);
@@ -1594,6 +1593,7 @@ public class PeopleActivity extends ContactsActivity
                     updateGroupsMenu();
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
+                    scanMenu.setVisible(false);
                     break;
             }
             HelpUtils.prepareHelpMenuItem(this, helpMenu, R.string.help_url_people_main);

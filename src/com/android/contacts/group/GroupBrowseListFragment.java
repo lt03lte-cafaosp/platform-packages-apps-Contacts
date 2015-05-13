@@ -300,7 +300,7 @@ public class GroupBrowseListFragment extends Fragment
                 Context.MODE_PRIVATE);
         boolean isRcsGroupDataLoaded = groupStatus.getBoolean("isRcsGroupDataLoaded", false);
         // start to load chat-group data when first initialization.
-        if(RCSUtil.getRcsSupport() && (!isRcsGroupDataLoaded)){
+        if(RcsApiManager.getSupportApi().isRcsSupported() && (!isRcsGroupDataLoaded)){
             new AsyncDataLoaderTask(GroupBrowseListFragment.this).execute();
         }
         super.onStart();

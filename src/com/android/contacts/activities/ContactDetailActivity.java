@@ -40,6 +40,7 @@ import android.widget.Toast;
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.detail.ContactDetailDisplayUtils;
 import com.android.contacts.detail.ContactDetailFragment;
 import com.android.contacts.detail.ContactDetailLayoutController;
@@ -113,7 +114,7 @@ public class ContactDetailActivity extends ContactsActivity {
          if (fragment instanceof ContactLoaderFragment) {
             mLoaderFragment = (ContactLoaderFragment) fragment;
             mLoaderFragment.setListener(mLoaderFragmentListener);
-            if (RCSUtil.getRcsSupport()) {
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 mLoaderFragment.setIsUpdatePhotos(true);
             }
             mLoaderFragment.loadUri(getIntent().getData());

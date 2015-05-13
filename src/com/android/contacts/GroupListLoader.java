@@ -53,20 +53,20 @@ public final class GroupListLoader extends CursorLoader {
 
     public GroupListLoader(Context context) {
         super(context, GROUP_LIST_URI, COLUMNS, createSelection(), null, createSortOrder());
-	}
+    }
     private static String createSelection() {
         StringBuilder where = new StringBuilder();
         where.append(Groups.ACCOUNT_TYPE + " NOT NULL AND "
                 + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.AUTO_ADD + "=0 AND " +
                 Groups.FAVORITES + "=0 AND " + Groups.DELETED + "=0");
-        if (!RcsApiManager.isRcsServiceInstalled()) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
             where.append(" AND " + Groups.SOURCE_ID + "!='RCS'");
         }
         return where.toString();
     }
 
-	private static String createSortOrder(){
-        if (!RcsApiManager.isRcsServiceInstalled()) {
+    private static String createSortOrder(){
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
             return  Groups.ACCOUNT_TYPE + ", " + Groups.ACCOUNT_NAME + ", " + Groups.DATA_SET + ", " +
                 Groups.TITLE + " COLLATE LOCALIZED ASC";
         } else {

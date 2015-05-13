@@ -159,7 +159,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         String title = mCursor.getString(GroupListLoader.TITLE);
         int memberCount = mCursor.getInt(GroupListLoader.MEMBER_COUNT);
 
-        if(RCSUtil.getRcsSupport() && (!TextUtils.isEmpty(sourceId))){
+        if(RcsApiManager.getSupportApi().isRcsSupported() && (!TextUtils.isEmpty(sourceId))){
             if(RCS_SOURCE_ID.equals(sourceId)){
                 accountType=sourceId;
                 String strGroupId = mCursor.getString(GroupListLoader.SYSTEM_ID);

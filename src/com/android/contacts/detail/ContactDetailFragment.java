@@ -163,7 +163,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
     private static final String KEY_CONTACT_URI = "contactUri";
     private static final String KEY_LIST_STATE = "liststate";
-    private boolean isFireWallInstalled = false;
+    private boolean mIsFireWallInstalled = false;
     private static final String FIREWALL_APK_NAME = "com.android.firewall";
     private static final String FIREWALL_BLACK_WHITE_LIST = "com.android.firewall.FirewallListPage";
     private static final Uri FIREWALL_BLACKLIST_CONTENT_URI = Uri
@@ -303,7 +303,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     @Override
     public void onResume() {
         super.onResume();
-        isFireWallInstalled = isFirewalltalled(mContext);
+        mIsFireWallInstalled = isFirewalltalled(mContext);
         if (mContactData != null) {
             bindData();
         }
@@ -1837,7 +1837,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 views.data.setText(entry.data);
             }
 
-            if (isFireWallInstalled) {
+            if (mIsFireWallInstalled) {
                 if (Phone.CONTENT_ITEM_TYPE.equals(entry.mimetype)) {
                     String number = entry.data;
                     number = number.replaceAll(" ", "");
