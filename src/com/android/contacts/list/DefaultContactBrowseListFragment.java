@@ -105,6 +105,12 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         adapter.setDisplayPhotos(true);
         adapter.setPhotoPosition(
                 ContactListItemView.getDefaultPhotoPosition(/* opposite = */ false));
+        if (ContactsCommonRcsUtil.getIsRcs()) {
+            if (ContactsCommonRcsUtil.RcsCapabilityMap != null
+                    && ContactsCommonRcsUtil.RcsCapabilityMap.isEmpty()) {
+                ContactsCommonRcsUtil.loadRcsCapabilityOfContacts(getContext(), adapter);
+            }
+        }
         return adapter;
     }
 
@@ -122,8 +128,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
         // Create an empty user profile header and hide it for now (it will be visible if the
         // contacts list will have no user profile).
-        if (RcsApiManager.getSupportApi().isRcsSupported()
-                && RCSUtil.isNativeUiInstalled(getActivity())
+        if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(getActivity())
                 && RCSUtil.isPluginInstalled(getActivity())) {
             addPublicAccountView();
         }
@@ -187,7 +192,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
     @Override
     protected void setProfileHeader() {
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RCSUtil.getRcsSupport()) {
             showPublicAccountView(!isSearchMode());
         }
         mUserProfileExists = getAdapter().hasProfile();

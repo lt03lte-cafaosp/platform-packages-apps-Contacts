@@ -46,7 +46,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.model.ValuesDelta;
@@ -363,8 +362,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
         // Display label selector if multiple types available
         final boolean hasTypes = RawContactModifier.hasEditTypes(kind);
         setupLabelButton(hasTypes);
-        if (RcsApiManager.getSupportApi().isRcsSupported()
-                && null != entry.getAsInteger(ContactsContract.Data.DATA13)
+        if (RCSUtil.getRcsSupport() && null != entry.getAsInteger(ContactsContract.Data.DATA13)
                 && 1 == entry.getAsInteger(ContactsContract.Data.DATA13)) {
             mLabel.setEnabled(false);
         } else {

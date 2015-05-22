@@ -36,7 +36,6 @@ public final class GroupMetaDataLoader extends CursorLoader {
         Groups.FAVORITES,
         Groups.GROUP_IS_READ_ONLY,
         Groups.DELETED,
-        Groups.SOURCE_ID //RCS
     };
 
     public final static int ACCOUNT_NAME = 0;
@@ -52,7 +51,6 @@ public final class GroupMetaDataLoader extends CursorLoader {
     public GroupMetaDataLoader(Context context, Uri groupUri) {
         super(context, ensureIsGroupUri(groupUri), COLUMNS, Groups.ACCOUNT_TYPE + " NOT NULL AND "
                 + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.DELETED + " != ?"
-                + " AND ("+ Groups.SOURCE_ID + " IS NOT 'RCS'"+" OR "+Groups.SOURCE_ID+" IS NULL)"
                 , new String[] {"1"}
                 , null);
     }

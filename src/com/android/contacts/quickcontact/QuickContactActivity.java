@@ -909,7 +909,7 @@ public class QuickContactActivity extends ContactsActivity {
 
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RCSUtil.getRcsSupport()) {
              mNeverQueryRcsPhoto = true;
              mNeverQueryRcsCapability = true;
         }
@@ -1078,7 +1078,7 @@ public class QuickContactActivity extends ContactsActivity {
         mHasAlreadyBeenOpened = true;
         mIsEntranceAnimationFinished = true;
         mHasComputedThemeColor = false;
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RCSUtil.getRcsSupport()){
             mNeverQueryRcsCapability = true;
         }
         processIntent(intent);
@@ -2201,8 +2201,7 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             bindContactData(data);
-            if (RcsApiManager.getSupportApi().isRcsSupported()
-                    && !RCSUtil.isLocalProfile(mContactData)) {
+            if (RCSUtil.getRcsSupport() && !RCSUtil.isLocalProfile(mContactData)) {
                 if (mNeverQueryRcsCapability) {
                     mNeverQueryRcsCapability = false;
                     RCSUtil.updateRCSCapability(QuickContactActivity.this,
@@ -2688,8 +2687,7 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
-            if (RcsApiManager.getSupportApi().isRcsSupported()
-                    && RCSUtil.isLocalProfile(mContactData)) {
+            if (RCSUtil.getRcsSupport() && RCSUtil.isLocalProfile(mContactData)) {
                 uploadOrDownload.setVisible(true);
             } else {
                 uploadOrDownload.setVisible(false);
@@ -2868,7 +2866,7 @@ public class QuickContactActivity extends ContactsActivity {
                                 onNewIntent(getIntent());
                             }
                         }
-                    }).show();
+                    }, RcsApiManager.getProfileApi()).show();
                 return true;
             }
             case R.id.menu_online_business_hall:
