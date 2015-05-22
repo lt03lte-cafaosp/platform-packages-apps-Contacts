@@ -286,8 +286,7 @@ public class ContactSaveService extends IntentService {
             clearPrimary(intent);
         } else if (ACTION_DELETE_CONTACT.equals(action)) {
             deleteContact(intent);
-            boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
-            if (isRcsSupported && RCSUtil.isNativeUiInstalled(this)
+            if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(this)
                     && RCSUtil.isPluginInstalled(this)) {
                 Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
                 if (!TextUtils.isEmpty(contactUri.getPath())
@@ -507,7 +506,7 @@ public class ContactSaveService extends IntentService {
                         c.close();
                     }
                 } else {
-                    if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                    if (RCSUtil.getRcsSupport()) {
                         Cursor c = resolver.query(RawContacts.CONTENT_URI,
                                 new String[] { RawContacts.CONTACT_ID },
                                 RawContacts._ID + "=" + String.valueOf(rawContactId),
@@ -620,14 +619,14 @@ public class ContactSaveService extends IntentService {
 
                 if (!saveUpdatedPhoto(rawContactId, photoUri)) {
                     succeeded = false;
-                } else if(RcsApiManager.getSupportApi().isRcsSupported()) {
+                } else if(RCSUtil.getRcsSupport()) {
                     if (!isProfile) {
                         Log.d(TAG, "Setted Local Photo!");
                         RCSUtil.setLocalSetted(resolver, true, rawContactId);
                     }
                 }
             }
-            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (RCSUtil.getRcsSupport()) {
                 if (updatedPhotos.isEmpty() && !isSomethingChangedExceptPhoto
                         && !isProfile && !isInsert) {
                     Log.d(TAG, "Photo has deleted!");

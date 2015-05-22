@@ -817,7 +817,7 @@ public class ContactEditorFragment extends Fragment implements
         // Set the correct URI for saving the contact as a profile
         if (mNewLocalProfile) {
             insert.setProfileQueryUri();
-            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (RCSUtil.getRcsSupport()) {
                 String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
                 if (!TextUtils.isEmpty(myPhoneNumber)) {
                     phoneChild.put(Phone.NUMBER, myPhoneNumber);
@@ -1273,7 +1273,7 @@ public class ContactEditorFragment extends Fragment implements
                 ((Activity)mContext).getClass(), ContactEditorActivity.ACTION_SAVE_COMPLETED,
                 mUpdatedPhotos);
 
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RCSUtil.getRcsSupport()) {
             intent.putExtra(RCSUtil.KEY_IS_INSERT, !mIsEdit);
             intent.putExtra(
                     RCSUtil.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
@@ -1389,10 +1389,8 @@ public class ContactEditorFragment extends Fragment implements
                     if (null != contactLookupUri) {
                         Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
                                 .show();
-                        if (RcsApiManager.getSupportApi().isRcsSupported()
-                                && RCSUtil.isNativeUiInstalled(mContext)
-                                && RCSUtil.isPluginInstalled(mContext)
-                                && !isEditingUserProfile()) {
+                        if (RCSUtil.getRcsSupport() && RCSUtil.isNativeUiInstalled(mContext)
+                                && RCSUtil.isPluginInstalled(mContext) && !isEditingUserProfile()) {
                             RCSUtil.autoBackupOnceChanged(mContext);
                         }
                     } else {
