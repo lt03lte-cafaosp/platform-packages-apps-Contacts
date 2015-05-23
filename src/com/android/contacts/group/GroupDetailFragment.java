@@ -135,6 +135,8 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     private boolean mShowGroupActionInActionBar;
     private boolean mOptionsMenuGroupDeletable;
     private boolean mOptionsMenuGroupEditable;
+    private boolean mOptionsMenuRcsSupported;
+    private boolean mOptionsMenuRcsEnhanceScreenSupported;
     private boolean mCloseActivityAfterDelete;
     private String mGroupMembersPhones;
     private ArrayList<String> mGroupMembersPhonesList = new ArrayList<String>();
@@ -305,49 +307,39 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
             updateSize(data.getCount());
             mAdapter.setContactCursor(data);
             mMemberListView.setEmptyView(mEmptyView);
-            // For starting RCS group-chat.
-            StringBuilder sb = new StringBuilder();
-            mGroupMembersPhonesList.clear();
-            while(data.moveToNext()){
-                Long id = data.getLong(0);
-                String phoneNumber = RCSUtil.getPhoneforContactId(mContext, id);
-                sb.append(phoneNumber).append(";");
-                String[] groupMemberPhones = RCSUtil.getAllPhoneNumberFromContactId(mContext, id)
-                        .split(";");
-                for (int i = 0 ; i < groupMemberPhones.length; i++) {
-                    mGroupMembersPhonesList.add(RCSUtil.getFormatNumber(groupMemberPhones[i]));
+            if (data.getCount() > 0) {
+                long[] contactIds = new long[data.getCount()];
+                data.moveToFirst();
+                for(int i = 0; i < data.getCount(); i++) {
+                    contactIds[i] = data.getLong(0);
+                    data.moveToNext();
                 }
+                getGroupMemberPhoneNumber(mContext.getApplicationContext(), contactIds);
             }
-            Log.d(TAG,"mGroupMembersPhonesList:"+mGroupMembersPhonesList.toString());
-            mGroupMembersPhones = sb.toString();
         }
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {}
     };
 
-    private void getGroupMemberPhoneNumber(final Cursor data) {
+    private void getGroupMemberPhoneNumber(final Context context, final long[] contactIds) {
+        if (contactIds == null) return;
         new Thread () {
             @Override
             public void run() {
                 // For starting RCS group-chat.
                 StringBuilder sb = new StringBuilder();
                 mGroupMembersPhonesList.clear();
-                while (data.moveToNext()) {
-                    Long id = data.getLong(0);
-                    String phoneNumber = RCSUtil.getPhoneforContactId(mContext,
-                            id);
+                for (long id : contactIds) {
+                    String phoneNumber = RCSUtil.getPhoneforContactId(context, id);
                     sb.append(phoneNumber).append(";");
-                    String[] groupMemberPhones = RCSUtil
-                            .getAllPhoneNumberFromContactId(mContext, id)
-                            .split(";");
+                    String[] groupMemberPhones = RCSUtil.getAllPhoneNumberFromContactId(context,
+                            id).split(";");
                     for (int i = 0; i < groupMemberPhones.length; i++) {
-                        mGroupMembersPhonesList.add(RCSUtil
-                                .getFormatNumber(groupMemberPhones[i]));
+                        mGroupMembersPhonesList.add(RCSUtil.getFormatNumber(groupMemberPhones[i]));
                     }
                 }
-                Log.d(TAG,"mGroupMembersPhonesList:"
-                        + mGroupMembersPhonesList.toString());
+                Log.d(TAG, "mGroupMembersPhonesList:" + mGroupMembersPhonesList.toString());
                 mGroupMembersPhones = sb.toString();
             }
         }.start();
@@ -488,6 +480,9 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     @Override
     public void onCreateOptionsMenu(Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.view_group, menu);
+        mOptionsMenuRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+        mOptionsMenuRcsEnhanceScreenSupported = mOptionsMenuRcsSupported
+                && RCSUtil.isEnhanceScreenInstalled(mContext);
     }
 
     public boolean isOptionsMenuChanged() {
@@ -507,16 +502,12 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     public void onPrepareOptionsMenu(Menu menu) {
         mOptionsMenuGroupDeletable = isGroupDeletable() && isVisible();
         mOptionsMenuGroupEditable = isGroupEditableAndPresent() && isVisible();
-        if (RCSUtil.getRcsSupport()) {
-            final MenuItem optionsGroupChat = menu.findItem(R.id.menu_create_group_chat);
-            optionsGroupChat.setVisible(true);
-            final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
-            if (RCSUtil.isEnhanceScreenInstalled(mContext)) {
-                optionsEnhancedscreen.setVisible(true);
-            } else {
-                optionsEnhancedscreen.setVisible(false);
-            }
-        }
+
+        final MenuItem optionsGroupChat = menu.findItem(R.id.menu_create_group_chat);
+        optionsGroupChat.setVisible(mOptionsMenuRcsSupported);
+
+        final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
+        optionsEnhancedscreen.setVisible(mOptionsMenuRcsEnhanceScreenSupported);
 
         final MenuItem editMenu = menu.findItem(R.id.menu_edit_group);
         editMenu.setVisible(mOptionsMenuGroupEditable);
@@ -532,7 +523,7 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_create_group_chat:{
-                startCreateGroupChatActivity(mContext, mGroupMembersPhones, "");
+                startCreateGroupChatActivity(mGroupMembersPhones);
                 break;
             }
             case R.id.menu_enhancedscreen:{
@@ -578,18 +569,10 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
         this.getActivity().invalidateOptionsMenu();
     }
 
-    public void startCreateGroupChatActivity(Context context, String number, String message) {
-        Intent sendIntent = new Intent(Intent.ACTION_VIEW);
-        sendIntent.putExtra("sms_body", message);
-        if (!TextUtils.isEmpty(number)) {
-            sendIntent.putExtra("address", number);
-        }
-        sendIntent.putExtra("isGroupChat", true);
-        sendIntent.setComponent(new ComponentName("com.android.mms",
-                "com.android.mms.ui.ComposeMessageActivity"));
-        if (RCSUtil.isActivityIntentAvailable(context, sendIntent)) {
-            mContext.startActivity(sendIntent);
-        }
+    public void startCreateGroupChatActivity(String number) {
+        Intent intent = new Intent("com.android.mms.rcs.CREATR_GROUP_CHAT");
+        intent.putExtra("recipients", number);
+        mContext.startActivity(intent);
     }
 
     public void closeActivityAfterDelete(boolean closeActivity) {

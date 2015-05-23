@@ -61,14 +61,14 @@ public final class GroupListLoader extends CursorLoader {
         where.append(Groups.ACCOUNT_TYPE + " NOT NULL AND "
                 + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.AUTO_ADD + "=0 AND " +
                 Groups.FAVORITES + "=0 AND " + Groups.DELETED + "!=1");
-        if (!RCSUtil.getRcsSupport()) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
             where.append(" AND ("+Groups.SOURCE_ID + "!='RCS'"+" OR "+Groups.SOURCE_ID+" IS NULL)");
         }
         return where.toString();
     }
 
     private static String createSortOrder(){
-        if (!RcsApiManager.isRcsServiceInstalled()) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
             return "account_id";
         } else {
             return Groups.SOURCE_ID;
