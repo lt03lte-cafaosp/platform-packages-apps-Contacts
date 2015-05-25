@@ -23,6 +23,8 @@
 
 package com.android.contacts;
 
+import com.android.contacts.common.util.ContactsCommonRcsUtil;
+import com.android.contacts.util.RCSUtil;
 import com.suntek.mway.rcs.client.api.RCSServiceListener;
 import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 import com.suntek.mway.rcs.client.api.blacklist.impl.BlackListApi;
@@ -47,7 +49,6 @@ import android.util.Log;
 public class RcsApiManager {
     private static final String TAG = "RcsApiManager";
     private static Context mContext;
-    private static boolean mIsRcsServiceInstalled = false;
     private static MessageApi mMessageApi = new MessageApi();
     private static RcsAccountApi mRcsAccountApi = new RcsAccountApi();
     private static ProfileApi mProfileApi = new ProfileApi();
@@ -56,15 +57,29 @@ public class RcsApiManager {
     private static RichScreenApi mRichScreenApi = new RichScreenApi(null);
     private static PluginCenterApi mPluginCenterApi = new PluginCenterApi();
     private static McontactApi mMcontactApi = new McontactApi();
+    private static RcsSupportApi mSupportApi = new RcsSupportApi();
 
     public static void init(Context context) {
         mContext = context;
-        mIsRcsServiceInstalled = RcsSupportApi.isRcsServiceInstalled(context);
-        if (!mIsRcsServiceInstalled) {
+
+        mSupportApi.init(context);
+        boolean isRcsSupport = mSupportApi.isRcsSupported();
+        ContactsCommonRcsUtil.setIsRcs(isRcsSupport);
+        if (!RcsSupportApi.isRcsServiceInstalled(context)) {
             Log.d(TAG, "_________mIsRcsServiceInstalled false__________");
             return;
         }
+        RCSUtil.setIsNativeUIInstalled(RCSUtil.isNativeUiInstalled(context));
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                rcsApiInit(mContext);
+            }
+        };
+        t.start();
+    }
 
+    private static void rcsApiInit(Context context) {
         mMessageApi.init(context, new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
@@ -124,7 +139,7 @@ public class RcsApiManager {
                 Log.d(TAG, "ConfApi connected");
             }
         });
-        mRichScreenApi.init(context,new RCSServiceListener() {
+        mRichScreenApi.init(context, new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
                 Log.d(TAG, "mRichScreenApi disconnected");
@@ -135,7 +150,7 @@ public class RcsApiManager {
                 Log.d(TAG, "mRichScreenApi connected");
             }
         });
-        mPluginCenterApi.init(context,new RCSServiceListener() {
+        mPluginCenterApi.init(context, new RCSServiceListener() {
             @Override
             public void onServiceDisconnected() throws RemoteException {
                 Log.d(TAG, "mPluginCenterApi disconnected");
@@ -155,7 +170,7 @@ public class RcsApiManager {
             public void onServiceConnected() throws RemoteException {
             }
         });
-     }
+    }
 
     public static MessageApi getMessageApi() {
 
@@ -221,7 +236,11 @@ public class RcsApiManager {
         return mMcontactApi;
     }
 
-    public static boolean isRcsServiceInstalled() {
-        return mIsRcsServiceInstalled;
+    public static RcsSupportApi getSupportApi() {
+        if (mSupportApi == null) {
+            mSupportApi = new RcsSupportApi();
+            mSupportApi.init(mContext);
+        }
+        return mSupportApi;
     }
 }
