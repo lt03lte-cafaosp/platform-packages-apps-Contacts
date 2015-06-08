@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -36,6 +37,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.RawContact;
 import com.android.contacts.common.model.dataitem.DataItem;
@@ -45,6 +49,9 @@ import com.android.contacts.common.model.dataitem.OrganizationDataItem;
 import com.android.contacts.common.model.dataitem.PhoneDataItem;
 import com.android.contacts.common.model.dataitem.StructuredNameDataItem;
 import com.android.contacts.common.model.dataitem.StructuredPostalDataItem;
+import com.android.contacts.common.model.RawContactDelta;
+import com.android.contacts.common.model.RawContactDeltaList;
+import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.android.contacts.group.GroupBrowseListAdapter;
 import com.android.contacts.group.GroupBrowseListFragment;
@@ -98,6 +105,7 @@ import android.app.ActivityManager.RunningTaskInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.LoaderManager;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentProviderOperation;
@@ -110,9 +118,6 @@ import android.content.Intent;
 import android.content.OperationApplicationException;
 import android.content.SharedPreferences;
 import android.content.DialogInterface.OnClickListener;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
 import android.database.Cursor;
@@ -234,8 +239,6 @@ public class RCSUtil {
     // RCS capability: not RCS.
     public static final int NOT_RCS = 404;
 
-    private static boolean isRcsSupport = false;
-
     private static int DEFAULT_NUMBER_LENGTH = 11;
 
     //private static final HashMap<Long, Long> latestQuery = new HashMap<Long, Long>();
@@ -246,32 +249,39 @@ public class RCSUtil {
 
     private static final String KEY_BACKUP_ONCE_CHANGED = "key_backup_once_changed";
 
-    private static final String PREF_BACKUP_ONCE_CHANGED_NAME =
-            "pref_backup_once_changed_name";
+    private static final String KEY_AUTO_BACKUP = "key_auto_backup";
+
+    private static final String PREF_BACKUP_RESTORE_NAME = "pref_backup_restore_name";
+
+    private static final String KEY_ONLY_WIFI_BACKUP_RESOTORE = "key_only_wifi_backup_restore";
 
     private static final String ENHANCE_SCREEN_APK_NAME = "com.cmdm.rcs";
 
     private static final String ONLINE_BUSINESS_HALL = "cn.com.onlinebusiness";
 
-    public static boolean getRcsSupport() {
-        return isRcsSupport;
-    }
+    private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
 
-    public static void setRcsSupport(boolean flag) {
-        isRcsSupport = flag;
+    public static boolean mIsNativeUiInstalled;
+
+    public static void setIsNativeUiInstalled(boolean isNativeUiInstalled) {
+        RCSUtil.mIsNativeUiInstalled = isNativeUiInstalled;
     }
+    //add firewall menu
+    private static final Uri WHITELIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/whitelistitems");
+    private static final Uri BLACKLIST_CONTENT_URI = Uri
+            .parse("content://com.android.firewall/blacklistitems");
 
     private static boolean isPackageInstalled(Context context, String packageName) {
-        PackageManager pm = context.getPackageManager();
-        List<ApplicationInfo> installedApps = pm
-                .getInstalledApplications(PackageManager.GET_UNINSTALLED_PACKAGES);
-
-        for (ApplicationInfo info : installedApps) {
-            if (packageName.equals(info.packageName)) {
-                return true;
-            }
+        boolean installed = false;
+        try {
+            ApplicationInfo info = context.getPackageManager().getApplicationInfo(
+                    packageName, PackageManager.GET_PROVIDERS);
+            installed = (info != null);
+        } catch (NameNotFoundException e) {
         }
-        return false;
+        Log.i(TAG, "Is " + packageName + "installed ? " + installed);
+        return installed;
     }
 
     public static boolean isNativeUiInstalled(Context context) {
@@ -282,8 +292,28 @@ public class RCSUtil {
         return isPackageInstalled(context, PLUGIN_PACKAGE);
     }
 
+    public static boolean isEnhanceScreenInstalled(Context context) {
+        return isPackageInstalled(context, ENHANCE_SCREEN_APK_NAME);
+    }
+
+    public static boolean isOnlineBusinessHallInstalled(Context context) {
+        return isPackageInstalled(context, ONLINE_BUSINESS_HALL);
+    }
+
+    public static boolean isPlunginCenterInstalled(Context context) {
+        return isPackageInstalled(context, PLUNGIN_CENTER);
+    }
+
     public static void resotreContactIfTerminalChanged(final Context context) {
         final Handler handler = new Handler();
+        try {
+            if (!RcsApiManager.getRcsAccoutApi().isOnline()) {
+                Log.d(TAG, "Calling updateRCSCapability Rcs is offline!");
+                return;
+            }
+        } catch (ServiceDisconnectedException e) {
+            return;
+        }
         Thread t = new Thread() {
             @Override
             public void run() {
@@ -325,8 +355,13 @@ public class RCSUtil {
                                         @Override
                                         public void onClick(DialogInterface dialog,
                                                 int whichButton) {
-                                            context.startActivity(new Intent(
-                                                    RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                                            try {
+                                                context.startActivity(new Intent(
+                                                        RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                                            } catch (ActivityNotFoundException ex) {
+                                                Toast.makeText(context, R.string.missing_app,
+                                                        Toast.LENGTH_SHORT).show();
+                                            }
                                         }
                                     }).create();
                             dialog.show();
@@ -346,10 +381,9 @@ public class RCSUtil {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            if (!RCSUtil.getRcsSupport())
+            if (!RcsApiManager.getSupportApi().isRcsSupported())
                 return;
-            SharedPreferences prefs = PreferenceManager
-                    .getDefaultSharedPreferences(context);
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
             if (!prefs.getBoolean(
                     RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
                     false)) {
@@ -426,15 +460,23 @@ public class RCSUtil {
     public static void updateRCSCapability(final Activity activity,
             final Contact contactData) {
         final Handler handler = new Handler();
+        try {
+            if (!RcsApiManager.getRcsAccoutApi().isOnline()) {
+                Log.d(TAG, "Calling updateRCSCapability Rcs is offline!");
+                return;
+            }
+        } catch (ServiceDisconnectedException e) {
+            return;
+        }
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 sleep(1000);
-                if (activity == null || activity.isFinishing()) {
+                if (activity == null || activity.isFinishing() || !activity.isResumed()) {
                     return;
                 }
                 Log.d(TAG, "Calling updateRCSCapability!");
-                queryRCSCapability(activity, contactData, handler);
+                queryRCSCapability(activity.getApplicationContext(), contactData, handler);
             }
         });
         t.start();
@@ -490,8 +532,7 @@ public class RCSUtil {
                         phoneNumber = phoneNumber.trim();
                         hasPhoneNumber = true;
                     } else {
-                        hasPhoneNumber = false;
-                        return;
+                        continue;
                     }
                     Log.d(TAG, "Phone number is: " + phoneNumber);
                     findContactsCapacity(context, contactId, rawContactId, phoneNumber,
@@ -530,10 +571,10 @@ public class RCSUtil {
         int height = tempBitmap.getHeight();
         int width = tempBitmap.getWidth();
         if (height <= 120 || width <= 120) {
-            return Bitmap2Bytes(zoomBitmap(tempBitmap, 160, 160));
+            return Bitmap2Bytes(zoomBitmap(tempBitmap, 720, 720));
         }
         if (height >= 1024 || width >= 1024) {
-            return Bitmap2Bytes(zoomBitmap(tempBitmap, 160, 160));
+            return Bitmap2Bytes(zoomBitmap(tempBitmap, 720, 720));
         }
         if (height != width) {
             int len = (width > height) ? height : width;
@@ -542,41 +583,33 @@ public class RCSUtil {
         return photo;
     }
 
+    public static int whichBtn = 0;
+
     public static Dialog createLocalProfileBackupRestoreDialog(
             final Context context, final Contact contactData,
-            final RestoreFinishedListener listener, final ProfileApi profileApi) {
-
-            String[] items = new String[] {
-                    context.getResources().getString(R.string.upload_profile),
-                    context.getResources().getString(R.string.download_profile)
-            };
-        final boolean[] selectedItems = new boolean[] { false, false };
-        Dialog dialog = new AlertDialog.Builder(context)
+            final RestoreFinishedListener listener) {
+        String[] items = new String[] {
+                context.getString(R.string.upload_profile),
+                context.getString(R.string.download_profile) };
+        AlertDialog alertDialog = new AlertDialog.Builder(context)
                 .setTitle(
                         context.getResources().getString(
                                 R.string.upload_download_profile))
-                .setSingleChoiceItems(items, -1, new OnClickListener() {
-
+                .setSingleChoiceItems(items, whichBtn, new OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        if (which >= 0 && which < selectedItems.length) {
-                            for (int i = 0; i < selectedItems.length; i++) {
-                                selectedItems[i] = (which == i) ? true : false;
-                            }
-                        }
+                        whichBtn = which;
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(android.R.string.ok,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog,
-                                    int whichButton) {
-                                okToRestoreLocalProfile(context, selectedItems,
-                                        contactData,listener, profileApi);
-                            }
-                        }).create();
-        return dialog;
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        okToRestoreLocalProfile(context.getApplicationContext(), whichBtn,
+                                contactData, listener);
+                    }
+                }).create();
+        return alertDialog;
     }
 
     private static class UpdatePhotosTask extends AsyncTask<Void, Void, Void> {
@@ -689,7 +722,7 @@ public class RCSUtil {
                         + String.valueOf(rawContactId), null, null);
         long localSetted = 0;
         try {
-            if (c.moveToFirst()) {
+            if (c != null && c.moveToFirst()) {
                 localSetted = c.getLong(0);
             }
         } finally {
@@ -709,9 +742,10 @@ public class RCSUtil {
     }
 
     public static void newAndEditContactsUpdateEnhanceScreen(Context context,
-        ContentResolver resolver, long rawContactId){
+            ContentResolver resolver, long rawContactId) {
         Log.d(TAG,"new and edit contact rawContactId: "+ rawContactId);
-        if (getRcsSupport() && isEnhanceScreenInstalled(context)){
+        if (RcsApiManager.getSupportApi().isRcsSupported()
+                && isEnhanceScreenInstalled(context)){
             Cursor phone = null;
             try{
                 phone = resolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -743,22 +777,20 @@ public class RCSUtil {
         }
     }
 
-
     public static void importContactUpdateEnhanceScreen(String Number, String anrs){
-        if (getRcsSupport()){
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
             ArrayList<String> phoneNumberList = new ArrayList<String>();
             if (!TextUtils.isEmpty(Number)){
                 phoneNumberList.add(Number);
             }
             if (!TextUtils.isEmpty(anrs)){
-                final String[] anrArray;
-                anrArray = anrs.split(",");
+                String[] anrArray = anrs.split(",");
                 for (String anr : anrArray) {
                     phoneNumberList.add(anrs);
                 }
             }
             try {
-                Log.d(TAG,"import contact downloadRichScrnObj"+phoneNumberList.toString());
+                Log.d(TAG,"import contact downloadRichScrnObj" + phoneNumberList.toString());
                 for(int i = 0; i < phoneNumberList.size(); i++ ){
                     String phoneNumber = getFormatNumber(phoneNumberList.get(i)
                         .replaceAll(",",""));
@@ -771,6 +803,7 @@ public class RCSUtil {
             }
         }
     }
+
     public static void setContactPhoto(Context context, byte[] input,
             Uri outputUri) {
         FileOutputStream outputStream = null;
@@ -891,8 +924,7 @@ public class RCSUtil {
 
     public static void saveQrCode(Context context, String imgBase64, String etag) {
         String rawContactId = getRawContactId(context);
-        Uri uri = Uri.parse("content://com.android.contacts/profile/data/");
-        Cursor cursor = context.getContentResolver().query(uri,
+        Cursor cursor = context.getContentResolver().query(PROFILE_DATA_URI,
                 new String[] { "_id", "mimetype", "data15" },
                 " raw_contact_id = ?  AND mimetype = ? ",
                 new String[] { rawContactId, MIMETYPE_RCS }, null);
@@ -904,8 +936,7 @@ public class RCSUtil {
                 values.put("data15", imgBase64);
                 values.put("data14", etag);
                 context.getContentResolver()
-                        .update(Uri
-                                .parse("content://com.android.contacts/profile/data/"),
+                        .update(PROFILE_DATA_URI,
                                 values, " _id = ? ", new String[] { dataId });
             } else {
                 ContentValues values = new ContentValues();
@@ -1114,6 +1145,7 @@ public class RCSUtil {
         }
         return myAccountNumber;
     }
+
     public static Profile createLocalProfile(RawContact rawContact) {
 
         if (rawContact == null)
@@ -1249,12 +1281,13 @@ public class RCSUtil {
         RawContact rawContact = contact.getRawContacts().get(0);
         Profile profile = new Profile();
         profile.setOtherTels(new ArrayList<TelephoneModel>());
-
+        String firstName = "";
+        String lastName = "";
         for (DataItem dataItem : rawContact.getDataItems()) {
             if (dataItem instanceof StructuredNameDataItem) {
-                String firstName = ((StructuredNameDataItem) dataItem)
+                firstName = ((StructuredNameDataItem) dataItem)
                         .getGivenName();
-                String lastName = ((StructuredNameDataItem) dataItem)
+                lastName = ((StructuredNameDataItem) dataItem)
                         .getFamilyName();
                 Log.d(TAG, "The first name is " + firstName);
                 Log.d(TAG, "The last name is " + lastName);
@@ -1348,21 +1381,21 @@ public class RCSUtil {
                 }
             }
         }
-
+        if (TextUtils.isEmpty(firstName)) {
+            return null;
+        }
         return profile;
     }
 
-    private static void updateOneContactPhoto(Context context,
-            Contact contactData, byte[] contactPhoto) {
-        if (contactPhoto == null)
+    private static void updateOneContactPhoto(Context context, Contact contactData,
+            byte[] contactPhoto) {
+        if (contactPhoto == null || contactData == null)
             return;
-        ImmutableList<RawContact> rawContacts = contactData.getRawContacts();
-        for (RawContact rawContact : rawContacts) {
+            for (RawContact rawContact : contactData.getRawContacts()) {
             long rawContactId = rawContact.getId();
-            if (!RCSUtil.hasLocalSetted(context.getContentResolver(),
-                    rawContactId)) {
-                final Uri outputUri = Uri.withAppendedPath(ContentUris
-                        .withAppendedId(RawContacts.CONTENT_URI, rawContactId),
+            if (!RCSUtil.hasLocalSetted(context.getContentResolver(), rawContactId)) {
+                final Uri outputUri = Uri.withAppendedPath(
+                        ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawContactId),
                         RawContacts.DisplayPhoto.CONTENT_DIRECTORY);
                 RCSUtil.setContactPhoto(context, contactPhoto, outputUri);
             }
@@ -1566,10 +1599,10 @@ public class RCSUtil {
                         }
                     } else if (TextUtils.equals(Event.CONTENT_ITEM_TYPE,
                             mimeType)) {
-                        insertBirthday = false;
                         int eventType = c.getInt(3);
                         if (eventType == Event.TYPE_BIRTHDAY) {
                             String startDate = c.getString(2);
+                            insertBirthday = false;
                             if (TextUtils.equals(startDate,
                                     profile.getBirthday())) {
                                 updateBirthday = false;
@@ -1583,7 +1616,7 @@ public class RCSUtil {
                 c.close();
             }
         }
-        if (insertCompanyTel) {
+        if (insertCompanyTel && !TextUtils.isEmpty(profile.getCompanyTel())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
@@ -1592,7 +1625,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertCompanyFax) {
+        if (insertCompanyFax && !TextUtils.isEmpty(profile.getCompanyFax())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
@@ -1601,7 +1634,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertHomeAddress) {
+        if (insertHomeAddress && !TextUtils.isEmpty(profile.getHomeAddress())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues
@@ -1613,7 +1646,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertCompanyAddress) {
+        if (insertCompanyAddress && !TextUtils.isEmpty(profile.getCompanyAddress())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues
@@ -1625,7 +1658,7 @@ public class RCSUtil {
             ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
                     .withValues(contentValues).build());
         }
-        if (insertEmail) {
+        if (insertEmail && !TextUtils.isEmpty(profile.getEmail())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE);
@@ -1636,25 +1669,47 @@ public class RCSUtil {
         }
 
         if (insertOrganization) {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
-            contentValues.put(Organization.COMPANY, profile.getCompanyName());
-            contentValues.put(Organization.TITLE, profile.getCompanyDuty());
-            contentValues.put(Data.MIMETYPE, Organization.CONTENT_ITEM_TYPE);
-            ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
-                    .withValues(contentValues).build());
+            if (!TextUtils.isEmpty(profile.getCompanyName())
+                    || !TextUtils.isEmpty(profile.getCompanyDuty())) {
+                Log.d(TAG, "insert organization");
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
+                contentValues
+                        .put(Organization.COMPANY,  profile.getCompanyName());
+                contentValues
+                        .put(Organization.TITLE, profile.getCompanyDuty());
+                contentValues.put(Data.MIMETYPE, Organization.CONTENT_ITEM_TYPE);
+                ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI)
+                        .withValues(contentValues).build());
+            }
         } else if (updateOrganization) {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(Organization.COMPANY, profile.getCompanyName());
-            contentValues.put(Organization.TITLE, profile.getCompanyDuty());
-            ops.add(ContentProviderOperation
-                    .newUpdate(PROFILE_DATA_URI)
-                    .withValues(contentValues)
-                    .withSelection(
-                            Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE
-                                    + " = ? ",
-                            new String[] { String.valueOf(rawContactId),
-                                    Organization.CONTENT_ITEM_TYPE }).build());
+            Log.d(TAG, "update organization");
+            if (TextUtils.isEmpty(profile.getCompanyName())
+                    && TextUtils.isEmpty(profile.getCompanyDuty())) {
+                ops.add(ContentProviderOperation
+                        .newDelete(PROFILE_DATA_URI)
+                        .withSelection(
+                                Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE + " = ? ",
+                                new String[] {
+                                        String.valueOf(rawContactId),
+                                        Organization.CONTENT_ITEM_TYPE
+                                }).build());
+            } else {
+                ContentValues contentValues = new ContentValues();
+                contentValues
+                        .put(Organization.COMPANY, profile.getCompanyName());
+                contentValues
+                        .put(Organization.TITLE, profile.getCompanyDuty());
+                ops.add(ContentProviderOperation
+                        .newUpdate(PROFILE_DATA_URI)
+                        .withValues(contentValues)
+                        .withSelection(
+                                Data.RAW_CONTACT_ID + " = ? and " + Data.MIMETYPE + " = ? ",
+                                new String[] {
+                                        String.valueOf(rawContactId),
+                                        Organization.CONTENT_ITEM_TYPE
+                                }).build());
+            }
         }
 
         if (insertNameInfo) {
@@ -1699,7 +1754,7 @@ public class RCSUtil {
                                     StructuredName.CONTENT_ITEM_TYPE }).build());
         }
 
-        if (insertBirthday) {
+        if (insertBirthday && !TextUtils.isEmpty(profile.getBirthday())) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
             contentValues.put(Event.TYPE, Event.TYPE_BIRTHDAY);
@@ -1747,6 +1802,20 @@ public class RCSUtil {
         } catch (OperationApplicationException e) {
             e.printStackTrace();
         }
+    }
+
+    public static String getMyPhoneNumber(Context context) {
+        String myAccountNumber = null;
+        try {
+            Log.d("RCS_UI", "Calling  RcsApiManager.getRcsAccoutApi()"
+                    + ".getRcsUserProfileInfo().getUserName()");
+            myAccountNumber = RcsApiManager.getRcsAccoutApi()
+                    .getRcsUserProfileInfo().getUserName();
+        } catch (ServiceDisconnectedException e1) {
+            makeToast(context, R.string.rcs_service_is_not_available);
+            Log.w("RCS_UI", e1);
+        }
+        return myAccountNumber;
     }
 
     public static void updateOnlyOneContactPhoto(Context context,
@@ -1841,12 +1910,12 @@ public class RCSUtil {
         }
     }
 
-    public static void restoreLocalProfileInfo(final Context context,
-            final Contact contactData, ProfileApi profileApi,
+    private static void restoreLocalProfileInfo(final Context context,
+            final Contact contactData,
             final RestoreFinishedListener listener) {
         final Handler handler = new Handler();
         try {
-            profileApi.getMyProfile(new ProfileListener() {
+            RcsApiManager.getProfileApi().getMyProfile(new ProfileListener() {
 
                 @Override
                 public void onAvatarGet(Avatar arg0, int resultCode,
@@ -1864,8 +1933,6 @@ public class RCSUtil {
                 public void onProfileGet(final Profile profile,
                         final int resultCode, final String resultDesc)
                         throws RemoteException {
-                    Log.d("RCS_Service",
-                            "Get profile first name: " + profile.getFirstName());
                     if (resultCode == 0) {
                         SharedPreferences myProfileSharedPreferences =
                                 context.getSharedPreferences("RcsSharepreferences",
@@ -1917,9 +1984,9 @@ public class RCSUtil {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
+        RCSUtil.sleep(1000);
         try {
-            profileApi.getMyHeadPic(new ProfileListener() {
+            RcsApiManager.getProfileApi().getMyHeadPic(new ProfileListener() {
 
                 @Override
                 public void onAvatarGet(final Avatar photo,
@@ -1958,6 +2025,13 @@ public class RCSUtil {
                                 }
                             });
                         }
+                    } else {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                makeToast(context, R.string.get_photo_profile_failed);
+                            }
+                        });
                     }
                 }
 
@@ -1994,11 +2068,11 @@ public class RCSUtil {
         }
     }
 
-    public static void backupLocalProfileInfo(final Context context,
-            ProfileApi profileApi, final Profile profile, Avatar photoInfo) {
+    private static void backupLocalProfileInfo(final Context context,
+            final Profile profile, Avatar photoInfo) {
         final Handler handler = new Handler();
         try {
-            profileApi.setMyProfile(profile, new ProfileListener() {
+            RcsApiManager.getProfileApi().setMyProfile(profile, new ProfileListener() {
 
                 @Override
                 public void onAvatarGet(Avatar arg0, int arg1, String arg2)
@@ -2049,7 +2123,7 @@ public class RCSUtil {
         }
 
         try {
-            profileApi.setMyHeadPic(photoInfo, new ProfileListener() {
+            RcsApiManager.getProfileApi().setMyHeadPic(photoInfo, new ProfileListener() {
 
                 @Override
                 public void onAvatarGet(Avatar arg0, int arg1, String arg2)
@@ -2108,98 +2182,87 @@ public class RCSUtil {
         }
     }
 
-    public static void getOneContactPhotoFromServer(final Activity activity,
-            final Contact contactData, final ProfileApi profileApi,
+    public static void getOneContactPhotoFromServer(
+            final WeakReference<QuickContactActivity> activityRef,
+            final WeakReference<Contact> contactRef, final ProfileApi profileApi,
             final RestoreFinishedListener listener) {
-        if (contactData == null) {
+        QuickContactActivity activity = activityRef.get();
+        Contact contactData = contactRef.get();
+        if (activity == null || contactData == null) {
             return;
         }
         final long contactId = contactData.getRawContacts().get(0).getContactId();
         final Handler handler = new Handler();
+        final Context appContext = activity.getApplicationContext();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     sleep(1000);
+                    QuickContactActivity activity = activityRef.get();
                     if (activity == null || activity.isFinishing()) {
                         return;
                     }
                     profileApi.getHeadPicByContact(contactId, new ProfileListener() {
-                                @Override
-                                public void onAvatarGet(final Avatar photo,
-                                        final int resultCode,
-                                        final String resultDesc)
-                                        throws RemoteException {
-                                    if (resultCode == 0) {
-                                        final byte[] contactPhoto = Base64.decode(
-                                                photo.getImgBase64Str(),
-                                                android.util.Base64.DEFAULT);
-                                        if (activity == null
-                                                || activity.isFinishing()) {
-                                            return;
-                                        }
-                                        updateOneContactPhoto(activity,
-                                                contactData, contactPhoto);
-                                        sleep(1000);
-                                        if (activity == null
-                                                || activity.isFinishing()) {
-                                            return;
-                                        }
-                                        handler.post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                if (listener != null) {
-                                                    listener.onRestoreFinished();
-                                                }
-                                            }
-                                        });
-                                        handler.post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                makeToast(activity,
-                                                        R.string.get_photo_profile_successfully);
-                                            }
-                                        });
-                                    } else {
-                                        handler.post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                makeToast(activity,
-                                                        R.string.get_photo_profile_failed);
-                                            }
-                                        });
+                        @Override
+                        public void onAvatarGet(final Avatar photo, final int resultCode,
+                                final String resultDesc) throws RemoteException {
+                            QuickContactActivity activity = activityRef.get();
+                            Contact contactData = contactRef.get();
+                            if (resultCode == 0) {
+                                final byte[] contactPhoto = Base64.decode(photo.getImgBase64Str(),
+                                        android.util.Base64.DEFAULT);
+                                if (activity == null || activity.isFinishing()
+                                        || contactData == null) {
+                                    return;
+                                }
+                                updateOneContactPhoto(appContext, contactData, contactPhoto);
+                                sleep(1000);
+                                if (activity == null || activity.isFinishing()) {
+                                    return;
+                                }
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (listener != null) {
+                                            listener.onRestoreFinished();
+                                         }
+                                     }
+                                });
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        makeToast(appContext,
+                                                R.string.get_photo_profile_successfully);
                                     }
-                                }
+                                });
+                            } else {
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        makeToast(appContext, R.string.get_photo_profile_failed);
+                                    }
+                                });
+                            }
+                        }
+                        @Override
+                        public void onAvatarUpdated(int arg0, String arg1) throws RemoteException {
+                        }
 
-                                @Override
-                                public void onAvatarUpdated(int arg0,
-                                        String arg1) throws RemoteException {
-                                    // TODO Auto-generated method stub
+                        @Override
+                        public void onProfileGet(Profile arg0, int arg1, String arg2)
+                                throws RemoteException {
 
-                                }
-
-                                @Override
-                                public void onProfileGet(Profile arg0,
-                                        int arg1, String arg2)
-                                        throws RemoteException {
-                                    // TODO Auto-generated method stub
-
-                                }
-
-                                @Override
-                                public void onProfileUpdated(int arg0,
-                                        String arg1) throws RemoteException {
-                                    // TODO Auto-generated method stub
-
-                                }
-
-                                @Override
-                                public void onQRImgDecode(QRCardInfo imgObj,
-                                        int resultCode, String arg2)
-                                        throws RemoteException {
-
-                                }
-                            });
+                        }
+                        @Override
+                        public void onProfileUpdated(int arg0, String arg1) throws RemoteException {
+                            // TODO Auto-generated method stub
+                        }
+                        @Override
+                        public void onQRImgDecode(QRCardInfo imgObj, int resultCode, String arg2)
+                                throws RemoteException {
+                        }
+                    });
                 } catch (ServiceDisconnectedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -2390,21 +2453,28 @@ public class RCSUtil {
         return false;
     }
 
-    public static void updateContactPhotoViaServer(final QuickContactActivity activity,
-            final Contact contactData) {
-        if (RCSUtil.needGetPhotoFromServer(activity, contactData)) {
-            RCSUtil.getOneContactPhotoFromServer(activity, contactData,
+    public static void updateContactPhotoViaServer(
+            final WeakReference<QuickContactActivity> activityRef,
+            final WeakReference<Contact> contactRef) {
+        QuickContactActivity activity = activityRef.get();
+        Contact contactData = contactRef.get();
+        if (activity == null || contactData == null) {
+            return;
+        }
+        if (RCSUtil.needGetPhotoFromServer(activity.getApplicationContext(), contactData)) {
+            RCSUtil.getOneContactPhotoFromServer(activityRef, contactRef,
                     RcsApiManager.getProfileApi(), new RestoreFinishedListener() {
                         public void onRestoreFinished() {
-                            if (activity != null && !activity.isFinishing()) {
+                            QuickContactActivity activity = activityRef.get();
+                            Contact contactData = contactRef.get();
+                            if (activity != null && !activity.isFinishing() && activity.isResumed()
+                                    && contactData != null) {
                                 Intent resultIntent = QuickContact.composeQuickContactsIntent(
                                         activity.getBaseContext(), (Rect)null,
                                         contactData.getLookupUri(),
                                         QuickContactActivity.MODE_FULLY_EXPANDED, null);
                                 resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                if (isTopActivity(activity)) {
-                                    activity.startActivity(resultIntent);
-                                }
+                                activity.startActivity(resultIntent);
                             }
                         }
                     });
@@ -2412,64 +2482,34 @@ public class RCSUtil {
     }
 
     public static void initRcsMenu(Context context, Menu menu, Contact contactData) {
-        if (contactData == null) {
-            return;
-        }
-        if (contactData.isUserProfile() && RCSUtil.getRcsSupport()) {
-            final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
-            if (optionsQrcode != null) {
-                optionsQrcode.setVisible(true);
-            }
-            final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
-            if (optionsPluginCenter != null) {
-                optionsPluginCenter.setVisible(true);
-            }
+        boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
+        boolean isUserProfile = contactData != null && contactData.isUserProfile();
 
-        } else {
-            final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
-            if (optionsQrcode != null) {
-                optionsQrcode.setVisible(false);
-            }
-            final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
-            if (optionsPluginCenter != null) {
-                optionsPluginCenter.setVisible(false);
-            }
-        }
-        if (RCSUtil.getRcsSupport() && isEnhanceScreenInstalled(context)) {
-            final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
-            if (optionsEnhancedscreen != null) {
-                optionsEnhancedscreen.setVisible(true);
-            }
-            if (!contactData.isUserProfile()) {
-                final MenuItem optionsUpdateEnhanceScreen = menu
-                        .findItem(R.id.menu_updateenhancedscreen);
-                if (optionsUpdateEnhanceScreen != null) {
-                    optionsUpdateEnhanceScreen.setVisible(true);
-                }
-            } else {
-                final MenuItem optionsUpdateEnhanceScreen = menu
-                        .findItem(R.id.menu_updateenhancedscreen);
-                if (optionsUpdateEnhanceScreen != null) {
-                    optionsUpdateEnhanceScreen.setVisible(false);
-                }
-            }
-        } else {
-            final MenuItem optionsEnhancedscreen = menu
-                    .findItem(R.id.menu_enhancedscreen);
-            if (optionsEnhancedscreen != null) {
-                optionsEnhancedscreen.setVisible(false);
-            }
-            final MenuItem optionsUpdateEnhanceScreen = menu
-                    .findItem(R.id.menu_updateenhancedscreen);
-            if (optionsUpdateEnhanceScreen != null) {
-                optionsUpdateEnhanceScreen.setVisible(false);
-            }
+        final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
+        if (optionsQrcode != null) {
+            optionsQrcode.setVisible(isRcsSupport && isUserProfile);
         }
 
+        final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
+        if (optionsPluginCenter != null) {
+            optionsPluginCenter.setVisible(isRcsSupport && isPlunginCenterInstalled(context)
+                    && isUserProfile);
+        }
+        final MenuItem optionsUpdateEnhanceScreen = menu.findItem(R.id.menu_updateenhancedscreen);
+        if (optionsUpdateEnhanceScreen != null) {
+            optionsUpdateEnhanceScreen.setVisible(isRcsSupport && isEnhanceScreenInstalled(context)
+                    && !isUserProfile);
+        }
+        final MenuItem optionsEnhancedscreen = menu.findItem(R.id.menu_enhancedscreen);
+        if (optionsEnhancedscreen != null) {
+            optionsEnhancedscreen.setVisible(isRcsSupport && isEnhanceScreenInstalled(context));
+        }
         // Display/Hide the online business hall menu item.
         MenuItem onlineBusinessHall = menu.findItem(R.id.menu_online_business_hall);
-        onlineBusinessHall.setVisible(contactData.isUserProfile() && RCSUtil.getRcsSupport()
-                && isOnlineBusinessHallInstalled(context));
+        if (onlineBusinessHall != null) {
+            onlineBusinessHall.setVisible(isRcsSupport && isUserProfile
+                    && isOnlineBusinessHallInstalled(context));
+        }
     }
 
     public static void startQrCodeActivity(Context context, Contact contactData) {
@@ -2522,6 +2562,7 @@ public class RCSUtil {
              e.printStackTrace();
          }
     }
+
     public static void updateEnhanceScreeenFunction(Context context, Contact contactData){
         try {
              if(getcontactPhoneList(contactData).size() < 1){
@@ -2585,72 +2626,80 @@ public class RCSUtil {
 
     public static String getPhoneforContactId(Context context, long contactId) {
 
-        String phone = null;
+        String phone = "";
         Cursor phonesCursor = null;
         phonesCursor = RCSUtil.queryPhoneNumbers(context, contactId);
-        if (phonesCursor == null) {
-            return "";
-        }
-        if (phonesCursor.getCount() == 0) {
-            // No valid number
-            // signalError();
-            return phone;
-        } else if (phonesCursor.getCount() == 1) {
-            // only one number, call it.
-            phone = phonesCursor.getString(phonesCursor
-                    .getColumnIndex(Phone.NUMBER));
-        } else {
-            phonesCursor.moveToPosition(-1);
-            boolean first = true;
-            while (phonesCursor.moveToNext()) {
-                if (first) {
-                    //
+        try {
+            if(null != phonesCursor) {
+                if (phonesCursor.getCount() == 0) {
+                    // No valid number
+                    // signalError();
+                    if (!phonesCursor.isClosed()) {
+                        phonesCursor.close();
+                    }
+                    return phone;
+                } else if (phonesCursor.getCount() == 1) {
+                    // only one number, call it.
                     phone = phonesCursor.getString(phonesCursor
                             .getColumnIndex(Phone.NUMBER));
-                    first = false;
-                }
-                if (phonesCursor.getInt(phonesCursor.getColumnIndex
+                } else {
+                    phonesCursor.moveToPosition(-1);
+                    boolean first = true;
+                    while (phonesCursor.moveToNext()) {
+                        if (first) {
+                            //
+                            phone = phonesCursor.getString(phonesCursor
+                                    .getColumnIndex(Phone.NUMBER));
+                            first = false;
+                        }
+                        if (phonesCursor.getInt(phonesCursor.getColumnIndex
 
-                (Phone.IS_SUPER_PRIMARY)) != 0) {
-                    // Found super primary, call it.
-                    phone = phonesCursor.getString(phonesCursor
-                            .getColumnIndex(Phone.NUMBER));
-                    break;
+                        (Phone.IS_SUPER_PRIMARY)) != 0) {
+                            // Found super primary, call it.
+                            phone = phonesCursor.getString(phonesCursor
+                                    .getColumnIndex(Phone.NUMBER));
+                            break;
+                        }
+                    }
                 }
             }
+        } finally {
+            if (null != phonesCursor) {
+                phonesCursor.close();
+            }
         }
-        phonesCursor.close();
         return phone;
     }
 
     public static String getAllPhoneNumberFromContactId(Context context, long contactId) {
 
-        String phone = null;
+        String phone = "";
         Cursor phonesCursor = null;
         StringBuilder sb = new StringBuilder();
         phonesCursor = RCSUtil.queryPhoneNumbers(context, contactId);
-        if (phonesCursor == null) {
-            return "";
-        }
-        if (phonesCursor.getCount() == 0) {
-            // No valid number
-            // signalError();
-            phonesCursor.close();
-            return phone;
-        } else if (phonesCursor.getCount() == 1) {
-            // only one number, call it.
-            phone = phonesCursor.getString(phonesCursor
-                    .getColumnIndex(Phone.NUMBER));
-        } else {
-            while (phonesCursor.moveToNext()) {
-                //
-                phone = phonesCursor.getString(phonesCursor
-                        .getColumnIndex(Phone.NUMBER));
-                sb.append(phone).append(";");
+
+        try {
+            if (phonesCursor != null) {
+                if (phonesCursor.getCount() == 0) {
+                    phone = "";
+                } else if (phonesCursor.getCount() == 1) {
+                    // only one number, call it.
+                    phone = phonesCursor.getString(phonesCursor
+                            .getColumnIndex(Phone.NUMBER));
+                } else {
+                    while (phonesCursor.moveToNext()) {
+                        phone = phonesCursor.getString(phonesCursor
+                                .getColumnIndex(Phone.NUMBER));
+                        sb.append(phone).append(";");
+                    }
+                    phone = sb.toString();
+                }
             }
-            phone = sb.toString();
+        } finally {
+            if (null != phonesCursor) {
+                phonesCursor.close();
+            }
         }
-        phonesCursor.close();
         return phone;
     }
 
@@ -2693,17 +2742,6 @@ public class RCSUtil {
         return size;
     }
 
-    private static boolean isTopActivity(Activity activity){
-        boolean isTop = false;
-        ActivityManager am = (ActivityManager)activity.getSystemService(
-                activity.ACTIVITY_SERVICE);
-        ComponentName cn = am.getRunningTasks(1).get(0).topActivity;
-        if (cn.getClassName().contains(activity.getClass().getName())){
-            isTop = true;
-        }
-        return isTop;
-    }
-
     public static String getFormatNumber(String number){
         if(null == number){
             return "";
@@ -2740,19 +2778,18 @@ public class RCSUtil {
         }
         if (nativeUiContext == null)
             return;
-        SharedPreferences pref = nativeUiContext.getSharedPreferences(
-                PREF_BACKUP_ONCE_CHANGED_NAME, Activity.MODE_WORLD_READABLE
+        SharedPreferences backupRestorePref = nativeUiContext.getSharedPreferences(
+                PREF_BACKUP_RESTORE_NAME, Activity.MODE_WORLD_READABLE
                         | Activity.MODE_MULTI_PROCESS);
-        boolean isBackup = pref.getBoolean(KEY_BACKUP_ONCE_CHANGED, false);
-        boolean isAutoBackup = false;
-        boolean isOnlySyncViaWifi = false;
+        boolean isBackup = backupRestorePref.getBoolean(KEY_BACKUP_ONCE_CHANGED, false);
+        boolean isAutoBackup = backupRestorePref.getBoolean(KEY_AUTO_BACKUP, false);
+        boolean isOnlySyncViaWifi = backupRestorePref.getBoolean(KEY_ONLY_WIFI_BACKUP_RESOTORE,
+                false);
 
         Log.d(TAG, "Calling autoBackupOnceChanged!");
         try {
-            isAutoBackup = RcsApiManager.getMcontactApi().getEnableAutoSync();
-            isOnlySyncViaWifi = RcsApiManager.getMcontactApi()
-                    .getOnlySyncEnableViaWifi();
-            if (isBackup && isAutoBackup && isOnlySyncViaWifi) {
+            if (isBackup && isAutoBackup
+                    && (isOnlySyncViaWifi && RCSUtil.isWifiEnabled(context) || !isOnlySyncViaWifi)) {
                 Log.d(TAG, "Auto backup started!");
                 RcsApiManager.getMcontactApi().doSync(SyncAction.CONTACT_UPLOAD,
                         new IMContactSyncListener.Stub() {
@@ -2760,42 +2797,49 @@ public class RCSUtil {
                             @Override
                             public void onAuthSession(Auth arg0, boolean arg1)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
 
                             }
 
                             @Override
                             public void onExecuting(Auth arg0, int arg1)
                                    throws RemoteException {
-                                // TODO Auto-generated method stub
 
                             }
 
                             @Override
                             public void onHttpResponeText(String arg0, String arg1)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
 
                             }
 
                             @Override
                             public void onPreExecuteAuthSession(Auth arg0)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
 
                             }
 
                             @Override
                             public void onProgress(Auth arg0, int arg1, int arg2, int arg3)
                                     throws RemoteException {
-                                // TODO Auto-generated method stub
 
                             }
 
                             @Override
                             public void onRunning() throws RemoteException {
-                                // TODO Auto-generated method stub
 
+                            }
+
+                            @Override
+                            public void onThrowException(Auth auth, int syncAction,
+                                    String exceptionMessage) {
+                                Log.e(TAG, "Exception: " + exceptionMessage);
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        makeToast(context,
+                                                R.string.contact_backup_fail);
+                                    }
+                                });
                             }
 
                             @Override
@@ -2836,37 +2880,15 @@ public class RCSUtil {
         }
     }
 
-    public static boolean isEnhanceScreenInstalled(Context context) {
-        boolean installed = false;
-        try {
-            ApplicationInfo info = context.getPackageManager().getApplicationInfo(
-                    ENHANCE_SCREEN_APK_NAME, PackageManager.GET_PROVIDERS);
-            installed = (info != null);
-        } catch (NameNotFoundException e) {
-        }
-        Log.i(TAG, "Is Enhance Screen installed ? " + installed);
-        return installed;
-    }
-
-    public static boolean isOnlineBusinessHallInstalled(Context context) {
-        boolean installed = false;
-        try {
-            ApplicationInfo info = context.getPackageManager().getApplicationInfo(
-                    ONLINE_BUSINESS_HALL, PackageManager.GET_PROVIDERS);
-            installed = (info != null);
-        } catch (NameNotFoundException e) {
-        }
-        Log.i(TAG, "Is Enhance Screen installed ? " + installed);
-        return installed;
-    }
-
     public static void startOnlineBusinessHallActivity(Context context) {
         Intent intent = context.getPackageManager()
                 .getLaunchIntentForPackage(ONLINE_BUSINESS_HALL);
-        context.startActivity(intent);
+        if (intent != null) {
+            context.startActivity(intent);
+        }
     }
 
-    public static void makeToast(Context context, int stringId) {
+    private static void makeToast(Context context, int stringId) {
         Toast.makeText(context, stringId, Toast.LENGTH_SHORT).show();
     }
 
@@ -2923,61 +2945,63 @@ public class RCSUtil {
         }
     }
 
-    public static void okToRestoreLocalProfile(Context context,
-            boolean[] selectedItems,Contact contactData, RestoreFinishedListener listener,
-                    ProfileApi profileApi) {
-        final int BACKUP = 0;
-        final int RESTORE = 1;
-        for (int i = 0; i < selectedItems.length; i++) {
-            if ((i == BACKUP) && selectedItems[i]) {
-                String myAccountNumber = null;
-                try {
-                    myAccountNumber = RcsApiManager.getRcsAccoutApi().getRcsUserProfileInfo()
-                            .getUserName();
-                } catch (ServiceDisconnectedException e1) {
-                    makeToast(context, R.string.rcs_service_is_not_available);
-                    Log.w(TAG, e1);
-                    return;
-                }
-                Log.d(TAG, "The account is " + myAccountNumber);
-                if (TextUtils.isEmpty(myAccountNumber)) {
-                    makeToast(context, R.string.account_empty);
-                }
-                Profile profile = createLocalProfile(contactData);
+    private static void doBackupLocalProfileInfo(Context context, Contact contactData){
+        String myAccountNumber = null;
+        try {
+            myAccountNumber = RcsApiManager.getRcsAccoutApi().getRcsUserProfileInfo()
+                    .getUserName();
+        } catch (ServiceDisconnectedException e1) {
+            makeToast(context, R.string.rcs_service_is_not_available);
+            Log.w(TAG, e1);
+            return;
+        }
+        Log.d(TAG, "The account is " + myAccountNumber);
+        if (TextUtils.isEmpty(myAccountNumber)) {
+            makeToast(context, R.string.account_empty);
+        }
+        Profile profile = createLocalProfile(contactData);
 
-                if (profile == null) {
-                    makeToast(context, R.string.first_last_name_empty);
-                    return;
-                }
-                SharedPreferences myProfileSharedPreferences = context.getSharedPreferences(
-                        PREF_RCS_FILE_NAME, Activity.MODE_WORLD_READABLE);
-                String TextEtag = myProfileSharedPreferences
-                        .getString(PREF_RCS_PROFILE_TEXT_ETAG,null);
-                profile.setEtag(TextEtag);
-                profile.setAccount(myAccountNumber);
-                Avatar photoInfo = new Avatar();
-                Log.d(TAG, "My number is " + myAccountNumber);
-                if (myAccountNumber == null) {
-                    makeToast(context, R.string.account_empty);
-                    return;
-                }
-                photoInfo.setAccount(myAccountNumber);
-                photoInfo.setAvatarImgType(IMAGE_TYPE.PNG);
-                byte[] contactPhoto = contactData.getPhotoBinaryData();
-                if (contactPhoto == null) {
-                    makeToast(context, R.string.photo_empty);
-                    return;
-                }
-                String PhotoEtag = myProfileSharedPreferences.getString(
-                        PREF_RCS_PROFILE_PHOTO_ETAG, null);
-                photoInfo.setEtag(PhotoEtag);
-                photoInfo.setImgBase64Str(Base64.encodeToString(processPhoto(contactPhoto),
-                        Base64.DEFAULT));
-                RCSUtil.backupLocalProfileInfo(context, profileApi, profile, photoInfo);
-            }
-            if ((i == RESTORE) && selectedItems[i]) {
-                restoreLocalProfileInfo(context, contactData, profileApi, listener);
-            }
+        if (profile == null) {
+            makeToast(context, R.string.first_last_name_empty);
+            return;
+        }
+        SharedPreferences myProfileSharedPreferences = context.getSharedPreferences(
+                PREF_RCS_FILE_NAME, Activity.MODE_WORLD_READABLE);
+        String TextEtag = myProfileSharedPreferences
+                .getString(PREF_RCS_PROFILE_TEXT_ETAG,null);
+        profile.setEtag(TextEtag);
+        profile.setAccount(myAccountNumber);
+        Avatar photoInfo = new Avatar();
+        Log.d(TAG, "My number is " + myAccountNumber);
+        if (myAccountNumber == null) {
+            makeToast(context, R.string.account_empty);
+            return;
+        }
+        photoInfo.setAccount(myAccountNumber);
+        photoInfo.setAvatarImgType(IMAGE_TYPE.PNG);
+        byte[] contactPhoto = contactData.getPhotoBinaryData();
+        if (contactPhoto == null) {
+            makeToast(context, R.string.photo_empty);
+            return;
+        }
+        String PhotoEtag = myProfileSharedPreferences.getString(
+                PREF_RCS_PROFILE_PHOTO_ETAG, null);
+        photoInfo.setEtag(PhotoEtag);
+        photoInfo.setImgBase64Str(Base64.encodeToString(processPhoto(contactPhoto),
+                Base64.DEFAULT));
+        backupLocalProfileInfo(context, profile, photoInfo);
+    }
+
+    private static void okToRestoreLocalProfile(Context context,
+            int whichButton, Contact contactData,
+            RestoreFinishedListener listener) {
+        if (contactData == null) return;
+        int BACKUP = 0, RESTORE = 1;
+        if (whichButton == BACKUP) {
+            doBackupLocalProfileInfo(context, contactData);
+        }
+        if (whichButton == RESTORE) {
+            restoreLocalProfileInfo(context, contactData, listener);
         }
     }
 
@@ -3004,5 +3028,109 @@ public class RCSUtil {
                 }
             }
         });
+    }
+
+    private static final int MAX_LENGTH = 20;
+
+    public static boolean judgeUserNameLength(Context context,
+            RawContactDeltaList rawContactDeltaList, boolean isExpand) {
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+            return true;
+        }
+        RawContactDelta rawContactDelta = rawContactDeltaList.get(0);
+        ArrayList<ValuesDelta> names = rawContactDelta
+                .getMimeEntries(StructuredName.CONTENT_ITEM_TYPE);
+        ValuesDelta nameValuesDelta = names.get(0);
+        String firstName = nameValuesDelta
+                .getAsString(StructuredName.FAMILY_NAME);
+        String lastName = nameValuesDelta
+                .getAsString(StructuredName.GIVEN_NAME);
+        if(TextUtils.isEmpty(firstName) && TextUtils.isEmpty(lastName) && !isExpand){
+            String displayName = nameValuesDelta
+                    .getAsString(StructuredName.DISPLAY_NAME);
+            if(TextUtils.isEmpty(displayName)){
+                displayName = "";
+            }
+            if(displayName.getBytes().length > MAX_LENGTH * 2){
+                Toast.makeText(context, R.string.full_name_max_length,
+                        Toast.LENGTH_LONG).show();
+                return false;
+            }
+            return true;
+        }
+        if(TextUtils.isEmpty(firstName)){
+            firstName = "";
+        }
+        if(TextUtils.isEmpty(lastName)){
+            lastName = "";
+        }
+        if(!isExpand){
+            if((firstName + lastName).getBytes().length > MAX_LENGTH * 2){
+                Toast.makeText(context, R.string.full_name_max_length,
+                        Toast.LENGTH_LONG).show();
+                return false;
+            }
+        } else {
+            if(firstName.getBytes().length > MAX_LENGTH){
+                Toast.makeText(context, R.string.first_name_max_length,
+                        Toast.LENGTH_LONG).show();
+                return false;
+            }
+            if(lastName.getBytes().length > MAX_LENGTH){
+                Toast.makeText(context, R.string.last_name_max_length,
+                        Toast.LENGTH_LONG).show();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean isRegularEmail(String emailString) {
+        String patten = "^[a-zA-Z0-9][\\w\\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\\w\\.-]*[a-zA-Z0-9]\\.[a-zA-Z][a-zA-Z\\.]*[a-zA-Z]$";
+        Pattern p = Pattern.compile(patten);
+        Matcher m = p.matcher(emailString);
+        return m.matches();
+    }
+
+    public static boolean checkNumberInFirewall(ContentResolver resolver,
+            boolean isBlacklist, String number) {
+        if (TextUtils.isEmpty(number)) {
+            return false;
+        }
+        String queryNumber = number.replaceAll("[\\-\\/ ]", "");
+        int len = queryNumber.length();
+        if (len > 11) {
+            queryNumber = number.substring(len - 11, len);
+        }
+        Uri firewallUri = isBlacklist? BLACKLIST_CONTENT_URI: WHITELIST_CONTENT_URI;
+        Cursor fiewallCursor = resolver.query(firewallUri,
+                new String[] { "_id", "number", "person_id", "name"},
+                "number" + " LIKE '%" + queryNumber + "'",
+                null, null);
+        try {
+            if (fiewallCursor != null && fiewallCursor.getCount() > 0) {
+                return false;
+            }
+        } finally {
+            if (fiewallCursor != null) {
+                fiewallCursor.close();
+                fiewallCursor = null;
+            }
+        }
+        return true;
+    }
+
+    public static int removeNumberInFirewall(ContentResolver resolver,
+            boolean isBlacklist, String number) {
+        if (TextUtils.isEmpty(number)) {
+            return -1;
+        }
+        String queryNumber = number.replaceAll("[\\-\\/ ]", "");
+        int len = queryNumber.length();
+        if (len > 11) {
+            queryNumber = number.substring(len - 11, len);
+        }
+        Uri firewallUri = isBlacklist? BLACKLIST_CONTENT_URI: WHITELIST_CONTENT_URI;
+        return resolver.delete(firewallUri, "number" + " LIKE '%" + queryNumber + "'", null);
     }
 }
