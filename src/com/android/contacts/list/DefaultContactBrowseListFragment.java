@@ -43,6 +43,7 @@ import com.android.contacts.common.list.ProfileAndContactsLoader;
 import com.android.contacts.editor.ContactEditorFragment;
 import com.android.contacts.util.RCSUtil;
 import com.android.contacts.common.util.AccountFilterUtil;
+import com.android.contacts.common.util.ContactsCommonRcsUtil;
 
 /**
  * Fragment containing a contact list used for browsing (as compared to
@@ -104,6 +105,12 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         adapter.setDisplayPhotos(true);
         adapter.setPhotoPosition(
                 ContactListItemView.getDefaultPhotoPosition(/* opposite = */ false));
+        if (ContactsCommonRcsUtil.getIsRcs()) {
+            if (ContactsCommonRcsUtil.RcsCapabilityMap != null
+                    && ContactsCommonRcsUtil.RcsCapabilityMap.isEmpty()) {
+                ContactsCommonRcsUtil.loadRcsCapabilityOfContacts(getContext(), adapter);
+            }
+        }
         return adapter;
     }
 
