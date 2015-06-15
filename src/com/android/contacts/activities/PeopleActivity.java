@@ -1600,7 +1600,7 @@ public class PeopleActivity extends ContactsActivity implements
                 String[] values = null;
                 while (it.hasNext()) {
                     if (index != 0) {
-                        uriListBuilder.append(':');
+                        uriListBuilder.append('&');
                     }
                     values = result.getStringArray(it.next());
                     uriListBuilder.append(values[0]);
