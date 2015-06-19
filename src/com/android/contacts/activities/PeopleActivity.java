@@ -111,7 +111,7 @@ import com.android.contacts.common.util.ViewUtil;
 import com.android.contacts.quickcontact.QuickContactActivity;
 import com.android.contacts.util.AccountPromptUtils;
 import com.android.contacts.common.util.Constants;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.common.vcard.ExportVCardActivity;
 import com.android.contacts.common.vcard.VCardCommonArguments;
 import com.android.contacts.util.DialogManager;
@@ -290,7 +290,7 @@ public class PeopleActivity extends ContactsActivity implements
         registerReceiver();
         mResolver = getContentResolver();
         if (RcsApiManager.getSupportApi().isRcsSupported()) {
-            RCSUtil.resotreContactIfTerminalChanged(this);
+            RcsUtils.resotreContactIfTerminalChanged(this);
         }
     }
 
@@ -1307,9 +1307,9 @@ public class PeopleActivity extends ContactsActivity implements
                     clearFrequentsMenu.setVisible(false);
                     // RCS Menus
                     boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
-                    boolean isRcsPluginInstalled = RCSUtil.isPluginInstalled(this);
+                    boolean isRcsPluginInstalled = RcsUtils.isPluginInstalled(this);
                     scanMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
-                    cloudMenu.setVisible(isRcsSupport && RCSUtil.isNativeUIInstalled && isRcsPluginInstalled);
+                    cloudMenu.setVisible(isRcsSupport && RcsUtils.isNativeUIInstalled && isRcsPluginInstalled);
                     contactsPhotoUpdateMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
                     break;
                 case TabState.GROUPS:
@@ -1375,7 +1375,7 @@ public class PeopleActivity extends ContactsActivity implements
             }
             case R.id.menu_scan:{
                 Intent intent = new Intent("android.intent.action.SCAN_QRCODE");
-                String accnountNumber = RCSUtil.getProfileAccountNumber();
+                String accnountNumber = RcsUtils.getProfileAccountNumber();
                 intent.putExtra("profile_tel",accnountNumber);
                 try {
                     startActivityForResult(intent,START_CAPTURE);
@@ -1461,7 +1461,7 @@ public class PeopleActivity extends ContactsActivity implements
 
             case R.id.menu_cloud: {
                 try {
-                    startActivity(new Intent(RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                    startActivity(new Intent(RcsUtils.ACTION_BACKUP_RESTORE_ACTIVITY));
                     return true;
                 } catch (ActivityNotFoundException ex) {
                     Toast.makeText(PeopleActivity.this, R.string.missing_app,
@@ -1495,7 +1495,7 @@ public class PeopleActivity extends ContactsActivity implements
             }
             case START_CAPTURE:
                 if (resultCode == RESULT_OK) {
-                    RCSUtil.insertQrcodeContact(this,data);
+                    RcsUtils.insertQrcodeContact(this,data);
                 }
                 break;
             case SUBACTIVITY_NEW_GROUP:

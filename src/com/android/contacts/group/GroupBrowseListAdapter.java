@@ -35,12 +35,10 @@ import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.PhoneAccountType;
 import com.android.contacts.common.model.AccountTypeManager;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.R;
 import com.google.common.base.Objects;
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,7 +57,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
     private boolean mSelectionVisible;
     private Uri mSelectedGroupUri;
     private int mLocalGroupsCount;
-    private ArrayList<GroupChatModel> mRcsChatGroups = new ArrayList<GroupChatModel>();
+    private ArrayList<GroupChat> mRcsChatGroups = new ArrayList<GroupChat>();
     private HashMap<String, Integer> mCountMap = new HashMap<String, Integer>();
 
     private class ViewHolder {
@@ -74,7 +72,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         mAccountTypeManager = AccountTypeManager.getInstance(mContext);
     }
 
-    public void setRcsGroupsData(ArrayList<GroupChatModel> data,HashMap<String, Integer> countMap){
+    public void setRcsGroupsData(ArrayList<GroupChat> data,HashMap<String, Integer> countMap){
 
         this.mRcsChatGroups.clear();
         this.mRcsChatGroups.addAll(data);
@@ -133,7 +131,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        mLocalGroupsCount = RCSUtil.getLocalGroupsCount(mContext);
+        mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
         return (mCursor == null || mCursor.isClosed()) ? 0 : mCursor.getCount();
     }
 
@@ -156,8 +154,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         String title = mCursor.getString(GroupListLoader.TITLE);
         int memberCount = mCursor.getInt(GroupListLoader.MEMBER_COUNT);
 
-        if (RcsApiManager.getSupportApi().isRcsSupported()
-                && (!TextUtils.isEmpty(sourceId))) {
+        if (RcsApiManager.getSupportApi().isRcsSupported() && (!TextUtils.isEmpty(sourceId))) {
             if(sourceId.equals("RCS")){
                 accountType=sourceId;
                 String strGroupId = mCursor.getString(GroupListLoader.SYSTEM_ID);
@@ -249,8 +246,8 @@ public class GroupBrowseListAdapter extends BaseAdapter {
             holder.groupName.setText(entry.getTitle());
             String memberCountString = mContext.getResources().getQuantityString(
                     R.plurals.group_list_num_contacts_in_group,
-                    RCSUtil.getMessageChatCount(Integer.valueOf(entry.getSystemId())),
-                    RCSUtil.getMessageChatCount(Integer.valueOf(entry.getSystemId())));
+                    RcsUtils.getMessageChatCount(Integer.valueOf(entry.getSystemId())),
+                    RcsUtils.getMessageChatCount(Integer.valueOf(entry.getSystemId())));
             holder.groupCount.setText(memberCountString);
 
             int res_id;

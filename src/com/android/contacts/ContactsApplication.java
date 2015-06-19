@@ -34,10 +34,7 @@ import com.android.contacts.common.list.ContactListFilterController;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.testing.InjectedServices;
 import com.android.contacts.common.util.Constants;
-import com.android.contacts.common.util.ContactsCommonRcsUtil;
-import com.android.contacts.util.RCSUtil;
 import com.google.common.annotations.VisibleForTesting;
-import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
 
 public final class ContactsApplication extends Application {
     private static final boolean ENABLE_LOADER_LOG = false; // Don't submit with true

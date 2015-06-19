@@ -34,6 +34,7 @@ import android.database.Cursor;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.RemoteException;
 
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
@@ -63,12 +64,12 @@ import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.list.ContactTileAdapter;
 import com.android.contacts.common.list.ContactTileView;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.interactions.GroupDeletionDialogFragment;
 import com.android.contacts.list.GroupMemberTileAdapter;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 
 /**
  * Displays the details of a group and shows a list of actions possible for the group.
@@ -331,12 +332,12 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
                 StringBuilder sb = new StringBuilder();
                 mGroupMembersPhonesList.clear();
                 for (long id : contactIds) {
-                    String phoneNumber = RCSUtil.getPhoneforContactId(context, id);
+                    String phoneNumber = RcsUtils.getPhoneforContactId(context, id);
                     sb.append(phoneNumber).append(";");
-                    String[] groupMemberPhones = RCSUtil.getAllPhoneNumberFromContactId(context,
+                    String[] groupMemberPhones = RcsUtils.getAllPhoneNumberFromContactId(context,
                             id).split(";");
                     for (int i = 0; i < groupMemberPhones.length; i++) {
-                        mGroupMembersPhonesList.add(RCSUtil.getFormatNumber(groupMemberPhones[i]));
+                        mGroupMembersPhonesList.add(RcsUtils.getFormatNumber(groupMemberPhones[i]));
                     }
                 }
                 Log.d(TAG, "mGroupMembersPhonesList:" + mGroupMembersPhonesList.toString());
@@ -482,7 +483,7 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
         inflater.inflate(R.menu.view_group, menu);
         mOptionsMenuRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
         mOptionsMenuRcsEnhanceScreenSupported = mOptionsMenuRcsSupported
-                && RCSUtil.isEnhanceScreenInstalled(mContext);
+                && RcsUtils.isEnhanceScreenInstalled(mContext);
     }
 
     public boolean isOptionsMenuChanged() {
@@ -529,15 +530,19 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
             case R.id.menu_enhancedscreen:{
                 try {
                      if(mGroupMembersPhonesList.size() < 1){
-                         Toast.makeText(mContext, R.string.Unformatted_profile_phone_number,
-                                 Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mContext, R.string.Unformatted_profile_phone_number,
+                                Toast.LENGTH_SHORT).show();
                      }else{
-                         RcsApiManager.getRichScreenApi().startSiteApk(mGroupMembersPhonesList);
+                        if (RcsApiManager.getRichScreenApi() != null) {
+                            RcsApiManager.getRichScreenApi()
+                                         .startRichScreenApp(mGroupMembersPhonesList);
+                        }
                      }
-                 } catch (ServiceDisconnectedException e) {
-                     // TODO Auto-generated catch block
-                     e.printStackTrace();
-                 }
+                } catch (ServiceDisconnectedException e) {
+                    e.printStackTrace();
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
                  return true;
              }
             case R.id.menu_edit_group: {

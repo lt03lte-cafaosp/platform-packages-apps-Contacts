@@ -92,6 +92,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.SimContactsConstants;
@@ -103,7 +104,7 @@ import com.android.contacts.common.list.ContactsSectionIndexer;
 import com.android.contacts.common.list.DefaultContactListAdapter;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.SimAccountType;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -1700,7 +1701,10 @@ public class MultiPickContactActivity extends ListActivity implements
                 operationList.add(builder.build());
             }
         }
-        RCSUtil.importContactUpdateEnhanceScreen(phoneNumber, anrs);
+
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            RcsUtils.importContactUpdateEnhanceScreen(phoneNumber, anrs);
+        }
 
         try {
             resolver.applyBatch(ContactsContract.AUTHORITY, operationList);
