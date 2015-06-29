@@ -27,5 +27,7 @@
     <EditText
         android:id="@+id/group_label"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:minWidth="250dip" />
 </FrameLayout>
