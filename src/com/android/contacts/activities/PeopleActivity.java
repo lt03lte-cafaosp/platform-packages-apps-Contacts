@@ -293,6 +293,8 @@ public class PeopleActivity extends ContactsActivity implements
         if (RcsApiManager.getSupportApi().isRcsSupported()) {
             RCSUtil.resotreContactIfTerminalChanged(this);
         }
+
+        mActionBarAdapter.setCurrentTab(getTabPositionForTextDirection(0));
     }
 
     @Override
@@ -737,7 +739,7 @@ public class PeopleActivity extends ContactsActivity implements
         }
         invalidateOptionsMenu();
         showEmptyStateForTab(tab);
-        if (tab == TabState.GROUPS) {
+        if (getTabPositionForTextDirection(tab) == TabState.GROUPS) {
             mGroupsFragment.setAddAccountsVisibility(!areGroupWritableAccountsAvailable());
         }
     }
@@ -801,7 +803,7 @@ public class PeopleActivity extends ContactsActivity implements
                 mActionBarAdapter.setCurrentTab(position, false);
                 mViewPagerTabs.onPageSelected(position);
                 showEmptyStateForTab(position);
-                if (position == TabState.GROUPS) {
+                if (getTabPositionForTextDirection(position) == TabState.GROUPS) {
                     mGroupsFragment.setAddAccountsVisibility(!areGroupWritableAccountsAvailable());
                 }
                 invalidateOptionsMenu();
@@ -863,7 +865,7 @@ public class PeopleActivity extends ContactsActivity implements
                     return getTabPositionForTextDirection(TabState.ALL);
                 }
                 if (object == mGroupsFragment) {
-                    return TabState.GROUPS;
+                    return getTabPositionForTextDirection(TabState.GROUPS);
                 }
             }
             return POSITION_NONE;
@@ -1292,7 +1294,7 @@ public class PeopleActivity extends ContactsActivity implements
             cloudMenu.setVisible(false);
             scanMenu.setVisible(false);
         } else {
-            switch (mActionBarAdapter.getCurrentTab()) {
+            switch (getTabPositionForTextDirection(mActionBarAdapter.getCurrentTab())) {
                 case TabState.FAVORITES:
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
