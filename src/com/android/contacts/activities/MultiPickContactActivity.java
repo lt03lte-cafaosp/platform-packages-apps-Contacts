@@ -844,6 +844,7 @@ public class MultiPickContactActivity extends ListActivity implements
             unregisterReceiver(mBroadcastReceiver);
         }
 
+        mAdapter = null;
         super.onDestroy();
     }
 
@@ -1226,9 +1227,13 @@ public class MultiPickContactActivity extends ListActivity implements
 
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-            mAdapter.changeCursor(cursor);
+            if (mAdapter != null) {
+                mAdapter.changeCursor(cursor);
+            }
             if (cursor == null || cursor.getCount() == 0) {
                 if (isPickCall()) {
+                    Toast.makeText(MultiPickContactActivity.this,
+                            R.string.no_calllog, Toast.LENGTH_SHORT).show();
                     log("no call found");
                 } else {
                     Toast.makeText(MultiPickContactActivity.this,

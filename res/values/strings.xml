@@ -799,6 +799,8 @@
     <!-- Prefix for messages that you sent [CHAR LIMIT=40] -->
     <string name="message_from_you_prefix">You: <xliff:g id="sms_body">%s</xliff:g></string>
 
+    <string name="no_calllog">No call log</string>
+
     <string name="menu_copyTo">"Copy to "</string>
     <string name="no_empty_email_in_usim">"Email is full, some record copy failed "</string>
     <string name="add_to_white">Add to whitelist</string>
