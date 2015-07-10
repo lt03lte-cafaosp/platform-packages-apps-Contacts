@@ -100,7 +100,7 @@ import com.android.contacts.quickcontact.QuickContactActivity;
 import com.android.contacts.util.ContactPhotoUtils;
 import com.android.contacts.util.HelpUtils;
 import com.android.contacts.util.PhoneCapabilityTester;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.util.UiClosables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -818,18 +818,10 @@ public class ContactEditorFragment extends Fragment implements
         if (mNewLocalProfile) {
             insert.setProfileQueryUri();
             if (RcsApiManager.getSupportApi().isRcsSupported()) {
-                String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
+                String myPhoneNumber = RcsUtils.getMyPhoneNumber();
                 if (!TextUtils.isEmpty(myPhoneNumber)) {
                     phoneChild.put(Phone.NUMBER, myPhoneNumber);
                     phoneChild.put(ContactsContract.Data.DATA13, 1);
-                }
-                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-                String latestTerminal = prefs.getString(RCSUtil.PREF_MY_TEMINAL, "");
-                if (!TextUtils.isEmpty(myPhoneNumber)
-                        && !TextUtils.equals(latestTerminal, myPhoneNumber)) {
-                    SharedPreferences.Editor editor = prefs.edit();
-                    editor.putString(RCSUtil.PREF_MY_TEMINAL, myPhoneNumber);
-                    editor.apply();
                 }
             }
         }
@@ -1238,8 +1230,7 @@ public class ContactEditorFragment extends Fragment implements
         }
         if (mIsUserProfile || (mIntentExtras != null &&
                 mIntentExtras.getBoolean(INTENT_EXTRA_NEW_LOCAL_PROFILE))) {
-            if (!RCSUtil
-                    .judgeUserNameLength(mContext, mState, mEditorsIsExpand)) {
+            if (!RcsUtils.judgeUserNameLength(mContext, mState, mEditorsIsExpand)) {
                 return false;
             }
         }
@@ -1274,9 +1265,9 @@ public class ContactEditorFragment extends Fragment implements
                 mUpdatedPhotos);
 
         if (RcsApiManager.getSupportApi().isRcsSupported()) {
-            intent.putExtra(RCSUtil.KEY_IS_INSERT, !mIsEdit);
+            intent.putExtra(RcsUtils.KEY_IS_INSERT, !mIsEdit);
             intent.putExtra(
-                    RCSUtil.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
+                    RcsUtils.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
                     isSomethingChangedExceptPhoto());
         }
 
@@ -1390,10 +1381,10 @@ public class ContactEditorFragment extends Fragment implements
                         Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
                                 .show();
                         if (RcsApiManager.getSupportApi().isRcsSupported()
-                                && RCSUtil.mIsNativeUiInstalled
-                                && RCSUtil.isPluginInstalled(mContext)
+                                && RcsUtils.isNativeUIInstalled
+                                && RcsUtils.isPluginInstalled(mContext)
                                 && !isEditingUserProfile()) {
-                            RCSUtil.autoBackupOnceChanged(mContext);
+                            RcsUtils.autoBackupOnceChanged(mContext);
                         }
                     } else {
                         Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)

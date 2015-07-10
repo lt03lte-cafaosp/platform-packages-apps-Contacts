@@ -34,12 +34,12 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Groups;
 import android.provider.Settings;
 import android.provider.Telephony.Threads;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -57,18 +57,18 @@ import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
 import com.android.contacts.RcsApiManager;
 import com.android.contacts.group.GroupBrowseListAdapter.GroupListItemViewCache;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.list.AutoScrollListView;
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
-import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChatMember;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
+import com.suntek.rcs.ui.common.RcsLog;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import android.text.TextUtils;
-import android.util.Log;
 
 
 /**
@@ -151,7 +151,7 @@ public class GroupBrowseListFragment extends Fragment
                     return;
                 }
                 if ("RCS".equals(entry.getAccountType())) {
-                    RCSUtil.startChatGroupManagementActivity(mContext, entry);
+                    RcsUtils.startChatGroupManagementActivity(mContext, entry);
                 } else {
                     GroupListItemViewCache groupListItem = (GroupListItemViewCache) view.getTag();
                     if (groupListItem != null) {
@@ -354,13 +354,11 @@ public class GroupBrowseListFragment extends Fragment
     }
 
     //Task to get chat-group data.
-    class AsyncDataLoaderTask extends
-            AsyncTask<Void, Void, ArrayList<GroupChatModel>> {
-
+    class AsyncDataLoaderTask extends AsyncTask<Void, Void, ArrayList<GroupChat>> {
         private Context activityContext;
         private ContentResolver contentResolver;
         private LoaderManager loaderManager;
-        private ArrayList<GroupChatModel> rcsChatGroups = new ArrayList<GroupChatModel>();
+        private ArrayList<GroupChat> rcsChatGroups = new ArrayList<GroupChat>();
         private HashMap<String, Integer> contactCountMap = new HashMap<String, Integer>();
         public AsyncDataLoaderTask(Fragment fragment){
             this.activityContext = fragment.getActivity().getApplicationContext();
@@ -370,13 +368,14 @@ public class GroupBrowseListFragment extends Fragment
             loaderManager = fragment.getLoaderManager();
         }
         @Override
-        protected ArrayList<GroupChatModel> doInBackground(Void... params) {
+        protected ArrayList<GroupChat> doInBackground(Void... params) {
 
             try {
-                RCSUtil.sleep(SLEEP_DURATION);
-                rcsChatGroups.addAll(RcsApiManager.getMessageApi()
-                        .getAllGroupChat());
+                RcsUtils.sleep(SLEEP_DURATION);
+                rcsChatGroups.addAll(GroupChatApi.getInstance().getAllGroupChat());
             } catch (ServiceDisconnectedException e) {
+                e.printStackTrace();
+            } catch (RemoteException e) {
                 e.printStackTrace();
             }
 
@@ -385,7 +384,7 @@ public class GroupBrowseListFragment extends Fragment
         }
 
         @Override
-        protected void onPostExecute(ArrayList<GroupChatModel> result) {
+        protected void onPostExecute(ArrayList<GroupChat> result) {
             super.onPostExecute(result);
 
             StringBuilder where = new StringBuilder();
@@ -396,14 +395,13 @@ public class GroupBrowseListFragment extends Fragment
             }catch(Exception e) {
                 e.printStackTrace();
             }
-            Log.i("AsyncDataLoaderTask"," ArrayList<GroupChatModel> size: "+result.size());
-            for (GroupChatModel groupChatModel : result) {
+            RcsLog.i("ArrayList<GroupChat> size: "+result.size());
+            for (GroupChat groupChat : result) {
 
-                String thread_id = String.valueOf(groupChatModel.getThreadId());
-                String group_id = String.valueOf(groupChatModel.getId());
-                String groupTitle = TextUtils.isEmpty(groupChatModel
-                        .getRemark()) ? groupChatModel.getSubject()
-                        : groupChatModel.getRemark();
+                String thread_id = String.valueOf(groupChat.getThreadId());
+                String group_id = String.valueOf(groupChat.getId());
+                String groupTitle = TextUtils.isEmpty(groupChat.getRemark()) ? groupChat
+                        .getSubject() : groupChat.getRemark();
 
                 if(contentResolver == null) return;
                 ContentValues values = new ContentValues();
@@ -412,7 +410,7 @@ public class GroupBrowseListFragment extends Fragment
                 values.put(Groups.SOURCE_ID,"RCS");
 
                 try{
-                    Log.d(TAG," insert group: title= "+groupTitle+" id= "+group_id);
+                    RcsLog.d("insert group: title= "+groupTitle+" id= "+group_id);
                     contentResolver.insert(Groups.CONTENT_URI, values);
                 } catch(Exception e) {
                     e.printStackTrace();
@@ -425,11 +423,16 @@ public class GroupBrowseListFragment extends Fragment
 
         }
 
-        private void initGroupChatToMap(ArrayList<GroupChatModel> allChatGroups) {
-            for (GroupChatModel groupChatModel : allChatGroups) {
-                contactCountMap.put("chat" + groupChatModel.getId(),
-                        groupChatModel.getUserList().size());
-
+        private void initGroupChatToMap(ArrayList<GroupChat> allChatGroups) {
+            for (GroupChat groupChat : allChatGroups) {
+                try {
+                    contactCountMap.put("chat" + groupChat.getId(), GroupChatApi.getInstance()
+                            .getMembers(groupChat.getId()).size());
+                } catch (ServiceDisconnectedException e) {
+                    e.printStackTrace();
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
