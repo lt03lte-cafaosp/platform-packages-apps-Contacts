@@ -160,12 +160,10 @@ import com.android.contacts.quickcontact.ExpandingEntryCardView.EntryTag;
 import com.android.contacts.quickcontact.ExpandingEntryCardView.ExpandingEntryCardViewListener;
 import com.android.contacts.util.ImageViewDrawableSetter;
 import com.android.contacts.util.PhoneCapabilityTester;
-import com.android.contacts.util.RCSUtil;
-import com.android.contacts.util.RCSUtil.RestoreFinishedListener;
-import com.suntek.mway.rcs.client.aidl.capability.RCSCapabilities;
-import com.suntek.mway.rcs.client.api.capability.callback.CapabiltyListener;
-import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
+import com.android.contacts.util.RcsUtils;
+import com.android.contacts.util.RcsUtils.RestoreFinishedListener;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 import com.android.contacts.util.SchedulingUtils;
 import com.android.contacts.util.StructuredPostalUtils;
 import com.android.contacts.widget.MultiShrinkScroller;
@@ -504,12 +502,12 @@ public class QuickContactActivity extends ContactsActivity {
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
                 if (isFireWallInstalled) {
-                    if (RCSUtil.checkNumberInFirewall(mResolver, true, info.getData())) {
+                    if (RcsUtils.checkNumberInFirewall(mResolver, true, info.getData())) {
                         menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
                                 ContextMenu.NONE, getString(R.string.add_to_black)).setIntent(
                                 info.getBlackIntent());
                     }
-                    if (RCSUtil.checkNumberInFirewall(mResolver, false, info.getData())) {
+                    if (RcsUtils.checkNumberInFirewall(mResolver, false, info.getData())) {
                         menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
                                  ContextMenu.NONE, getString(R.string.add_to_white)).setIntent(
                                  info.getWhiteIntent());
@@ -2049,18 +2047,44 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             bindContactData(data);
-            if (RcsApiManager.getSupportApi().isRcsSupported()
-                    && !RCSUtil.isLocalProfile(mContactData)) {
-                if (mNeverQueryRcsCapability) {
-                    mNeverQueryRcsCapability = false;
-                    RCSUtil.updateRCSCapability(QuickContactActivity.this, mContactData);
-                }
-                if (mNeverQueryRcsPhoto) {
-                    mNeverQueryRcsPhoto = false;
-                    WeakReference<QuickContactActivity> quickRef;
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                if (RcsUtils.isLocalProfile(mContactData)) {
+                    final WeakReference<QuickContactActivity> quickRef;
                     quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
-                    WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
-                    RCSUtil.updateContactPhotoViaServer(quickRef, contactRef);
+                    final WeakReference<Contact> contactRef;
+                    contactRef = new WeakReference<Contact>(mContactData);
+                    RcsUtils.resotreIfTerminalChanged(QuickContactActivity.this,
+                            RcsUtils.DOWNLOAD_PROFILE, contactRef.get(),
+                            new RestoreFinishedListener() {
+                                public void onRestoreFinished() {
+                                    QuickContactActivity activity = quickRef.get();
+                                    Contact contactData = contactRef.get();
+                                    if (activity != null && !activity.isFinishing()
+                                            && activity.isResumed() && contactData != null) {
+                                        Intent resultIntent;
+                                        resultIntent = QuickContact.composeQuickContactsIntent(
+                                                activity.getBaseContext(), (Rect)null,
+                                                contactData.getLookupUri(),
+                                                QuickContactActivity.MODE_FULLY_EXPANDED, null);
+                                        resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                        activity.startActivity(resultIntent);
+                                    }
+                                }
+                            });
+                } else {
+                    if (mNeverQueryRcsCapability) {
+                        mNeverQueryRcsCapability = false;
+                        RcsUtils.updateRCSCapability(QuickContactActivity.this, mContactData);
+                    }
+                    if (mNeverQueryRcsPhoto) {
+                        mNeverQueryRcsPhoto = false;
+                        WeakReference<QuickContactActivity> quickRef;
+                        quickRef = new WeakReference<QuickContactActivity>(
+                                QuickContactActivity.this);
+                        WeakReference<Contact> contactRef;
+                        contactRef = new WeakReference<Contact>(mContactData);
+                        RcsUtils.updateContactPhotoViaServer(quickRef, contactRef);
+                    }
                 }
             }
             Trace.endSection();
@@ -2472,7 +2496,7 @@ public class QuickContactActivity extends ContactsActivity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         if (mContactData != null) {
-            RCSUtil.initRcsMenu(getApplicationContext(), menu, mContactData);
+            RcsUtils.initRcsMenu(getApplicationContext(), menu, mContactData);
             final MenuItem starredMenuItem = menu.findItem(R.id.menu_star);
             if(!mScanToInsertContact){
                 ContactDisplayUtils.configureStarredMenuItem(starredMenuItem,
@@ -2539,7 +2563,7 @@ public class QuickContactActivity extends ContactsActivity {
 
             final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
             if (RcsApiManager.getSupportApi().isRcsSupported()
-                    && RCSUtil.isLocalProfile(mContactData)) {
+                    && RcsUtils.isLocalProfile(mContactData)) {
                 uploadOrDownload.setVisible(true);
             } else {
                 uploadOrDownload.setVisible(false);
@@ -2600,21 +2624,23 @@ public class QuickContactActivity extends ContactsActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_qrcode: {
-                RCSUtil.startQrCodeActivity(this, mContactData);
+                RcsUtils.startQrCodeActivity(this, mContactData);
                 break;
             }
             case R.id.menu_enhancedscreen: {
-                RCSUtil.setEnhanceScreen(this, mContactData);
+                RcsUtils.setEnhanceScreen(this, mContactData);
                 return true;
             }
             case R.id.menu_updateenhancedscreen:{
-                RCSUtil.updateEnhanceScreeenFunction(this, mContactData);
+                RcsUtils.updateEnhanceScreeenFunction(this, mContactData);
                 return true;
             }
             case R.id.menu_plugin_center: {
                 try {
-                    RcsApiManager.getPluginCenterApi().intentApk();
+                    BasicApi.getInstance().startPluginCenter();
                 } catch (ServiceDisconnectedException e) {
+                    e.printStackTrace();
+                } catch (RemoteException e) {
                     e.printStackTrace();
                 }
                 return true;
@@ -2712,19 +2738,26 @@ public class QuickContactActivity extends ContactsActivity {
                 final WeakReference<QuickContactActivity> quickRef;
                 quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);
                 final WeakReference<Contact> contactRef = new WeakReference<Contact>(mContactData);
-                RCSUtil.createLocalProfileBackupRestoreDialog(this, contactRef.get(),
+                RcsUtils.createLocalProfileBackupRestoreDialog(this, contactRef.get(),
                         new RestoreFinishedListener() {
                             public void onRestoreFinished() {
                                 QuickContactActivity activity = quickRef.get();
-                                if (activity != null && !activity.isFinishing()) {
-                                    activity.onNewIntent(activity.getIntent());
+                                Contact contactData = contactRef.get();
+                                if (activity != null && !activity.isFinishing()
+                                        && activity.isResumed() && contactData != null) {
+                                    Intent resultIntent = QuickContact.composeQuickContactsIntent(
+                                            activity.getBaseContext(), (Rect)null,
+                                            contactData.getLookupUri(),
+                                            QuickContactActivity.MODE_FULLY_EXPANDED, null);
+                                    resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                    activity.startActivity(resultIntent);
                                 }
-                        }
+                            }
                     }).show();
                 return true;
             }
             case R.id.menu_online_business_hall:
-                RCSUtil.startOnlineBusinessHallActivity(this);
+                RcsUtils.startOnlineBusinessHallActivity(this);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

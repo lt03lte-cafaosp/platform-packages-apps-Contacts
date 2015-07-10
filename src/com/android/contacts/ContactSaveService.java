@@ -68,12 +68,13 @@ import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.SimContactsOperation;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.util.ContactPhotoUtils;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.internal.telephony.uicc.AdnRecord;
 import com.android.internal.telephony.uicc.IccConstants;
 import com.android.internal.telephony.IIccPhoneBook;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.suntek.rcs.ui.common.RcsLog;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -301,12 +302,12 @@ public class ContactSaveService extends IntentService {
         } else if (ACTION_DELETE_CONTACT.equals(action)) {
             deleteContact(intent);
             boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
-            if (isRcsSupported && RCSUtil.isNativeUIInstalled
-                    && RCSUtil.isPluginInstalled(this)) {
+            if (isRcsSupported && RcsUtils.isNativeUIInstalled
+                    && RcsUtils.isPluginInstalled(this)) {
                 Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
                 if (!TextUtils.isEmpty(contactUri.getPath())
                         && !contactUri.getPath().contains("profile")) {
-                    RCSUtil.autoBackupOnceChanged(this);
+                    RcsUtils.autoBackupOnceChanged(this);
                 }
             }
         } else if (ACTION_JOIN_CONTACTS.equals(action)) {
@@ -402,7 +403,7 @@ public class ContactSaveService extends IntentService {
                         }
                         return true;
                     }
-                    if (emailAddress != null && !RCSUtil.isRegularEmail(emailAddress)) {
+                    if (emailAddress != null && !RcsUtils.isRegularEmail(emailAddress)) {
                         if (callbackIntent != null) {
                             callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
                             callbackIntent.setData(null);
@@ -511,7 +512,7 @@ public class ContactSaveService extends IntentService {
         RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
         boolean isProfile = intent.getBooleanExtra(EXTRA_SAVE_IS_PROFILE, false);
         Bundle updatedPhotos = intent.getParcelableExtra(EXTRA_UPDATED_PHOTOS);
-        boolean isInsert = intent.getBooleanExtra(RCSUtil.KEY_IS_INSERT, false);
+        boolean isInsert = intent.getBooleanExtra(RcsUtils.KEY_IS_INSERT, false);
 
 
         // Trim any empty fields, and RawContacts, before persisting
@@ -636,7 +637,7 @@ public class ContactSaveService extends IntentService {
                                 String.valueOf(rawContactId)
                             });
                     }
-                RCSUtil.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
+                RcsUtils.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
                         resolver, rawContactId);
                 // We can change this back to false later, if we fail to save the contact photo.
                 succeeded = true;
@@ -706,7 +707,7 @@ public class ContactSaveService extends IntentService {
         // the ContactProvider already knows about newly-created contacts.
         if (updatedPhotos != null) {
             boolean isSomethingChangedExceptPhoto = intent.getBooleanExtra(
-                    RCSUtil.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO, false);
+                    RcsUtils.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO, false);
             for (String key : updatedPhotos.keySet()) {
                 Uri photoUri = updatedPhotos.getParcelable(key);
                 long rawContactId = Long.parseLong(key);
@@ -725,17 +726,17 @@ public class ContactSaveService extends IntentService {
                     succeeded = false;
                 } else if(RcsApiManager.getSupportApi().isRcsSupported()) {
                     if (!isProfile) {
-                        Log.d(TAG, "Setted Local Photo!");
-                        RCSUtil.setLocalSetted(resolver, true, rawContactId);
+                        RcsLog.d("Setted Local Photo!");
+                        RcsUtils.setLocalSetted(resolver, true, rawContactId);
                     }
                 }
             }
             if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 if (updatedPhotos.isEmpty() && !isSomethingChangedExceptPhoto
                         && !isProfile && !isInsert) {
-                    Log.d(TAG, "Photo has deleted!");
+                    RcsLog.d("Photo has deleted!");
                     for(long rawContact : rawContactsList) {
-                        RCSUtil.setLocalSetted(resolver, false, rawContact);
+                        RcsUtils.setLocalSetted(resolver, false, rawContact);
                     }
                 }
             }

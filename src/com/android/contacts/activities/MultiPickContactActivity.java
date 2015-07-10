@@ -92,6 +92,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.SimContactsConstants;
@@ -103,9 +104,10 @@ import com.android.contacts.common.list.ContactsSectionIndexer;
 import com.android.contacts.common.list.DefaultContactListAdapter;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.SimAccountType;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -1579,6 +1581,8 @@ public class MultiPickContactActivity extends ListActivity implements
 
         private Account mAccount;
 
+        private HashSet<String> mPhoneNumberSet = new HashSet<String>();
+
         public ImportAllSimContactsThread() {
         }
 
@@ -1599,7 +1603,7 @@ public class MultiPickContactActivity extends ListActivity implements
                     break;
                 }
                 String[] values = mChoiceSet.getStringArray(key);
-                actuallyImportOneSimContact(values, resolver, mAccount);
+                actuallyImportOneSimContact(values, resolver, mAccount, mPhoneNumberSet);
                 mActualCount++;
                 mProgressDialog.incrementProgressBy(1);
             }
@@ -1617,6 +1621,15 @@ public class MultiPickContactActivity extends ListActivity implements
                 Toast.makeText(context, text, Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(context, R.string.import_finish, Toast.LENGTH_SHORT).show();
+                if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                    Thread thread = new Thread() {
+                        @Override
+                        public void run() {
+                            RcsUtils.importContactUpdateEnhanceScreen(mPhoneNumberSet);
+                        }
+                    };
+                    thread.start();
+                }
             }
         }
 
@@ -1628,8 +1641,8 @@ public class MultiPickContactActivity extends ListActivity implements
         }
     }
 
-    private static void actuallyImportOneSimContact(
-            String[] values, final ContentResolver resolver, Account account) {
+    private static void actuallyImportOneSimContact(String[] values,
+            final ContentResolver resolver, Account account, HashSet<String> phoneNumberSet) {
 
         final String name = values[SIM_COLUMN_DISPLAY_NAME];
         final String phoneNumber = values[SIM_COLUMN_NUMBER];
@@ -1700,7 +1713,18 @@ public class MultiPickContactActivity extends ListActivity implements
                 operationList.add(builder.build());
             }
         }
-        RCSUtil.importContactUpdateEnhanceScreen(phoneNumber, anrs);
+
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (!TextUtils.isEmpty(phoneNumber)) {
+                phoneNumberSet.add(phoneNumber);
+            }
+            if (!TextUtils.isEmpty(anrs)) {
+                String[] anrList = anrs.split(",");
+                for (String anr : anrList) {
+                    phoneNumberSet.add(anrs);
+                }
+            }
+        }
 
         try {
             resolver.applyBatch(ContactsContract.AUTHORITY, operationList);

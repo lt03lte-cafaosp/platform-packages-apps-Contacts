@@ -74,7 +74,8 @@
     <string name="rcs_create_qrcode_fail_upload_profile_first">create qrcode fail please upload profile first</string>
     <string name="refresh_qrcode_fail">Can not get QR code!</string>
     <string name="Unformatted_profile_phone_number">Unformatted phone number!</string>
-    <string name="rcs_resotre_contacts_if_terminal_changed">The terminal has been changed, do you resotre the contacts from the cloud?</string>
+    <string name="rcs_resotre_contacts_if_terminal_changed">The terminal has changed, do you resotre the contacts from the cloud?</string>
+    <string name="rcs_download_profile_if_data_changed">The data has changed, do you download the profile?</string>
     <string name="rcs_update_contact_photos">Update contact photos</string>
     <string name="rcs_wlan_first_connection_per_week">WLAN first connection per week</string>
     <!-- for RCS -->

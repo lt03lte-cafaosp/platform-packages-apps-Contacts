@@ -319,7 +319,7 @@
     <string name="delete_call_title">删除通话记录</string>
     <string name="delete_call_message">删除通话记录 ...</string>
     <string name="delete_call_alert">"确定要删除选中的通话记录吗?"</string>
-
+    <string name="no_calllog">"没有通话记录"</string>
     <string name="title_add_members">"添加成员"</string>
     <string name="title_move_members">"移动成员"</string>
     <string name="message_add_members">"添加成员..."</string>
