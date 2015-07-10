@@ -74,7 +74,8 @@
     <string name="rcs_create_qrcode_fail_upload_profile_first">create qrcode fail please upload profile first</string>
     <string name="refresh_qrcode_fail">Can not get QR code!</string>
     <string name="Unformatted_profile_phone_number">Unformatted phone number!</string>
-    <string name="rcs_resotre_contacts_if_terminal_changed">The terminal has been changed, do you resotre the contacts from the cloud?</string>
+    <string name="rcs_resotre_contacts_if_terminal_changed">The terminal has changed, do you resotre the contacts from the cloud?</string>
+    <string name="rcs_download_profile_if_data_changed">The data has changed, do you download the profile?</string>
     <string name="rcs_update_contact_photos">Update contact photos</string>
     <string name="rcs_wlan_first_connection_per_week">WLAN first connection per week</string>
     <!-- for RCS -->
@@ -110,10 +111,4 @@
     <string name="rcs_company_title_is_too_long">Error! The company title is longer than 20 bytes.</string>
     <string name="rcs_email_address_is_too_long">Error! The email address is longer than 50 bytes.</string>
     <string name="rcs_email_address_is_invalid">Error! The email address is invalid.</string>
-    <string name="rcs_remove_from_blacklist">Remove from black list</string>
-    <string name="rcs_remove_from_whitelist">Remove from white list</string>
-    <string name="rcs_remove_from_blacklist_successfully">Removed from black list successfully!</string>
-    <string name="rcs_remove_from_whitelist_successfully">Removed from white list successfully!</string>
-    <string name="rcs_failed_to_remove_from_blacklist">Failed to remove from black list!</string>
-    <string name="rcs_failed_to_remove_from_whitelist">Failed to remove from white list!</string>
 </resources>

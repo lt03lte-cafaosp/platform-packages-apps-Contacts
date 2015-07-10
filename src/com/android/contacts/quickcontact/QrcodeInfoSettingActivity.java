@@ -43,6 +43,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.RemoteException;
 import android.util.AttributeSet;
 import android.util.SparseBooleanArray;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -70,6 +71,7 @@ import com.android.contacts.common.model.dataitem.OrganizationDataItem;
 import com.android.contacts.common.model.dataitem.PhoneDataItem;
 import com.android.contacts.common.model.dataitem.StructuredNameDataItem;
 import com.android.contacts.common.model.dataitem.StructuredPostalDataItem;
+import com.android.contacts.util.RcsUtils;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
@@ -86,16 +88,14 @@ import android.provider.ContactsContract.CommonDataKinds.Website;
 import android.text.TextUtils;
 import android.content.ContentValues;
 import com.android.contacts.R;
-import android.util.Log;
 import android.content.SharedPreferences;
-import com.android.contacts.RcsApiManager;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar.IMAGE_TYPE;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Profile;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.TelephoneModel;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
-import com.suntek.mway.rcs.client.api.profile.callback.ProfileListener;
-import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
+import com.suntek.rcs.ui.common.RcsLog;
 
 public class QrcodeInfoSettingActivity extends Activity {
 
@@ -161,7 +161,6 @@ public class QrcodeInfoSettingActivity extends Activity {
         saveMenuItem.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                // mFragment.doSaveAction();
                 showDialog(DIALOG_COMFIR_FOR_PROFILE_UPDATE);
             }
         });
@@ -202,12 +201,14 @@ public class QrcodeInfoSettingActivity extends Activity {
         String value = myQrcodeSharedPreferences.getString("value", "");
         String[] initChecked = value.split(",");
         int total = myQrcodeSharedPreferences.getInt("total", 0);
-        String myAccountNumber = "+8613522631112";
+        String myAccountNumber = "";
         try {
-            myAccountNumber = RcsApiManager.getRcsAccoutApi()
-                    .getRcsUserProfileInfo().getUserName();
-        } catch (ServiceDisconnectedException e1) {
-            Log.w("RCS_UI", e1);
+            myAccountNumber = BasicApi.getInstance().getAccount();
+        } catch (ServiceDisconnectedException e) {
+            RcsLog.w(e);
+            e.printStackTrace();
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
 
         group1_list_key.add(getString(R.string.rcs_qr_name));
@@ -228,36 +229,35 @@ public class QrcodeInfoSettingActivity extends Activity {
                     group2_list_key.add(getString(R.string.rcs_company_number));
                     group2_list_value.add(((PhoneDataItem) dataItem).getNumber());
                     contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_NUMBER;
-                    Log.d(TAG, "rcs_company_number=" + QRCODE_COMPANY_NUMBER);
-
+                    RcsLog.d("rcs_company_number=" + QRCODE_COMPANY_NUMBER);
                 } else if (Phone.TYPE_FAX_WORK == phoneType
                         && !TextUtils.isEmpty(((PhoneDataItem) dataItem).getNumber())) {
                     group2_list_key.add(getString(R.string.rcs_company_fax));
                     group2_list_value.add(((PhoneDataItem) dataItem)
                             .getNumber());
                     contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_FAX;
-                    Log.d(TAG, "rcs_company_fax=" + QRCODE_COMPANY_FAX);
+                    RcsLog.d("rcs_company_fax=" + QRCODE_COMPANY_FAX);
                 }
             } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType)
                     && !TextUtils.isEmpty(entryValues.getAsString(Email.ADDRESS))) {
                 group2_list_key.add(getString(R.string.rcs_email_address));
                 group2_list_value.add(entryValues.getAsString(Email.ADDRESS));
                 contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_EMAIL;
-                Log.d(TAG, "rcs_email_address=" + QRCODE_EMAIL);
+                RcsLog.d("rcs_email_address=" + QRCODE_EMAIL);
             } else if (Organization.CONTENT_ITEM_TYPE.equals(mimeType)
                     && !TextUtils.isEmpty(entryValues.getAsString(Organization.COMPANY))) {
                 String company = entryValues.getAsString(Organization.COMPANY);
                 group2_list_key.add(getString(R.string.rcs_company_name));
                 group2_list_value.add(company);
                 contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_NAME;
-                Log.d(TAG, "rcs_company_name=" + QRCODE_COMPANY_NAME);
+                RcsLog.d("rcs_company_name=" + QRCODE_COMPANY_NAME);
                 String title = ((OrganizationDataItem) dataItem).getTitle();
                 group2_list_key.add(getString(R.string.rcs_company_tilte));
                 group2_list_value.add(title);
                 contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_TITLE;
-                Log.d(TAG, "rcs_company_tilte=" + QRCODE_COMPANY_TITLE);
-                Log.d("RCSUtil", "company=" + company);
-                Log.d("RCSUtil", "title=" + title);
+                RcsLog.d("rcs_company_tilte=" + QRCODE_COMPANY_TITLE);
+                RcsLog.d("company=" + company);
+                RcsLog.d("title=" + title);
             }
         }
         for (int i = 0; i < group2_list_key.size(); i++) {
@@ -279,11 +279,10 @@ public class QrcodeInfoSettingActivity extends Activity {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < GROUP_MAX_CONUNT; i++) {
             int childCount = mAdapter.getChildrenCount(i);
-            Log.d(TAG, "childCount" + childCount);
+            RcsLog.d("childCount" + childCount);
             for (int j = 0; j < childCount; j++) {
                 if (isDataCheck[BUSINESS_ID][j] == true) {
-                    Log.d(TAG, "isDataCheck[i][j] is" + i + j
-                            + isDataCheck[i][j]);
+                    RcsLog.d("isDataCheck[i][j] is" + i + j + isDataCheck[i][j]);
                     if (i == BUSINESS_ID) {
                         isHasBusiness = true;
                     }
@@ -292,14 +291,14 @@ public class QrcodeInfoSettingActivity extends Activity {
                             item_list2.get(i).get(j) };
                     sb.append(item_list.get(i).get(j)).append(",");
                     mChoiceSet.putStringArray(String.valueOf(index), value);
-                    Log.d(TAG, "mChoiceSet is" + item_list2.get(i).get(j));
+                    RcsLog.d("mChoiceSet is" + item_list2.get(i).get(j));
                     index++;
                 }
             }
         }
 
         if (mChoiceSet.size() == 0) {
-            Log.d(TAG, "mChoiceSet is null");
+            RcsLog.d("mChoiceSet is null");
             return null;
         } else {
             saveSharePrefence(index, sb.toString(), isHasBusiness);
@@ -314,12 +313,14 @@ public class QrcodeInfoSettingActivity extends Activity {
 
         Profile profile = new Profile();
 
-        String myAccountNumber = "+8613522631112";
+        String myAccountNumber = "";
         try {
-            myAccountNumber = RcsApiManager.getRcsAccoutApi()
-                    .getRcsUserProfileInfo().getUserName();
-        } catch (ServiceDisconnectedException e1) {
-            Log.w("RCS_UI", e1);
+            myAccountNumber = BasicApi.getInstance().getAccount();
+        } catch (ServiceDisconnectedException e) {
+            RcsLog.w(e);
+            e.printStackTrace();
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
 
         profile.setAccount(myAccountNumber);
@@ -415,13 +416,13 @@ public class QrcodeInfoSettingActivity extends Activity {
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog,
                                         int which) {
-                                    Profile prfile = saveContactInfo();
-                                    if (null != prfile) {
+                                    Profile profile = saveContactInfo();
+                                    if (profile != null) {
                                         Intent intent = new Intent();
                                         Bundle bundle = new Bundle();
                                         intent.putExtra("isHasBusiness",
                                                 isHasBusiness);
-                                        bundle.putParcelable("Profile", prfile);
+                                        bundle.putParcelable("Profile", profile);
                                         intent.putExtras(bundle);
                                         QrcodeInfoSettingActivity.this
                                                 .setResult(RESULT_OK, intent);
@@ -503,7 +504,6 @@ public class QrcodeInfoSettingActivity extends Activity {
 
                     @Override
                     public void onGroupExpand(int position) {
-                        // TODO Auto-generated method stub
                         if (BUSINESS_ID == position
                                 && 0 == item_list.get(position).size()) {
                             showDialog(DIALOG_BUSINESS_ID);
@@ -517,10 +517,12 @@ public class QrcodeInfoSettingActivity extends Activity {
         expandableListView.setAdapter(mAdapter);
         String myAccountNumber = null;
         try {
-            myAccountNumber = RcsApiManager.getRcsAccoutApi()
-                    .getRcsUserProfileInfo().getUserName();
-        } catch (ServiceDisconnectedException e1) {
-            Log.w("RCS_UI", e1);
+            myAccountNumber = BasicApi.getInstance().getAccount();
+        } catch (ServiceDisconnectedException e) {
+            RcsLog.w(e);
+            e.printStackTrace();
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
         if (null == myAccountNumber || null == mContactName) {
             showDialog(DIALOG_PRIVATE_ID);
@@ -582,10 +584,10 @@ public class QrcodeInfoSettingActivity extends Activity {
                         .findViewById(R.id.qrcode_info_txt);
                 groupHolder.img = (ImageView) convertView
                         .findViewById(R.id.qrcode_info_img);
-                Log.d(TAG, "mRawContact:1" + isExpanded);
+                RcsLog.d("mRawContact:1" + isExpanded);
                 convertView.setTag(groupHolder);
             } else {
-                Log.d(TAG, "mRawContact:2" + isExpanded);
+                RcsLog.d("mRawContact:2" + isExpanded);
                 groupHolder = (GroupHolder) convertView.getTag();
             }
             groupHolder.txt.setText(group_list.get(groupPosition));
@@ -620,7 +622,6 @@ public class QrcodeInfoSettingActivity extends Activity {
                 itemHolder = (ItemHolder) convertView.getTag();
 
             }
-            // isCheck = true;
             itemHolder.txt.setText(item_list.get(groupPosition).get(
                     childPosition));
             itemHolder.img.setText(item_list2.get(groupPosition).get(
@@ -637,7 +638,6 @@ public class QrcodeInfoSettingActivity extends Activity {
 
                         @Override
                         public void onClick(View v) {
-                            // TODO Auto-generated method stub
                             CheckBox cb = (CheckBox) v;
                             if (cb.isChecked()) {
                                 isDataCheck[groupPosition][childPosition] = true;

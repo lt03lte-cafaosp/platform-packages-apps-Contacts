@@ -38,7 +38,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.R;
 import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.RawContactDelta;
@@ -265,16 +265,10 @@ public class TextFieldsEditorView extends LabeledEditorView {
             if (RcsApiManager.getSupportApi().isRcsSupported()
                     && null != entry.getAsInteger(ContactsContract.Data.DATA13)
                     && 1 == entry.getAsInteger(ContactsContract.Data.DATA13)) {
-                String myPhoneNumber = RCSUtil.getMyPhoneNumber(mContext);
-                SharedPreferences prefs = PreferenceManager
-                        .getDefaultSharedPreferences(mContext);
-                String latestTerminal = prefs.getString(RCSUtil.PREF_MY_TEMINAL, "");
+                String myPhoneNumber = RcsUtils.getMyPhoneNumber();
                 if (!TextUtils.isEmpty(myPhoneNumber)
-                        && !TextUtils.equals(latestTerminal, myPhoneNumber)) {
+                        && !TextUtils.equals(myPhoneNumber, fieldView.getText())) {
                     fieldView.setText(myPhoneNumber);
-                    SharedPreferences.Editor editor = prefs.edit();
-                    editor.putString(RCSUtil.PREF_MY_TEMINAL, myPhoneNumber);
-                    editor.apply();
                 }
                 setDeleteButtonVisible(false);
                 fieldView.setEnabled(false);

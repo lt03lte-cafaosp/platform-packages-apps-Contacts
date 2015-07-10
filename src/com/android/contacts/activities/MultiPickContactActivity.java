@@ -92,6 +92,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.SimContactsConstants;
@@ -103,9 +104,10 @@ import com.android.contacts.common.list.ContactsSectionIndexer;
 import com.android.contacts.common.list.DefaultContactListAdapter;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.SimAccountType;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -1589,6 +1591,8 @@ public class MultiPickContactActivity extends ListActivity implements
 
         private Account mAccount;
 
+        private HashSet<String> mPhoneNumberSet = new HashSet<String>();
+
         public ImportAllSimContactsThread() {
         }
 
@@ -1641,6 +1645,15 @@ public class MultiPickContactActivity extends ListActivity implements
                 Toast.makeText(context, text, Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(context, R.string.import_finish, Toast.LENGTH_SHORT).show();
+                if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                    Thread thread = new Thread() {
+                        @Override
+                        public void run() {
+                            RcsUtils.importContactUpdateEnhanceScreen(mPhoneNumberSet);
+                        }
+                    };
+                    thread.start();
+                }
             }
         }
 
@@ -1666,7 +1679,6 @@ public class MultiPickContactActivity extends ListActivity implements
     private static void buildSimContentProviderOperationList(
             String[] values, final ContentResolver resolver, Account account,
             int backReference, ArrayList<ContentProviderOperation> operationList) {
-
         final String name = values[SIM_COLUMN_DISPLAY_NAME];
         final String phoneNumber = values[SIM_COLUMN_NUMBER];
         final String emailAddresses = values[SIM_COLUMN_EMAILS];
@@ -1735,7 +1747,6 @@ public class MultiPickContactActivity extends ListActivity implements
                 operationList.add(builder.build());
             }
         }
-        RCSUtil.importContactUpdateEnhanceScreen(phoneNumber, anrs);
 
     }
 
