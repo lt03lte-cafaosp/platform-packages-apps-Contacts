@@ -488,7 +488,7 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
         }
 
         // If the group name is ready only, don't let the user focus on the field.
-        mGroupNameView.setFocusable(!mGroupNameIsReadOnly);
+        mGroupNameView.setEnabled(!mGroupNameIsReadOnly);
         if(isNewEditor) {
             mRootView.addView(editorView);
         }
