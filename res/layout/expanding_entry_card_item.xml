@@ -42,6 +42,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_toEndOf="@+id/icon"
+        android:layout_toStartOf="@+id/icon_alternate"
         android:textColor="@color/quickcontact_entry_header_text_color"
         android:textAlignment="viewStart"
         android:layout_marginBottom="@dimen/expanding_entry_card_header_margin_bottom" />
