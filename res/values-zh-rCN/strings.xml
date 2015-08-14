@@ -338,4 +338,6 @@
     <string name="cancel_operation">"操作取消"</string>
     <string name="message_can_not_move_members">"不能移动成员"</string>
     <string name="message_from_you_prefix" msgid="7180706529908434482">"您：<xliff:g id="SMS_BODY">%s</xliff:g>"</string>
+    <string name="message_incomplete_move_members">成功移动了<xliff:g id="count">%d</xliff:g>个成员</string>
+    <string name="message_completely_move_members">移动成员完成</string>
 </resources>

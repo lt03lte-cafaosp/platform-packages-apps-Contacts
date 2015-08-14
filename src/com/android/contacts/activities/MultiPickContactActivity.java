@@ -1831,6 +1831,7 @@ public class MultiPickContactActivity extends ListActivity implements
         private long mDestGroupId;
         private long mSrcGroupId;
         private boolean mCanceled = false;
+        private int count = 0;
 
         private ArrayList<ContentProviderOperation> mAddOrMoveOperation;
         private ArrayList<ContentProviderOperation> mDeleteOperation;
@@ -1847,11 +1848,9 @@ public class MultiPickContactActivity extends ListActivity implements
         protected void onPreExecute() {
             mProgressDialog = new ProgressDialog(MultiPickContactActivity.this,
                     com.android.internal.R.style.Theme_Holo_Light_Dialog_Alert);
-            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
             mProgressDialog.setTitle(getProgressDialogTitle());
             mProgressDialog.setMessage(getProgressDialogMessage());
-            mProgressDialog.setMax(mChoiceSet != null ? mChoiceSet.keySet().size() : 100);
-            mProgressDialog.setProgress(0);
             mProgressDialog.setCanceledOnTouchOutside(false);
             mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
                 public void onCancel(DialogInterface dialog) {
@@ -1902,7 +1901,6 @@ public class MultiPickContactActivity extends ListActivity implements
             mAddOrMoveOperation = new ArrayList<ContentProviderOperation>();
             mDeleteOperation = new ArrayList<ContentProviderOperation>();
             String id;
-            int count = 0;
             int maxSize = mChoiceSet.keySet().size();
             while (!mCanceled && it.hasNext()) {
                 id = it.next();
@@ -1911,10 +1909,6 @@ public class MultiPickContactActivity extends ListActivity implements
                 if (mDestGroupId <= 0) {
                     // Invalid group id, cancel the task
                     return null;
-                }
-                if (mProgressDialog != null && mProgressDialog.isShowing()
-                        && count < maxSize - (maxSize) / 100) {
-                    mProgressDialog.incrementProgressBy(1);
                 }
                 if (mGroupMemberList.contains(id)) {
                     // If the contact already exists in the group, need to
@@ -1972,6 +1966,15 @@ public class MultiPickContactActivity extends ListActivity implements
 
         @Override
         protected void onPostExecute(Object result) {
+            if (mChoiceSet != null) {
+                String text;
+                if (count < mChoiceSet.keySet().size()) {
+                    text = getString(R.string.message_incomplete_move_members, count);
+                } else {
+                    text = getString(R.string.message_completely_move_members);
+                }
+                Toast.makeText(MultiPickContactActivity.this, text, Toast.LENGTH_SHORT).show();
+            }
             if (mProgressDialog != null && mProgressDialog.isShowing()) {
                 mProgressDialog.dismiss();
                 finish();
