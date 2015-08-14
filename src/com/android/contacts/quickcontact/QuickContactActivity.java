@@ -81,6 +81,7 @@ import android.provider.ContactsContract.QuickContact;
 import android.provider.ContactsContract.RawContacts;
 import android.support.v7.graphics.Palette;
 import android.telecom.PhoneAccount;
+import android.telephony.PhoneNumberUtils;
 import android.telecom.TelecomManager;
 import android.telephony.SubscriptionManager;
 import android.text.BidiFormatter;
@@ -1638,9 +1639,15 @@ public class QuickContactActivity extends ContactsActivity {
                 // Add video call button for csvt (ChinaUnicom)
                 if (CallUtil.isCSVTEnabled()) {
                     thirdIcon = res.getDrawable(R.drawable.ic_videocam);
-                    thirdIntent = CallUtil.getCSVTCallIntent(phone.getNumber());
-                    thirdContentDescription =
-                            res.getString(R.string.description_video_call);
+                    if (res.getBoolean(
+                            com.android.internal.R.bool.config_regional_number_patterns_video_call) &&
+                            !PhoneNumberUtils.isVideoCallNumValid(phone.getNumber())) {
+                        // Do nothing as video call number is invalid
+                    } else {
+                        thirdIntent = CallUtil.getCSVTCallIntent(phone.getNumber());
+                        thirdContentDescription =
+                                res.getString(R.string.description_video_call);
+                    }
                 }
 
             }
