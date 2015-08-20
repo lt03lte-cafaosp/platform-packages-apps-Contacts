@@ -359,6 +359,15 @@ public class ExpandingEntryCardView extends CardView {
     }
 
     /**
+     * Sets the Entry list to display.
+     *
+     * @param entries The Entry list to display.
+     */
+    public void initialize(List<List<Entry>> entries) {
+        mEntries = entries;
+    }
+
+    /**
      * Sets the text for the expand button.
      *
      * @param expandButtonText The expand button text.

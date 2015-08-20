@@ -1225,6 +1225,8 @@ public class QuickContactActivity extends ContactsActivity {
 
         if (!TextUtils.isEmpty(customAboutCardName)) {
             mAboutCard.setTitle(customAboutCardName);
+        } else {
+            mAboutCard.setTitle(getResources().getString(R.string.about_card_title));
         }
 
         if (aboutCardEntries.size() > 0) {
@@ -1234,6 +1236,11 @@ public class QuickContactActivity extends ContactsActivity {
                     /* isAlwaysExpanded = */ true,
                     mExpandingEntryCardViewListener,
                     mScroller);
+        }  else {
+            if (mAboutCard.shouldShow()) {
+                mAboutCard.initialize(aboutCardEntries);
+            }
+            mAboutCard.setVisibility(View.GONE);
         }
 
         if (contactCardEntries.size() == 0 && aboutCardEntries.size() == 0) {
