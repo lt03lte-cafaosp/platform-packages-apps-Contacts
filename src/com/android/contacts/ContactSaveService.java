@@ -309,7 +309,7 @@ public class ContactSaveService extends IntentService {
                 Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
                 if (!TextUtils.isEmpty(contactUri.getPath())
                         && !contactUri.getPath().contains("profile")) {
-                    RcsUtils.autoBackupOnceChanged(this);
+                    RcsUtils.autoBackupOnceChanged(this, mMainHandler);
                 }
             }
         } else if (ACTION_JOIN_CONTACTS.equals(action)) {

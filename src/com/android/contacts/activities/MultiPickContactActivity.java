@@ -1620,7 +1620,7 @@ public class MultiPickContactActivity extends ListActivity implements
                 String[] values = mChoiceSet.getStringArray(key);
                 int firstBatch = operationList.size();
                 buildSimContentProviderOperationList(
-                        values, resolver, mAccount, firstBatch, operationList);
+                        values, resolver, mAccount, firstBatch, operationList, mPhoneNumberSet);
                 int size = operationList.size();
                 if (size > 0 && BUFFER_LENGTH - size < 10) {
                     doApplyBatch(operationList, resolver);
@@ -1678,7 +1678,8 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private static void buildSimContentProviderOperationList(
             String[] values, final ContentResolver resolver, Account account,
-            int backReference, ArrayList<ContentProviderOperation> operationList) {
+            int backReference, ArrayList<ContentProviderOperation> operationList,
+			HashSet<String> phoneNumberSet) {
         final String name = values[SIM_COLUMN_DISPLAY_NAME];
         final String phoneNumber = values[SIM_COLUMN_NUMBER];
         final String emailAddresses = values[SIM_COLUMN_EMAILS];
@@ -1748,6 +1749,17 @@ public class MultiPickContactActivity extends ListActivity implements
             }
         }
 
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (!TextUtils.isEmpty(phoneNumber)) {
+                phoneNumberSet.add(phoneNumber);
+            }
+            if (!TextUtils.isEmpty(anrs)) {
+                String[] anrList = anrs.split(",");
+                for (String anr : anrList) {
+                    phoneNumberSet.add(anrs);
+                }
+            }
+        }
     }
 
     /**

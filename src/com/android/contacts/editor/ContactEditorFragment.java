@@ -40,6 +40,7 @@ import android.graphics.Rect;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
@@ -1384,7 +1385,7 @@ public class ContactEditorFragment extends Fragment implements
                                 && RcsUtils.isNativeUIInstalled
                                 && RcsUtils.isPluginInstalled(mContext)
                                 && !isEditingUserProfile()) {
-                            RcsUtils.autoBackupOnceChanged(mContext);
+                            RcsUtils.autoBackupOnceChanged(mContext, new Handler());
                         }
                     } else {
                         Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)

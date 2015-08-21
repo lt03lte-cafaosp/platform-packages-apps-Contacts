@@ -126,21 +126,17 @@ public class QrcodeInfoSettingActivity extends Activity {
     private Context mContent;
     private LayoutInflater mInflater;
     private Uri mCurrContactUri;
-    private ExpandableListView expandableListView;
-    private List<String> group_list = new ArrayList<String>();
-    private List<List<String>> item_list = new ArrayList<List<String>>();
-    private List<List<String>> item_list2 = new ArrayList<List<String>>();
-    private boolean[][] isDataCheck = new boolean[GROUP_MAX_CONUNT][ITME_MAX_COUNT];
-    private String company = "";
-    private String title = "";
+    private ExpandableListView mExpandableListView;
+    private List<String> mGroupList = new ArrayList<String>();
+    private List<List<String>> mItemList1 = new ArrayList<List<String>>();
+    private List<List<String>> mItemList2 = new ArrayList<List<String>>();
+    private boolean[][] mIsDataCheck = new boolean[GROUP_MAX_CONUNT][ITME_MAX_COUNT];
     private String mContactName = null;
-    private int[][] contactType = new int[GROUP_MAX_CONUNT][ITME_MAX_COUNT];
+    private int[][] mContactType = new int[GROUP_MAX_CONUNT][ITME_MAX_COUNT];
     private RawContact mRawContact;
-    private boolean isHasBusiness = false;
+    private boolean mIsHasBusiness = false;
     private Bundle mChoiceSet;
     private MyExpandableListViewAdapter mAdapter;
-    private int index1 = 0;
-    private boolean isCheck = false;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -183,8 +179,8 @@ public class QrcodeInfoSettingActivity extends Activity {
 
     private void initContactData() {
 
-        group_list.add(getString(R.string.qrcode_private_info));
-        group_list.add(getString(R.string.qrcode_business_info));
+        mGroupList.add(getString(R.string.qrcode_private_info));
+        mGroupList.add(getString(R.string.qrcode_business_info));
         List<String> group1_list_key = new ArrayList<String>();
         List<String> group1_list_value = new ArrayList<String>();
         List<String> group2_list_key = new ArrayList<String>();
@@ -228,33 +224,33 @@ public class QrcodeInfoSettingActivity extends Activity {
                         .getNumber())) {
                     group2_list_key.add(getString(R.string.rcs_company_number));
                     group2_list_value.add(((PhoneDataItem) dataItem).getNumber());
-                    contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_NUMBER;
+                    mContactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_NUMBER;
                     RcsLog.d("rcs_company_number=" + QRCODE_COMPANY_NUMBER);
                 } else if (Phone.TYPE_FAX_WORK == phoneType
                         && !TextUtils.isEmpty(((PhoneDataItem) dataItem).getNumber())) {
                     group2_list_key.add(getString(R.string.rcs_company_fax));
                     group2_list_value.add(((PhoneDataItem) dataItem)
                             .getNumber());
-                    contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_FAX;
+                    mContactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_FAX;
                     RcsLog.d("rcs_company_fax=" + QRCODE_COMPANY_FAX);
                 }
             } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType)
                     && !TextUtils.isEmpty(entryValues.getAsString(Email.ADDRESS))) {
                 group2_list_key.add(getString(R.string.rcs_email_address));
                 group2_list_value.add(entryValues.getAsString(Email.ADDRESS));
-                contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_EMAIL;
+                mContactType[BUSINESS_ID][group2Typeindex++] = QRCODE_EMAIL;
                 RcsLog.d("rcs_email_address=" + QRCODE_EMAIL);
             } else if (Organization.CONTENT_ITEM_TYPE.equals(mimeType)
                     && !TextUtils.isEmpty(entryValues.getAsString(Organization.COMPANY))) {
                 String company = entryValues.getAsString(Organization.COMPANY);
                 group2_list_key.add(getString(R.string.rcs_company_name));
                 group2_list_value.add(company);
-                contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_NAME;
+                mContactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_NAME;
                 RcsLog.d("rcs_company_name=" + QRCODE_COMPANY_NAME);
                 String title = ((OrganizationDataItem) dataItem).getTitle();
                 group2_list_key.add(getString(R.string.rcs_company_tilte));
                 group2_list_value.add(title);
-                contactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_TITLE;
+                mContactType[BUSINESS_ID][group2Typeindex++] = QRCODE_COMPANY_TITLE;
                 RcsLog.d("rcs_company_tilte=" + QRCODE_COMPANY_TITLE);
                 RcsLog.d("company=" + company);
                 RcsLog.d("title=" + title);
@@ -263,15 +259,15 @@ public class QrcodeInfoSettingActivity extends Activity {
         for (int i = 0; i < group2_list_key.size(); i++) {
             for (int j = 0; j < total; j++) {
                 if (group2_list_key.get(i).equals(initChecked[j])) {
-                    isDataCheck[BUSINESS_ID][i] = true;
+                    mIsDataCheck[BUSINESS_ID][i] = true;
                 }
             }
         }
 
-        item_list.add(group1_list_key);
-        item_list.add(group2_list_key);
-        item_list2.add(group1_list_value);
-        item_list2.add(group2_list_value);
+        mItemList1.add(group1_list_key);
+        mItemList1.add(group2_list_key);
+        mItemList2.add(group1_list_value);
+        mItemList2.add(group2_list_value);
     }
 
     private Profile saveContactInfo() {
@@ -281,29 +277,23 @@ public class QrcodeInfoSettingActivity extends Activity {
             int childCount = mAdapter.getChildrenCount(i);
             RcsLog.d("childCount" + childCount);
             for (int j = 0; j < childCount; j++) {
-                if (isDataCheck[BUSINESS_ID][j] == true) {
-                    RcsLog.d("isDataCheck[i][j] is" + i + j + isDataCheck[i][j]);
+                if (mIsDataCheck[BUSINESS_ID][j] == true) {
+                    RcsLog.d("mIsDataCheck[i][j] is" + i + j + mIsDataCheck[i][j]);
                     if (i == BUSINESS_ID) {
-                        isHasBusiness = true;
+                        mIsHasBusiness = true;
                     }
                     String[] value = null;
-                    value = new String[] { String.valueOf(contactType[i][j]),
-                            item_list2.get(i).get(j) };
-                    sb.append(item_list.get(i).get(j)).append(",");
+                    value = new String[] { String.valueOf(mContactType[i][j]),
+                            mItemList2.get(i).get(j) };
+                    sb.append(mItemList1.get(i).get(j)).append(",");
                     mChoiceSet.putStringArray(String.valueOf(index), value);
-                    RcsLog.d("mChoiceSet is" + item_list2.get(i).get(j));
+                    RcsLog.d("mChoiceSet is" + mItemList2.get(i).get(j));
                     index++;
                 }
             }
         }
-
-        if (mChoiceSet.size() == 0) {
-            RcsLog.d("mChoiceSet is null");
-            return null;
-        } else {
-            saveSharePrefence(index, sb.toString(), isHasBusiness);
-            return converToProfile();
-        }
+        saveSharePrefence(index, sb.toString(), mIsHasBusiness);
+        return converToProfile();
     }
 
     private Profile converToProfile() {
@@ -417,11 +407,11 @@ public class QrcodeInfoSettingActivity extends Activity {
                                 public void onClick(DialogInterface dialog,
                                         int which) {
                                     Profile profile = saveContactInfo();
-                                    if (profile != null) {
+                                    if (null != profile) {
                                         Intent intent = new Intent();
                                         Bundle bundle = new Bundle();
                                         intent.putExtra("isHasBusiness",
-                                                isHasBusiness);
+                                                mIsHasBusiness);
                                         bundle.putParcelable("Profile", profile);
                                         intent.putExtras(bundle);
                                         QrcodeInfoSettingActivity.this
@@ -498,23 +488,23 @@ public class QrcodeInfoSettingActivity extends Activity {
     }
 
     public void initQrinfoEditorView() {
-        expandableListView = (ExpandableListView) findViewById(R.id.Qrcodeinfo_expendlist);
-        expandableListView
+        mExpandableListView = (ExpandableListView) findViewById(R.id.Qrcodeinfo_expendlist);
+        mExpandableListView
                 .setOnGroupExpandListener(new OnGroupExpandListener() {
 
                     @Override
                     public void onGroupExpand(int position) {
                         if (BUSINESS_ID == position
-                                && 0 == item_list.get(position).size()) {
+                                && 0 == mItemList1.get(position).size()) {
                             showDialog(DIALOG_BUSINESS_ID);
                         } else if (PRIVATE_ID == position
-                                && 0 == item_list.get(position).size()) {
+                                && 0 == mItemList1.get(position).size()) {
                             showDialog(DIALOG_PRIVATE_ID);
                         }
                     }
                 });
         mAdapter = new MyExpandableListViewAdapter(this);
-        expandableListView.setAdapter(mAdapter);
+        mExpandableListView.setAdapter(mAdapter);
         String myAccountNumber = null;
         try {
             myAccountNumber = BasicApi.getInstance().getAccount();
@@ -539,22 +529,22 @@ public class QrcodeInfoSettingActivity extends Activity {
 
         @Override
         public int getGroupCount() {
-            return group_list.size();
+            return mGroupList.size();
         }
 
         @Override
         public int getChildrenCount(int groupPosition) {
-            return item_list.get(groupPosition).size();
+            return mItemList1.get(groupPosition).size();
         }
 
         @Override
         public Object getGroup(int groupPosition) {
-            return group_list.get(groupPosition);
+            return mGroupList.get(groupPosition);
         }
 
         @Override
         public Object getChild(int groupPosition, int childPosition) {
-            return item_list.get(groupPosition).get(childPosition);
+            return mItemList1.get(groupPosition).get(childPosition);
         }
 
         @Override
@@ -590,7 +580,7 @@ public class QrcodeInfoSettingActivity extends Activity {
                 RcsLog.d("mRawContact:2" + isExpanded);
                 groupHolder = (GroupHolder) convertView.getTag();
             }
-            groupHolder.txt.setText(group_list.get(groupPosition));
+            groupHolder.txt.setText(mGroupList.get(groupPosition));
             if (isExpanded) {
                 groupHolder.img
                         .setBackgroundResource(R.drawable.ic_menu_expander_minimized_holo_light);
@@ -622,9 +612,9 @@ public class QrcodeInfoSettingActivity extends Activity {
                 itemHolder = (ItemHolder) convertView.getTag();
 
             }
-            itemHolder.txt.setText(item_list.get(groupPosition).get(
+            itemHolder.txt.setText(mItemList1.get(groupPosition).get(
                     childPosition));
-            itemHolder.img.setText(item_list2.get(groupPosition).get(
+            itemHolder.img.setText(mItemList2.get(groupPosition).get(
                     childPosition));
             if (groupPosition == PRIVATE_ID) {
                 itemHolder.checkbox.setVisibility(View.GONE);
@@ -632,7 +622,7 @@ public class QrcodeInfoSettingActivity extends Activity {
                 itemHolder.checkbox.setVisibility(View.VISIBLE);
             }
             itemHolder.checkbox
-                    .setChecked(isDataCheck[groupPosition][childPosition]);
+                    .setChecked(mIsDataCheck[groupPosition][childPosition]);
             itemHolder.checkbox
                     .setOnClickListener(new CheckBox.OnClickListener() {
 
@@ -640,9 +630,9 @@ public class QrcodeInfoSettingActivity extends Activity {
                         public void onClick(View v) {
                             CheckBox cb = (CheckBox) v;
                             if (cb.isChecked()) {
-                                isDataCheck[groupPosition][childPosition] = true;
+                                mIsDataCheck[groupPosition][childPosition] = true;
                             } else {
-                                isDataCheck[groupPosition][childPosition] = false;
+                                mIsDataCheck[groupPosition][childPosition] = false;
                             }
                         }
                     });

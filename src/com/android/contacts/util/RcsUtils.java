@@ -310,21 +310,7 @@ public class RcsUtils {
             @Override
             public void run() {
                 RcsUtils.sleep(500);
-                String myAccountNumber = "";
-                try {
-                    RcsLog.d("Calling  BasicApi.getInstance().getAccount()");
-                    myAccountNumber = BasicApi.getInstance().getAccount();
-                } catch (ServiceDisconnectedException e) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            makeToast(context, R.string.rcs_service_is_not_available);
-                        }
-                    });
-                    RcsLog.w(e);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                String myAccountNumber = getMyPhoneNumber();
                 RcsLog.d("The account is " + myAccountNumber);
                 final int message;
                 SharedPreferences prefs;
@@ -342,6 +328,33 @@ public class RcsUtils {
                 String latestTerminal = prefs.getString(RcsUtils.PREF_MY_TEMINAL, "");
                 if (!TextUtils.isEmpty(myAccountNumber)
                         && !TextUtils.equals(myAccountNumber, latestTerminal)) {
+                    if (mode == DOWNLOAD_PROFILE) {
+                        Cursor c = context.getContentResolver().query(PROFILE_DATA_URI,
+                                new String[] {
+                                    Phone.NUMBER
+                                }, " mimetype = ? AND data13 = ? ", new String[] {
+                                        Phone.CONTENT_ITEM_TYPE, "1"
+                                }, null);
+                        try {
+                            if (c != null && c.getCount() > 0) {
+                                c.moveToFirst();
+                                String latestNumber = c.getString(0);
+                                if (!TextUtils.equals(myAccountNumber, latestNumber)) {
+                                    ContentValues contentValues = new ContentValues();
+                                    contentValues.put(Phone.NUMBER, myAccountNumber);
+                                    context.getContentResolver().update(PROFILE_DATA_URI,
+                                            contentValues, " mimetype = ? AND data13 = ? ",
+                                            new String[] {
+                                                    Phone.CONTENT_ITEM_TYPE, "1"
+                                            });
+                                }
+                            }
+                        } finally {
+                            if (c != null) {
+                                c.close();
+                            }
+                        }
+                    }
                     handler.post(new Runnable() {
 
                         @Override
@@ -1307,7 +1320,7 @@ public class RcsUtils {
             return;
 
         Cursor c = resolver.query(PROFILE_DATA_URI, new String[] {
-                "_id", "mimetype", "data1", "data2", "data4", "data7", "data8", "data9", "data15"
+                "mimetype", "data1", "data2", "data3", "data4", "data5"
         }, " raw_contact_id = ?  ", new String[] {
             String.valueOf(rawContactId)
         }, null);
@@ -1331,10 +1344,10 @@ public class RcsUtils {
             if (c != null && c.getCount() > 0) {
                 c.moveToFirst();
                 do {
-                    String mimeType = c.getString(1);
+                    String mimeType = c.getString(0);
                     if (TextUtils.equals(Phone.CONTENT_ITEM_TYPE, mimeType)) {
-                        int phoneType = c.getInt(3);
-                        String phoneNumber = c.getString(2);
+                        int phoneType = c.getInt(2);
+                        String phoneNumber = c.getString(1);
                         if (phoneType == Phone.TYPE_WORK
                                 && TextUtils.equals(phoneNumber, profile.getCompanyTel())) {
                             insertCompanyTel = false;
@@ -1368,8 +1381,8 @@ public class RcsUtils {
                         }
 
                     } else if (TextUtils.equals(StructuredPostal.CONTENT_ITEM_TYPE, mimeType)) {
-                        int addressType = c.getInt(3);
-                        String addressInfo = c.getString(2);
+                        int addressType = c.getInt(2);
+                        String addressInfo = c.getString(1);
                         if (addressType == StructuredPostal.TYPE_HOME
                                 && TextUtils.equals(addressInfo, profile.getHomeAddress())) {
                             insertHomeAddress = false;
@@ -1378,12 +1391,12 @@ public class RcsUtils {
                             insertCompanyAddress = false;
                         }
                     } else if (TextUtils.equals(Email.CONTENT_ITEM_TYPE, mimeType)) {
-                        String emailAddress = c.getString(2);
+                        String emailAddress = c.getString(1);
                         if (TextUtils.equals(emailAddress, profile.getEmail())) {
                             insertEmail = false;
                         }
                     } else if (TextUtils.equals(Organization.CONTENT_ITEM_TYPE, mimeType)) {
-                        String companyName = c.getString(2);
+                        String companyName = c.getString(1);
                         String companyTitle = c.getString(4);
                         insertOrganization = false;
                         if (TextUtils.equals(companyName, profile.getCompanyName())
@@ -1392,20 +1405,20 @@ public class RcsUtils {
                         }
                     } else if (TextUtils.equals(StructuredName.CONTENT_ITEM_TYPE, mimeType)) {
                         insertNameInfo = false;
-                        String firstName = c.getString(5);
-                        middleName = c.getString(6);
+                        String firstName = c.getString(2);
+                        middleName = c.getString(5);
                         if (middleName == null) {
                             middleName = "";
                         }
-                        String lastName = c.getString(7);
+                        String lastName = c.getString(3);
                         if (TextUtils.equals(firstName, profile.getFirstName())
                                 && TextUtils.equals(lastName, profile.getLastName())) {
                             updateNameInfo = false;
                         }
                     } else if (TextUtils.equals(Event.CONTENT_ITEM_TYPE, mimeType)) {
-                        int eventType = c.getInt(3);
+                        int eventType = c.getInt(2);
                         if (eventType == Event.TYPE_BIRTHDAY) {
-                            String startDate = c.getString(2);
+                            String startDate = c.getString(1);
                             insertBirthday = false;
                             if (TextUtils.equals(startDate, profile.getBirthday())) {
                                 updateBirthday = false;
@@ -1507,8 +1520,8 @@ public class RcsUtils {
         if (insertNameInfo) {
             ContentValues contentValues = new ContentValues();
             contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
-            contentValues.put(StructuredName.PHONETIC_GIVEN_NAME, profile.getFirstName());
-            contentValues.put(StructuredName.PHONETIC_FAMILY_NAME, profile.getLastName());
+            contentValues.put(StructuredName.GIVEN_NAME, profile.getFirstName());
+            contentValues.put(StructuredName.FAMILY_NAME, profile.getLastName());
             StringBuilder displayName = new StringBuilder();
             displayName.append(profile.getFirstName());
             displayName.append(" ");
@@ -1521,8 +1534,8 @@ public class RcsUtils {
                     .build());
         } else if (updateNameInfo) {
             ContentValues contentValues = new ContentValues();
-            contentValues.put(StructuredName.PHONETIC_GIVEN_NAME, profile.getFirstName());
-            contentValues.put(StructuredName.PHONETIC_FAMILY_NAME, profile.getLastName());
+            contentValues.put(StructuredName.GIVEN_NAME, profile.getFirstName());
+            contentValues.put(StructuredName.FAMILY_NAME, profile.getLastName());
             StringBuilder displayName = new StringBuilder();
             displayName.append(profile.getFirstName());
             displayName.append(" ");
@@ -2444,8 +2457,7 @@ public class RcsUtils {
         return number;
     }
 
-    public static void autoBackupOnceChanged(final Context context) {
-        final Handler handler = new Handler();
+    public static void autoBackupOnceChanged(final Context context, final Handler handler) {
         Thread t = new Thread() {
             @Override
             public void run() {

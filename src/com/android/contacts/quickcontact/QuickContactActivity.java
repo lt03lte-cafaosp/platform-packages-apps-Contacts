@@ -2634,9 +2634,7 @@ public class QuickContactActivity extends ContactsActivity {
             }
             case R.id.menu_plugin_center: {
                 try {
-                    BasicApi.getInstance().startPluginCenter();
-                } catch (ServiceDisconnectedException e) {
-                    e.printStackTrace();
+                    RcsApiManager.getSupportApi().startPluginCenterApp(this);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
