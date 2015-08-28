@@ -453,27 +453,6 @@ public class RCSUtil {
         t.start();
     }
 
-    private static void insertRcsCapa(final Context context, long contactId,
-            long rawContactId, int value) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(ContactsContract.Data.DATA1, contactId);
-        contentValues.put(ContactsContract.Data.DATA2, value);
-        contentValues.put(ContactsContract.Data.MIMETYPE,
-                ContactsCommonRcsUtil.RCS_CAPABILITY_MIMETYPE);
-        contentValues.put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId);
-        context.getContentResolver().insert(ContactsContract.Data.CONTENT_URI,
-                contentValues);
-    }
-
-    private static void deleteRcsCapa(final Context context, long contactId) {
-        context.getContentResolver().delete(
-                ContactsContract.Data.CONTENT_URI,
-                ContactsContract.Data.MIMETYPE + " = ?  and "
-                        + ContactsContract.Data.DATA1 + " = ?",
-                new String[] { ContactsCommonRcsUtil.RCS_CAPABILITY_MIMETYPE,
-                        String.valueOf(contactId) });
-    }
-
     private static void updateRcsCapa(final Context context, long contactId,
             int value) {
         ContentValues contentValues = new ContentValues();
@@ -491,7 +470,6 @@ public class RCSUtil {
             final Contact contactData, final Handler handler) {
         final long contactId = contactData.getRawContacts().get(0)
                 .getContactId();
-        deleteRcsCapa(context, contactId);
         boolean hasPhoneNumber = false;
         ContactsCommonRcsUtil.RcsCapabilityMapCache.clear();
         for (RawContact rawContact : contactData.getRawContacts()) {
@@ -515,7 +493,6 @@ public class RCSUtil {
             ContactsCommonRcsUtil.RcsCapabilityMapCache.put(contactId, false);
             Log.d(TAG, contactData.getDisplayName() + ": "
                     + " is not RCS user!");
-            insertRcsCapa(context, contactId, -1, 0);
         }
     }
 
@@ -2872,7 +2849,6 @@ public class RCSUtil {
                     if (resultCode == RCS_SUCESS || resultCode == RCS_OFFLINE) {
                         ContactsCommonRcsUtil.RcsCapabilityMapCache
                                 .put(contactId, true);
-                        insertRcsCapa(context, contactId, rawContactId, 1);
                     } else if (resultCode == NOT_RCS) {
                         if (!ContactsCommonRcsUtil.RcsCapabilityMapCache
                                 .containsKey(contactId)) {
@@ -2880,7 +2856,6 @@ public class RCSUtil {
                                     .put(contactId, false);
                         }
 
-                        insertRcsCapa(context,contactId, rawContactId, 0);
                     } else {
                         handler.post(new Runnable() {
                             @Override
@@ -2893,7 +2868,6 @@ public class RCSUtil {
                             ContactsCommonRcsUtil.RcsCapabilityMapCache
                                     .put(contactId, false);
                         }
-                        insertRcsCapa(context, contactId, rawContactId, 0);
                     }
                 }
             });
@@ -2909,7 +2883,6 @@ public class RCSUtil {
                 ContactsCommonRcsUtil.RcsCapabilityMapCache.put(
                         contactId, false);
             }
-            insertRcsCapa(context, contactId, rawContactId, 0);
         }
     }
 
