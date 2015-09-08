@@ -2568,6 +2568,7 @@ public class QuickContactActivity extends ContactsActivity {
 
             if (!TextUtils.isEmpty(accoutType)) {
                 if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(accoutType)) {
+                    if (starredMenuItem != null) starredMenuItem.setVisible(false);
                     copyToPhoneMenu.setVisible(true);
                     copyToPhoneMenu.setTitle(getString(R.string.menu_copyTo)
                             + getString(R.string.phoneLabelsGroup));
