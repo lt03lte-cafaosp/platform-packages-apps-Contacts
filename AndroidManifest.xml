@@ -264,7 +264,7 @@
             android:launchMode="singleTop"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:windowSoftInputMode="stateUnchanged">
+            android:windowSoftInputMode="stateAlwaysHidden|stateHidden">
 
             <intent-filter>
                 <action android:name="com.android.contacts.action.QUICK_CONTACT" />

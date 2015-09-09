@@ -104,4 +104,10 @@
     <string name="rcs_company_title_is_too_long">错误！公司职位大于20个字节</string>
     <string name="rcs_email_address_is_too_long">错误！邮箱地址大于50个字节</string>
     <string name="rcs_email_address_is_invalid">错误！邮箱地址无效</string>
+    <string name="rcs_remove_from_blacklist">从黑名单中移除</string>
+    <string name="rcs_remove_from_whitelist">从白名单中移除</string>
+    <string name="rcs_remove_from_blacklist_successfully">已经从黑名单中移除</string>
+    <string name="rcs_remove_from_whitelist_successfully">已经从白名单中移除</string>
+    <string name="rcs_failed_to_remove_from_blacklist">从黑名单中移除失败</string>
+    <string name="rcs_failed_to_remove_from_whitelist">从白名单中移除失败</string>
 </resources>

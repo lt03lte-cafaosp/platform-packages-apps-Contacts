@@ -34,6 +34,7 @@ import com.android.contacts.common.list.ContactListFilterController;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.testing.InjectedServices;
 import com.android.contacts.common.util.Constants;
+import com.android.contacts.util.RCSUtil;
 import com.google.common.annotations.VisibleForTesting;
 
 public final class ContactsApplication extends Application {

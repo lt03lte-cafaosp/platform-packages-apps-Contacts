@@ -1,4 +1,5 @@
- /* Copyright (C) 2010 The Android Open Source Project
+/*
+ * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,7 +112,7 @@ import com.android.contacts.common.util.ViewUtil;
 import com.android.contacts.quickcontact.QuickContactActivity;
 import com.android.contacts.util.AccountPromptUtils;
 import com.android.contacts.common.util.Constants;
-import com.android.contacts.util.RcsUtils;
+import com.android.contacts.util.RCSUtil;
 import com.android.contacts.common.vcard.ExportVCardActivity;
 import com.android.contacts.common.vcard.VCardCommonArguments;
 import com.android.contacts.util.DialogManager;
@@ -290,7 +291,7 @@ public class PeopleActivity extends ContactsActivity implements
         registerReceiver();
         mResolver = getContentResolver();
         if (RcsApiManager.getSupportApi().isRcsSupported()) {
-            RcsUtils.resotreContactIfTerminalChanged(this);
+            RCSUtil.resotreContactIfTerminalChanged(this);
         }
     }
 
@@ -1296,6 +1297,7 @@ public class PeopleActivity extends ContactsActivity implements
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(hasFrequents());
+
                     // RCS Menus
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
@@ -1305,11 +1307,13 @@ public class PeopleActivity extends ContactsActivity implements
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(true);
                     clearFrequentsMenu.setVisible(false);
+
                     // RCS Menus
                     boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
-                    boolean isRcsPluginInstalled = RcsUtils.isPluginInstalled(this);
+                    boolean isRcsPluginInstalled = RCSUtil.isPluginInstalled(this);
                     scanMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
-                    cloudMenu.setVisible(isRcsSupport && RcsUtils.isNativeUIInstalled && isRcsPluginInstalled);
+                    cloudMenu.setVisible(isRcsSupport && RCSUtil.mIsNativeUiInstalled &&
+                            isRcsPluginInstalled);
                     contactsPhotoUpdateMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
                     break;
                 case TabState.GROUPS:
@@ -1322,6 +1326,7 @@ public class PeopleActivity extends ContactsActivity implements
                     addGroupMenu.setVisible(true);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
+
                     // RCS Menus
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
@@ -1375,7 +1380,7 @@ public class PeopleActivity extends ContactsActivity implements
             }
             case R.id.menu_scan:{
                 Intent intent = new Intent("android.intent.action.SCAN_QRCODE");
-                String accnountNumber = RcsUtils.getProfileAccountNumber();
+                String accnountNumber = RCSUtil.getProfileAccountNumber();
                 intent.putExtra("profile_tel",accnountNumber);
                 try {
                     startActivityForResult(intent,START_CAPTURE);
@@ -1461,12 +1466,13 @@ public class PeopleActivity extends ContactsActivity implements
 
             case R.id.menu_cloud: {
                 try {
-                    startActivity(new Intent(RcsUtils.ACTION_BACKUP_RESTORE_ACTIVITY));
+                    startActivity(new Intent(RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
                     return true;
                 } catch (ActivityNotFoundException ex) {
                     Toast.makeText(PeopleActivity.this, R.string.missing_app,
                             Toast.LENGTH_SHORT).show();
                 }
+                return true;
             }
 
         }
@@ -1495,7 +1501,7 @@ public class PeopleActivity extends ContactsActivity implements
             }
             case START_CAPTURE:
                 if (resultCode == RESULT_OK) {
-                    RcsUtils.insertQrcodeContact(this,data);
+                    RCSUtil.insertQrcodeContact(this,data);
                 }
                 break;
             case SUBACTIVITY_NEW_GROUP:
@@ -1592,7 +1598,7 @@ public class PeopleActivity extends ContactsActivity implements
                 String[] values = null;
                 while (it.hasNext()) {
                     if (index != 0) {
-                        uriListBuilder.append(':');
+                        uriListBuilder.append('&');
                     }
                     values = result.getStringArray(it.next());
                     uriListBuilder.append(values[0]);

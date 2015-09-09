@@ -23,7 +23,7 @@
 
 package com.android.contacts.list;
 
-import com.android.contacts.util.RcsUtils;
+import com.android.contacts.util.RCSUtil;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -83,15 +83,18 @@ public class ContactsUpdateFragment extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         final SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(getActivity());
-        selectItems = new SelectItem[] {
-            new SelectItem(getActivity().getResources().getString(
-                    R.string.rcs_wlan_first_connection_per_week),
-                    RcsUtils.PREF_UPDATE_WHILE_FIRST_CONNECT, prefs.getBoolean(
-                            RcsUtils.PREF_UPDATE_WHILE_FIRST_CONNECT, false))
-        };
+        selectItems = new SelectItem[] { new SelectItem(
+                getActivity().getResources().getString(
+                        R.string.rcs_wlan_first_connection_per_week),
+                RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
+                prefs.getBoolean(
+                        RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
+                        false)) };
         final SharedPreferences.Editor editor = prefs.edit();
-        mUpdateContactPhotosItemSelected = prefs.getBoolean(
-                RcsUtils.PREF_UPDATE_WHILE_FIRST_CONNECT, false);
+        mUpdateContactPhotosItemSelected = prefs
+                .getBoolean(
+                        RCSUtil.PREF_UPDATE_CONTACT_PHOTOS_WLAN_FIRST_CONNECTION_PER_WEEK,
+                        false);
 
         final ContactsPhotoUpdateAdapter adapter = new ContactsPhotoUpdateAdapter(
                 getActivity());

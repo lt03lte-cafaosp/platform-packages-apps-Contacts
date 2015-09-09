@@ -34,7 +34,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Groups;
 import android.provider.Settings;
@@ -58,16 +57,18 @@ import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
 import com.android.contacts.RcsApiManager;
 import com.android.contacts.group.GroupBrowseListAdapter.GroupListItemViewCache;
-import com.android.contacts.util.RcsUtils;
+import com.android.contacts.util.RCSUtil;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.list.AutoScrollListView;
-import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
-import com.suntek.mway.rcs.client.aidl.service.entity.GroupChatMember;
-import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
-
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
+import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
+import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import android.text.TextUtils;
+import android.util.Log;
 
 
 /**
@@ -150,7 +151,7 @@ public class GroupBrowseListFragment extends Fragment
                     return;
                 }
                 if ("RCS".equals(entry.getAccountType())) {
-                    RcsUtils.startChatGroupManagementActivity(mContext, entry);
+                    RCSUtil.startChatGroupManagementActivity(mContext, entry);
                 } else {
                     GroupListItemViewCache groupListItem = (GroupListItemViewCache) view.getTag();
                     if (groupListItem != null) {
@@ -226,9 +227,10 @@ public class GroupBrowseListFragment extends Fragment
         super.onResume();
         // start to load chat-group data when first initialization.
         if (RcsApiManager.getSupportApi().isRcsSupported()) {
-             new AsyncDataLoaderTask(GroupBrowseListFragment.this).execute();
-         }
+            new AsyncDataLoaderTask(GroupBrowseListFragment.this).execute();
+        }
     }
+
     /**
      * The listener for the group meta data loader for all groups.
      */
@@ -352,11 +354,13 @@ public class GroupBrowseListFragment extends Fragment
     }
 
     //Task to get chat-group data.
-    class AsyncDataLoaderTask extends AsyncTask<Void, Void, ArrayList<GroupChat>> {
+    class AsyncDataLoaderTask extends
+            AsyncTask<Void, Void, ArrayList<GroupChatModel>> {
+
         private Context activityContext;
         private ContentResolver contentResolver;
         private LoaderManager loaderManager;
-        private ArrayList<GroupChat> rcsChatGroups = new ArrayList<GroupChat>();
+        private ArrayList<GroupChatModel> rcsChatGroups = new ArrayList<GroupChatModel>();
         private HashMap<String, Integer> contactCountMap = new HashMap<String, Integer>();
         public AsyncDataLoaderTask(Fragment fragment){
             this.activityContext = fragment.getActivity().getApplicationContext();
@@ -366,16 +370,13 @@ public class GroupBrowseListFragment extends Fragment
             loaderManager = fragment.getLoaderManager();
         }
         @Override
-        protected ArrayList<GroupChat> doInBackground(Void... params) {
+        protected ArrayList<GroupChatModel> doInBackground(Void... params) {
 
             try {
-                RcsUtils.sleep(SLEEP_DURATION);
-                if (RcsApiManager.getGroupChatApi() != null) {
-                    rcsChatGroups.addAll(RcsApiManager.getGroupChatApi().getAllGroupChat());
-                }
+                RCSUtil.sleep(SLEEP_DURATION);
+                rcsChatGroups.addAll(RcsApiManager.getMessageApi()
+                        .getAllGroupChat());
             } catch (ServiceDisconnectedException e) {
-                e.printStackTrace();
-            } catch (RemoteException e) {
                 e.printStackTrace();
             }
 
@@ -384,7 +385,7 @@ public class GroupBrowseListFragment extends Fragment
         }
 
         @Override
-        protected void onPostExecute(ArrayList<GroupChat> result) {
+        protected void onPostExecute(ArrayList<GroupChatModel> result) {
             super.onPostExecute(result);
 
             StringBuilder where = new StringBuilder();
@@ -395,15 +396,14 @@ public class GroupBrowseListFragment extends Fragment
             }catch(Exception e) {
                 e.printStackTrace();
             }
-            if (RcsUtils.RCS_DEBUG) {
-                Log.i("AsyncDataLoaderTask"," ArrayList<GroupChat> size: "+result.size());
-            }
-            for (GroupChat groupChat : result) {
+            Log.i("AsyncDataLoaderTask"," ArrayList<GroupChatModel> size: "+result.size());
+            for (GroupChatModel groupChatModel : result) {
 
-                String thread_id = String.valueOf(groupChat.getThreadId());
-                String group_id = String.valueOf(groupChat.getId());
-                String groupTitle = TextUtils.isEmpty(groupChat.getRemark()) ? groupChat
-                        .getSubject() : groupChat.getRemark();
+                String thread_id = String.valueOf(groupChatModel.getThreadId());
+                String group_id = String.valueOf(groupChatModel.getId());
+                String groupTitle = TextUtils.isEmpty(groupChatModel
+                        .getRemark()) ? groupChatModel.getSubject()
+                        : groupChatModel.getRemark();
 
                 if(contentResolver == null) return;
                 ContentValues values = new ContentValues();
@@ -412,9 +412,7 @@ public class GroupBrowseListFragment extends Fragment
                 values.put(Groups.SOURCE_ID,"RCS");
 
                 try{
-                    if (RcsUtils.RCS_DEBUG) {
-                        Log.d(TAG," insert group: title= "+groupTitle+" id= "+group_id);
-                    }
+                    Log.d(TAG," insert group: title= "+groupTitle+" id= "+group_id);
                     contentResolver.insert(Groups.CONTENT_URI, values);
                 } catch(Exception e) {
                     e.printStackTrace();
@@ -427,18 +425,11 @@ public class GroupBrowseListFragment extends Fragment
 
         }
 
-        private void initGroupChatToMap(ArrayList<GroupChat> allChatGroups) {
-            for (GroupChat groupChat : allChatGroups) {
-                try {
-                    if (RcsApiManager.getGroupChatApi() != null) {
-                        contactCountMap.put("chat" + groupChat.getId(), RcsApiManager
-                                .getGroupChatApi().getMembers(groupChat.getId()).size());
-                    }
-                } catch (ServiceDisconnectedException e) {
-                    e.printStackTrace();
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+        private void initGroupChatToMap(ArrayList<GroupChatModel> allChatGroups) {
+            for (GroupChatModel groupChatModel : allChatGroups) {
+                contactCountMap.put("chat" + groupChatModel.getId(),
+                        groupChatModel.getUserList().size());
+
             }
         }
     }

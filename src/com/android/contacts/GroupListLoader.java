@@ -19,6 +19,7 @@ import android.content.Context;
 import android.content.CursorLoader;
 import android.net.Uri;
 import android.provider.ContactsContract.Groups;
+import com.android.contacts.util.RCSUtil;
 
 /**
  * Group loader for the group list that includes details such as the number of contacts per group

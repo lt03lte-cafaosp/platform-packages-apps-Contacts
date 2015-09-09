@@ -68,7 +68,7 @@ import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.SimContactsOperation;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.util.ContactPhotoUtils;
-import com.android.contacts.util.RcsUtils;
+import com.android.contacts.util.RCSUtil;
 import com.android.internal.telephony.uicc.AdnRecord;
 import com.android.internal.telephony.uicc.IccConstants;
 import com.android.internal.telephony.IIccPhoneBook;
@@ -177,7 +177,8 @@ public class ContactSaveService extends IntentService {
     public static final int RESULT_NUMBER_INVALID = 9; // only for sim failure of number is valid
 
     public static final int RESULT_MEMORY_FULL_FAILURE = 11; //for memory full exception
-    public static final int RESULT_NUMBER_TYPE_FAILURE =12;  //only for sim failure of number TYPE
+    public static final int RESULT_NUMBER_TYPE_FAILURE = 12;  //only for sim failure of number TYPE
+
     // only for RCS
     public static final int RESULT_ADDRESS_IS_TOO_LONG_FAILURE = 13;
     public static final int RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE = 14;
@@ -189,12 +190,13 @@ public class ContactSaveService extends IntentService {
     private final int MAX_EMAIL_LENGTH = 40;
     private final int MAX_EN_LENGTH = 14;
     private final int MAX_CH_LENGTH = 6;
-    private static final int BUFFER_LENGTH = 500;
+
     // only for RCS
     private static final int RCS_MAX_ADDRESS_LENGTH = 40;
     private static final int RCS_MAX_COMPANY_TITLE_LENGTH = 20;
     private static final int RCS_MAX_COMPANY_NAME_LENGTH = 40;
     private static final int RCS_MAX_EMAIL_LENGTH = 50;
+
     // Only for request accessing SIM card
     // when device is in the "AirPlane" mode.
     public static final int RESULT_AIR_PLANE_MODE = 10;
@@ -301,12 +303,12 @@ public class ContactSaveService extends IntentService {
         } else if (ACTION_DELETE_CONTACT.equals(action)) {
             deleteContact(intent);
             boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
-            if (isRcsSupported && RcsUtils.isNativeUIInstalled
-                    && RcsUtils.isPluginInstalled(this)) {
+            if (isRcsSupported && RCSUtil.mIsNativeUiInstalled
+                    && RCSUtil.isPluginInstalled(this)) {
                 Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
                 if (!TextUtils.isEmpty(contactUri.getPath())
                         && !contactUri.getPath().contains("profile")) {
-                    RcsUtils.autoBackupOnceChanged(this);
+                    RCSUtil.autoBackupOnceChanged(this);
                 }
             }
         } else if (ACTION_JOIN_CONTACTS.equals(action)) {
@@ -343,80 +345,6 @@ public class ContactSaveService extends IntentService {
         callbackIntent.setAction(callbackAction);
         serviceIntent.putExtra(ContactSaveService.EXTRA_CALLBACK_INTENT, callbackIntent);
         return serviceIntent;
-    }
-
-    private boolean deliverCallbackRorRcsEdit(Intent callbackIntent, RawContactDelta entity,
-            String mimeType) {
-        ArrayList<ValuesDelta> valueList = entity.getMimeEntries(mimeType);
-        if (valueList != null) {
-            for (ValuesDelta aValue : valueList) {
-                if (TextUtils.equals(mimeType, StructuredPostal.CONTENT_ITEM_TYPE)) {
-                    String formattedAddress = aValue
-                            .getAsString(StructuredPostal.FORMATTED_ADDRESS);
-                    if (formattedAddress != null
-                            && formattedAddress.length() > RCS_MAX_ADDRESS_LENGTH) {
-                        if (callbackIntent != null) {
-                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
-                            callbackIntent.setData(null);
-                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
-                                    RESULT_ADDRESS_IS_TOO_LONG_FAILURE);
-                            deliverCallback(callbackIntent);
-                        }
-                        return true;
-                    }
-                }
-                if (TextUtils.equals(mimeType, Organization.CONTENT_ITEM_TYPE)) {
-                    String companyName = aValue.getAsString(Organization.COMPANY);
-                    if (companyName != null && companyName.length() > RCS_MAX_COMPANY_NAME_LENGTH) {
-                        if (callbackIntent != null) {
-                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
-                            callbackIntent.setData(null);
-                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
-                                    RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE);
-                            deliverCallback(callbackIntent);
-                        }
-                        return true;
-                    }
-                    String companyTitle = aValue.getAsString(Organization.TITLE);
-                    if (companyTitle != null
-                            && companyTitle.length() > RCS_MAX_COMPANY_TITLE_LENGTH) {
-                        if (callbackIntent != null) {
-                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
-                            callbackIntent.setData(null);
-                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
-                                    RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE);
-                            deliverCallback(callbackIntent);
-                        }
-                        return true;
-                    }
-                }
-                if (TextUtils.equals(mimeType, Email.CONTENT_ITEM_TYPE)) {
-                    String emailAddress = aValue.getAsString(Email.ADDRESS);
-                    if (emailAddress != null && emailAddress.length() > RCS_MAX_EMAIL_LENGTH) {
-                        if (callbackIntent != null) {
-                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
-                            callbackIntent.setData(null);
-                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
-                                    RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE);
-                            deliverCallback(callbackIntent);
-                        }
-                        return true;
-                    }
-                    if (emailAddress != null && !RcsUtils.isRegularEmail(emailAddress)) {
-                        if (callbackIntent != null) {
-                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
-                            callbackIntent.setData(null);
-                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
-                                    RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE);
-                            deliverCallback(callbackIntent);
-                        }
-                        return true;
-                    }
-                }
-
-            }
-        }
-        return false;
     }
 
     private void createRawContact(Intent intent) {
@@ -507,11 +435,84 @@ public class ContactSaveService extends IntentService {
         return serviceIntent;
     }
 
+    private boolean deliverCallbackRorRcsEdit(Intent callbackIntent,
+        RawContactDelta entity, String mimeType) {
+        ArrayList<ValuesDelta> valueList = entity.getMimeEntries(mimeType);
+        if (valueList != null) {
+            for (ValuesDelta aValue : valueList) {
+                if (TextUtils.equals(mimeType, StructuredPostal.CONTENT_ITEM_TYPE)) {
+                    String formattedAddress = aValue.getAsString(
+                            StructuredPostal.FORMATTED_ADDRESS);
+                    if (formattedAddress != null && formattedAddress.length() >
+                            RCS_MAX_ADDRESS_LENGTH ) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_ADDRESS_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+                if (TextUtils.equals(mimeType,  Organization.CONTENT_ITEM_TYPE)) {
+                    String companyName = aValue.getAsString(Organization.COMPANY);
+                    if (companyName != null && companyName.length() >
+                            RCS_MAX_COMPANY_NAME_LENGTH ) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE );
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                    String companyTitle = aValue.getAsString(Organization.TITLE);
+                    if (companyTitle != null && companyTitle.length() > RCS_MAX_COMPANY_TITLE_LENGTH  ) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+                if (TextUtils.equals(mimeType, Email.CONTENT_ITEM_TYPE)) {
+                    String emailAddress = aValue.getAsString(Email.ADDRESS);
+                    if (emailAddress != null && emailAddress.length() > RCS_MAX_EMAIL_LENGTH  ) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                    if (emailAddress != null && !RCSUtil.isRegularEmail(emailAddress)) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private void saveContact(Intent intent) {
         RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
         boolean isProfile = intent.getBooleanExtra(EXTRA_SAVE_IS_PROFILE, false);
         Bundle updatedPhotos = intent.getParcelableExtra(EXTRA_UPDATED_PHOTOS);
-        boolean isInsert = intent.getBooleanExtra(RcsUtils.KEY_IS_INSERT, false);
+        boolean isInsert = intent.getBooleanExtra(RCSUtil.KEY_IS_INSERT, false);
 
 
         // Trim any empty fields, and RawContacts, before persisting
@@ -553,16 +554,13 @@ public class ContactSaveService extends IntentService {
             }
             if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
-                if (deliverCallbackRorRcsEdit(callbackIntent, entity,
-                        StructuredPostal.CONTENT_ITEM_TYPE)) {
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity, StructuredPostal.CONTENT_ITEM_TYPE)) {
                     return;
                 }
-                if (deliverCallbackRorRcsEdit(callbackIntent,
-                        entity, Organization.CONTENT_ITEM_TYPE)) {
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity, Organization.CONTENT_ITEM_TYPE)) {
                     return;
                 }
-                if (deliverCallbackRorRcsEdit(callbackIntent, entity,
-                        Email.CONTENT_ITEM_TYPE)) {
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity, Email.CONTENT_ITEM_TYPE)) {
                     return;
                 }
             }
@@ -636,7 +634,7 @@ public class ContactSaveService extends IntentService {
                                 String.valueOf(rawContactId)
                             });
                     }
-                RcsUtils.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
+                RCSUtil.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
                         resolver, rawContactId);
                 // We can change this back to false later, if we fail to save the contact photo.
                 succeeded = true;
@@ -706,7 +704,7 @@ public class ContactSaveService extends IntentService {
         // the ContactProvider already knows about newly-created contacts.
         if (updatedPhotos != null) {
             boolean isSomethingChangedExceptPhoto = intent.getBooleanExtra(
-                    RcsUtils.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO, false);
+                    RCSUtil.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO, false);
             for (String key : updatedPhotos.keySet()) {
                 Uri photoUri = updatedPhotos.getParcelable(key);
                 long rawContactId = Long.parseLong(key);
@@ -723,23 +721,19 @@ public class ContactSaveService extends IntentService {
 
                 if (!saveUpdatedPhoto(rawContactId, photoUri)) {
                     succeeded = false;
-                } else if(RcsApiManager.getSupportApi().isRcsSupported()) {
+                } else if (RcsApiManager.getSupportApi().isRcsSupported()) {
                     if (!isProfile) {
-                        if (RcsUtils.RCS_DEBUG) {
-                            Log.d(TAG, "Setted Local Photo!");
-                        }
-                        RcsUtils.setLocalSetted(resolver, true, rawContactId);
+                        Log.d(TAG, "Setted Local Photo!");
+                        RCSUtil.setLocalSetted(resolver, true, rawContactId);
                     }
                 }
             }
             if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 if (updatedPhotos.isEmpty() && !isSomethingChangedExceptPhoto
                         && !isProfile && !isInsert) {
-                    if (RcsUtils.RCS_DEBUG) {
-                        Log.d(TAG, "Photo has deleted!");
-                    }
+                    Log.d(TAG, "Photo has deleted!");
                     for(long rawContact : rawContactsList) {
-                        RcsUtils.setLocalSetted(resolver, false, rawContact);
+                        RCSUtil.setLocalSetted(resolver, false, rawContact);
                     }
                 }
             }
@@ -1125,58 +1119,49 @@ public class ContactSaveService extends IntentService {
         if (rawContactsToAdd == null) {
             return;
         }
-
-        ArrayList<Long> rawContactIdInDb = Lists.newArrayList();
-        final Cursor c = resolver.query(Data.CONTENT_URI, new String[] {Data.RAW_CONTACT_ID},
-                Data.MIMETYPE + "=? AND " + GroupMembership.GROUP_ROW_ID + "=?",
-                new String[] {GroupMembership.CONTENT_ITEM_TYPE, String.valueOf(groupId)},
-                Data.RAW_CONTACT_ID);
-        try {
-            while (c != null && c.moveToNext()) {
-                final long id = c.getLong(0);
-                rawContactIdInDb.add(id);
-            }
-        } finally {
-            c.close();
-        }
-
-        ArrayList<Long> rawContactIdToAdd = Lists.newArrayList();
         for (long rawContactId : rawContactsToAdd) {
-            if (!rawContactIdInDb.contains(rawContactId)) {
-                rawContactIdToAdd.add(rawContactId);
-            }
-        }
-
-        final ArrayList<ContentProviderOperation> rawContactOperations =
-                new ArrayList<ContentProviderOperation>();
-        for (long rawContactId : rawContactIdToAdd) {
-            // Build an insert operation to add the contact to the group
-            final ContentProviderOperation.Builder insertBuilder = ContentProviderOperation
-                    .newInsert(Data.CONTENT_URI);
-            insertBuilder.withValue(Data.RAW_CONTACT_ID, rawContactId);
-            insertBuilder.withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE);
-            insertBuilder.withValue(GroupMembership.GROUP_ROW_ID, groupId);
-            rawContactOperations.add(insertBuilder.build());
-
-            int size = rawContactOperations.size();
-            if (size > 0 && BUFFER_LENGTH - size < 10) {
-                try {
-                    resolver.applyBatch(ContactsContract.AUTHORITY, rawContactOperations);
-                } catch (Exception e) {
-                    Log.e(TAG, String.format("%s: %s", e.toString(), e.getMessage()));
-                } finally {
-                    rawContactOperations.clear();
-                }
-            }
-        }
-        // There maybe some sim operations left after the while loop
-        if (!rawContactOperations.isEmpty()) {
             try {
-                resolver.applyBatch(ContactsContract.AUTHORITY, rawContactOperations);
-            } catch (Exception e) {
-                Log.e(TAG, String.format("%s: %s", e.toString(), e.getMessage()));
-            } finally {
-                rawContactOperations.clear();
+                final ArrayList<ContentProviderOperation> rawContactOperations =
+                        new ArrayList<ContentProviderOperation>();
+
+                // Build an assert operation to ensure the contact is not already in the group
+                final ContentProviderOperation.Builder assertBuilder = ContentProviderOperation
+                        .newAssertQuery(Data.CONTENT_URI);
+                assertBuilder.withSelection(Data.RAW_CONTACT_ID + "=? AND " +
+                        Data.MIMETYPE + "=? AND " + GroupMembership.GROUP_ROW_ID + "=?",
+                        new String[] { String.valueOf(rawContactId),
+                        GroupMembership.CONTENT_ITEM_TYPE, String.valueOf(groupId)});
+                assertBuilder.withExpectedCount(0);
+                rawContactOperations.add(assertBuilder.build());
+
+                // Build an insert operation to add the contact to the group
+                final ContentProviderOperation.Builder insertBuilder = ContentProviderOperation
+                        .newInsert(Data.CONTENT_URI);
+                insertBuilder.withValue(Data.RAW_CONTACT_ID, rawContactId);
+                insertBuilder.withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE);
+                insertBuilder.withValue(GroupMembership.GROUP_ROW_ID, groupId);
+                rawContactOperations.add(insertBuilder.build());
+
+                if (DEBUG) {
+                    for (ContentProviderOperation operation : rawContactOperations) {
+                        Log.v(TAG, operation.toString());
+                    }
+                }
+
+                // Apply batch
+                if (!rawContactOperations.isEmpty()) {
+                    resolver.applyBatch(ContactsContract.AUTHORITY, rawContactOperations);
+                }
+            } catch (RemoteException e) {
+                // Something went wrong, bail without success
+                Log.e(TAG, "Problem persisting user edits for raw contact ID " +
+                        String.valueOf(rawContactId), e);
+            } catch (OperationApplicationException e) {
+                // The assert could have failed because the contact is already in the group,
+                // just continue to the next contact
+                Log.w(TAG, "Assert failed in adding raw contact ID " +
+                        String.valueOf(rawContactId) + ". Already exists in group " +
+                        String.valueOf(groupId), e);
             }
         }
     }

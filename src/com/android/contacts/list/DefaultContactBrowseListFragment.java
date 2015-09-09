@@ -41,7 +41,7 @@ import com.android.contacts.common.list.ContactListItemView;
 import com.android.contacts.common.list.DefaultContactListAdapter;
 import com.android.contacts.common.list.ProfileAndContactsLoader;
 import com.android.contacts.editor.ContactEditorFragment;
-import com.android.contacts.util.RcsUtils;
+import com.android.contacts.util.RCSUtil;
 import com.android.contacts.common.util.AccountFilterUtil;
 import com.android.contacts.common.util.ContactsCommonRcsUtil;
 
@@ -122,8 +122,9 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
         // Create an empty user profile header and hide it for now (it will be visible if the
         // contacts list will have no user profile).
-        if (RcsApiManager.getSupportApi().isRcsSupported() && RcsUtils.isNativeUIInstalled
-                && RcsUtils.isPluginInstalled(getActivity())) {
+        if (RcsApiManager.getSupportApi().isRcsSupported()
+                && RCSUtil.mIsNativeUiInstalled
+                && RCSUtil.isPluginInstalled(getActivity())) {
             addPublicAccountView();
         }
         addEmptyUserProfileHeader(inflater);
@@ -279,7 +280,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         mPulicAccountView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(RcsUtils.ACTION_PUBLIC_ACCOUNT_ACTIVITY);
+                Intent intent = new Intent(RCSUtil.ACTION_PUBLIC_ACCOUNT_ACTIVITY);
                 startActivity(intent);
             }
         });
