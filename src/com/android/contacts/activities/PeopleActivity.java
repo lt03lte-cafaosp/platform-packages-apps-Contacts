@@ -294,7 +294,8 @@ public class PeopleActivity extends ContactsActivity implements
             RCSUtil.resotreContactIfTerminalChanged(this);
         }
 
-        mActionBarAdapter.setCurrentTab(getTabPositionForTextDirection(0));
+        mActionBarAdapter
+                .setCurrentTab(getTabPositionForTextDirection(mActionBarAdapter.getCurrentTab()));
     }
 
     @Override
