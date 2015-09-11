@@ -310,21 +310,7 @@ public class RcsUtils {
             @Override
             public void run() {
                 RcsUtils.sleep(500);
-                String myAccountNumber = "";
-                try {
-                    RcsLog.d("Calling  BasicApi.getInstance().getAccount()");
-                    myAccountNumber = BasicApi.getInstance().getAccount();
-                } catch (ServiceDisconnectedException e) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            makeToast(context, R.string.rcs_service_is_not_available);
-                        }
-                    });
-                    RcsLog.w(e);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                String myAccountNumber = getMyPhoneNumber();
                 RcsLog.d("The account is " + myAccountNumber);
                 final int message;
                 SharedPreferences prefs;
@@ -342,6 +328,33 @@ public class RcsUtils {
                 String latestTerminal = prefs.getString(RcsUtils.PREF_MY_TEMINAL, "");
                 if (!TextUtils.isEmpty(myAccountNumber)
                         && !TextUtils.equals(myAccountNumber, latestTerminal)) {
+                    if (mode == DOWNLOAD_PROFILE) {
+                        Cursor c = context.getContentResolver().query(PROFILE_DATA_URI,
+                                new String[] {
+                                    Phone.NUMBER
+                                }, " mimetype = ? AND data13 = ? ", new String[] {
+                                        Phone.CONTENT_ITEM_TYPE, "1"
+                                }, null);
+                        try {
+                            if (c != null && c.getCount() > 0) {
+                                c.moveToFirst();
+                                String latestNumber = c.getString(0);
+                                if (!TextUtils.equals(myAccountNumber, latestNumber)) {
+                                    ContentValues contentValues = new ContentValues();
+                                    contentValues.put(Phone.NUMBER, myAccountNumber);
+                                    context.getContentResolver().update(PROFILE_DATA_URI,
+                                            contentValues, " mimetype = ? AND data13 = ? ",
+                                            new String[] {
+                                                    Phone.CONTENT_ITEM_TYPE, "1"
+                                            });
+                                }
+                            }
+                        } finally {
+                            if (c != null) {
+                                c.close();
+                            }
+                        }
+                    }
                     handler.post(new Runnable() {
 
                         @Override
