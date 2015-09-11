@@ -264,7 +264,7 @@
             android:launchMode="singleTop"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:windowSoftInputMode="stateAlwaysHidden|stateHidden">
+            android:windowSoftInputMode="stateUnchanged">
 
             <intent-filter>
                 <action android:name="com.android.contacts.action.QUICK_CONTACT" />
@@ -558,7 +558,7 @@
         </provider>
 
         <receiver
-            android:name="com.android.contacts.util.RCSUtil$WifiReceiver"
+            android:name="com.android.contacts.util.RcsUtils$WifiReceiver"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />

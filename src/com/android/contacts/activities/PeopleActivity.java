@@ -1,5 +1,4 @@
-/*
- * Copyright (C) 2010 The Android Open Source Project
+ /* Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,7 +111,7 @@ import com.android.contacts.common.util.ViewUtil;
 import com.android.contacts.quickcontact.QuickContactActivity;
 import com.android.contacts.util.AccountPromptUtils;
 import com.android.contacts.common.util.Constants;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.common.vcard.ExportVCardActivity;
 import com.android.contacts.common.vcard.VCardCommonArguments;
 import com.android.contacts.util.DialogManager;
@@ -291,8 +290,10 @@ public class PeopleActivity extends ContactsActivity implements
         registerReceiver();
         mResolver = getContentResolver();
         if (RcsApiManager.getSupportApi().isRcsSupported()) {
-            RCSUtil.resotreContactIfTerminalChanged(this);
+            RcsUtils.resotreIfTerminalChanged(this, RcsUtils.RESTORE_CONTACTS, null, null);
         }
+
+        mActionBarAdapter.setCurrentTab(getTabPositionForTextDirection(0));
     }
 
     @Override
@@ -737,7 +738,7 @@ public class PeopleActivity extends ContactsActivity implements
         }
         invalidateOptionsMenu();
         showEmptyStateForTab(tab);
-        if (tab == TabState.GROUPS) {
+        if (getTabPositionForTextDirection(tab) == TabState.GROUPS) {
             mGroupsFragment.setAddAccountsVisibility(!areGroupWritableAccountsAvailable());
         }
     }
@@ -801,7 +802,7 @@ public class PeopleActivity extends ContactsActivity implements
                 mActionBarAdapter.setCurrentTab(position, false);
                 mViewPagerTabs.onPageSelected(position);
                 showEmptyStateForTab(position);
-                if (position == TabState.GROUPS) {
+                if (getTabPositionForTextDirection(position) == TabState.GROUPS) {
                     mGroupsFragment.setAddAccountsVisibility(!areGroupWritableAccountsAvailable());
                 }
                 invalidateOptionsMenu();
@@ -863,7 +864,7 @@ public class PeopleActivity extends ContactsActivity implements
                     return getTabPositionForTextDirection(TabState.ALL);
                 }
                 if (object == mGroupsFragment) {
-                    return TabState.GROUPS;
+                    return getTabPositionForTextDirection(TabState.GROUPS);
                 }
             }
             return POSITION_NONE;
@@ -1292,12 +1293,11 @@ public class PeopleActivity extends ContactsActivity implements
             cloudMenu.setVisible(false);
             scanMenu.setVisible(false);
         } else {
-            switch (mActionBarAdapter.getCurrentTab()) {
+            switch (getTabPositionForTextDirection(mActionBarAdapter.getCurrentTab())) {
                 case TabState.FAVORITES:
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(hasFrequents());
-
                     // RCS Menus
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
@@ -1307,12 +1307,11 @@ public class PeopleActivity extends ContactsActivity implements
                     addGroupMenu.setVisible(false);
                     contactsFilterMenu.setVisible(true);
                     clearFrequentsMenu.setVisible(false);
-
                     // RCS Menus
                     boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
-                    boolean isRcsPluginInstalled = RCSUtil.isPluginInstalled(this);
+                    boolean isRcsPluginInstalled = RcsUtils.isPluginInstalled(this);
                     scanMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
-                    cloudMenu.setVisible(isRcsSupport && RCSUtil.mIsNativeUiInstalled &&
+                    cloudMenu.setVisible(isRcsSupport && RcsUtils.isNativeUIInstalled &&
                             isRcsPluginInstalled);
                     contactsPhotoUpdateMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
                     break;
@@ -1326,7 +1325,6 @@ public class PeopleActivity extends ContactsActivity implements
                     addGroupMenu.setVisible(true);
                     contactsFilterMenu.setVisible(false);
                     clearFrequentsMenu.setVisible(false);
-
                     // RCS Menus
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
@@ -1380,7 +1378,7 @@ public class PeopleActivity extends ContactsActivity implements
             }
             case R.id.menu_scan:{
                 Intent intent = new Intent("android.intent.action.SCAN_QRCODE");
-                String accnountNumber = RCSUtil.getProfileAccountNumber();
+                String accnountNumber = RcsUtils.getProfileAccountNumber();
                 intent.putExtra("profile_tel",accnountNumber);
                 try {
                     startActivityForResult(intent,START_CAPTURE);
@@ -1466,7 +1464,7 @@ public class PeopleActivity extends ContactsActivity implements
 
             case R.id.menu_cloud: {
                 try {
-                    startActivity(new Intent(RCSUtil.ACTION_BACKUP_RESTORE_ACTIVITY));
+                    startActivity(new Intent(RcsUtils.ACTION_BACKUP_RESTORE_ACTIVITY));
                     return true;
                 } catch (ActivityNotFoundException ex) {
                     Toast.makeText(PeopleActivity.this, R.string.missing_app,
@@ -1501,7 +1499,7 @@ public class PeopleActivity extends ContactsActivity implements
             }
             case START_CAPTURE:
                 if (resultCode == RESULT_OK) {
-                    RCSUtil.insertQrcodeContact(this,data);
+                    RcsUtils.insertQrcodeContact(this,data);
                 }
                 break;
             case SUBACTIVITY_NEW_GROUP:

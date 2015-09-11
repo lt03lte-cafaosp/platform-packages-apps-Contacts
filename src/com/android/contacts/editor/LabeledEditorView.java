@@ -54,7 +54,6 @@ import com.android.contacts.common.model.RawContactModifier;
 import com.android.contacts.common.model.account.AccountType.EditType;
 import com.android.contacts.common.model.dataitem.DataKind;
 import com.android.contacts.util.DialogManager;
-import com.android.contacts.util.RCSUtil;
 import com.android.contacts.util.DialogManager.DialogShowingView;
 
 import java.util.List;

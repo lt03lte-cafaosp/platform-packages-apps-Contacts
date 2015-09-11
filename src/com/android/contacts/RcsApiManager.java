@@ -24,223 +24,58 @@
 package com.android.contacts;
 
 import com.android.contacts.common.util.ContactsCommonRcsUtil;
-import com.android.contacts.util.RCSUtil;
-import com.suntek.mway.rcs.client.api.RCSServiceListener;
-import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
-import com.suntek.mway.rcs.client.api.blacklist.impl.BlackListApi;
-import com.suntek.mway.rcs.client.api.capability.impl.CapabilityApi;
-import com.suntek.mway.rcs.client.api.im.impl.MessageApi;
-import com.suntek.mway.rcs.client.api.im.impl.PaMessageApi;
-import com.suntek.mway.rcs.client.api.impl.groupchat.ConfApi;
-import com.suntek.mway.rcs.client.api.login.impl.LoginApi;
-import com.suntek.mway.rcs.client.api.mcloud.McloudFileApi;
-import com.suntek.mway.rcs.client.api.mcontact.McontactApi;
-import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
-import com.suntek.mway.rcs.client.api.publicaccount.impl.PublicAccountApi;
-import com.suntek.mway.rcs.client.api.support.RcsSupportApi;
-import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
-import com.suntek.mway.rcs.client.api.voip.impl.RichScreenApi;
-import com.suntek.mway.rcs.client.api.plugincenter.PluginCenterApi;
+import com.suntek.mway.rcs.client.api.ClientApi;
+import com.suntek.mway.rcs.client.api.ServiceListener;
+import com.suntek.mway.rcs.client.api.basic.BasicApi;
+import com.suntek.mway.rcs.client.api.capability.CapabilityApi;
+import com.suntek.mway.rcs.client.api.contact.ContactApi;
+import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
+import com.suntek.mway.rcs.client.api.profile.ProfileApi;
+import com.suntek.mway.rcs.client.api.richscreen.RichScreenApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
+import com.android.contacts.util.RcsUtils;
 
 import android.content.Context;
-import android.os.RemoteException;
 import android.util.Log;
 
 public class RcsApiManager {
     private static final String TAG = "RcsApiManager";
     private static Context mContext;
-    private static MessageApi mMessageApi = new MessageApi();
-    private static RcsAccountApi mRcsAccountApi = new RcsAccountApi();
-    private static ProfileApi mProfileApi = new ProfileApi();
-    private static CapabilityApi mCapabilityApi = new CapabilityApi();
-    private static ConfApi mConfApi = new ConfApi();
-    private static RichScreenApi mRichScreenApi = new RichScreenApi(null);
-    private static PluginCenterApi mPluginCenterApi = new PluginCenterApi();
-    private static McontactApi mMcontactApi = new McontactApi();
-    private static RcsSupportApi mSupportApi = new RcsSupportApi();
+    private static SupportApi mSupportApi = SupportApi.getInstance();
 
     public static void init(Context context) {
         mContext = context;
-
-        mSupportApi.init(context);
+        mSupportApi.initApi(context);
         boolean isRcsSupport = mSupportApi.isRcsSupported();
         ContactsCommonRcsUtil.setIsRcs(isRcsSupport);
-        RCSUtil.setIsNativeUiInstalled(RCSUtil.isNativeUiInstalled(context));
-        if (!RcsSupportApi.isRcsServiceInstalled(context)) {
-            Log.d(TAG, "_________mIsRcsServiceInstalled false__________");
-            return;
-        }
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                rcsApiInit(mContext);
-            }
-        };
-        t.start();
-    }
+        new ClientApi().init(context, new ServiceListener() {
 
-    private static void rcsApiInit(Context context) {
-        mMessageApi.init(context, new RCSServiceListener() {
             @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "MessageApi disconnected");
+            public void onServiceConnected() {
             }
 
             @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "MessageApi connected");
+            public void onServiceDisconnected() {
+            }
+        }, new ServiceListener() {
+
+            @Override
+            public void onServiceConnected() {
+            }
+
+            @Override
+            public void onServiceDisconnected() {
             }
         });
 
-        mRcsAccountApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "RcsAccountApi disconnected");
-            }
+        boolean isNativeUIInstalled  = RcsUtils.isNativeUiInstalled(context);
+        RcsUtils.setNativeUIInstalled(isNativeUIInstalled);
+     }
 
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "RcsAccountApi connected");
-            }
-        });
-
-        mProfileApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "ProfileApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "ProfileApi connected");
-            }
-        });
-
-        mCapabilityApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "CapabilityApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "CapabilityApi connected");
-            }
-        });
-
-        mConfApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "ConfApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "ConfApi connected");
-            }
-        });
-        mRichScreenApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "mRichScreenApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "mRichScreenApi connected");
-            }
-        });
-        ContactsCommonRcsUtil.setRichScreenApi(mRichScreenApi);
-        mPluginCenterApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-                Log.d(TAG, "mPluginCenterApi disconnected");
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-                Log.d(TAG, "mPluginCenterApi connected");
-            }
-        });
-        mMcontactApi.init(context, new RCSServiceListener() {
-            @Override
-            public void onServiceDisconnected() throws RemoteException {
-            }
-
-            @Override
-            public void onServiceConnected() throws RemoteException {
-            }
-        });
-    }
-
-    public static MessageApi getMessageApi() {
-
-        if (mMessageApi == null) {
-            Log.d(TAG, "_______mMessageApi null______");
-        }
-        return mMessageApi;
-    }
-
-    public static RcsAccountApi getRcsAccoutApi() {
-
-        return mRcsAccountApi;
-    }
-
-    public static ConfApi getConfApi() {
-        if (mConfApi == null) {
-            mConfApi = new ConfApi();
-            mConfApi.init(mContext, null);
-        }
-        return mConfApi;
-    }
-
-    public static ProfileApi getProfileApi() {
-        if (mProfileApi == null) {
-            mProfileApi = new ProfileApi();
-            mProfileApi.init(mContext, null);
-            Log.d(TAG, "_______mProfileApi init______");
-        }
-        return mProfileApi;
-    }
-
-    public static RichScreenApi getRichScreenApi() {
-        if (mRichScreenApi == null) {
-            mRichScreenApi = new RichScreenApi(null);
-            mRichScreenApi.init(mContext, null);
-            Log.d(TAG, "_______mRichScreenApi init______");
-        }
-        return mRichScreenApi;
-    }
-
-    public static PluginCenterApi getPluginCenterApi() {
-        if (mPluginCenterApi == null) {
-            mPluginCenterApi = new PluginCenterApi();
-            mPluginCenterApi.init(mContext, null);
-            Log.d(TAG, "mPluginCenterApi init______");
-        }
-        return mPluginCenterApi;
-    }
-
-    public static CapabilityApi getCapabilityApi() {
-        if (mCapabilityApi == null) {
-            mCapabilityApi = new CapabilityApi();
-            mCapabilityApi.init(mContext, null);
-        }
-        return mCapabilityApi;
-    }
-
-    public static McontactApi getMcontactApi() {
-        if (mMcontactApi == null) {
-            mMcontactApi = new McontactApi();
-            mMcontactApi.init(mContext, null);
-        }
-        return mMcontactApi;
-    }
-
-    public static RcsSupportApi getSupportApi() {
+    public static SupportApi getSupportApi() {
         if (mSupportApi == null) {
-            mSupportApi = new RcsSupportApi();
-            mSupportApi.init(mContext);
+            mSupportApi = SupportApi.getInstance();
+            mSupportApi.initApi(mContext);
         }
         return mSupportApi;
     }

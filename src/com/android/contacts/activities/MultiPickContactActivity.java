@@ -92,6 +92,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.SimContactsConstants;
@@ -103,9 +104,10 @@ import com.android.contacts.common.list.ContactsSectionIndexer;
 import com.android.contacts.common.list.DefaultContactListAdapter;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.SimAccountType;
-import com.android.contacts.util.RCSUtil;
+import com.android.contacts.util.RcsUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -232,11 +234,6 @@ public class MultiPickContactActivity extends ListActivity implements
     public static final int GROUP_ACTION_ADD_MEMBER = 0;
     public static final int GROUP_ACTION_MOVE_MEMBER = 1;
     public static final int GROUP_ACTION_NONE = -1;
-
-    /**
-     * the max length of applyBatch is 500
-     */
-    private static final int BUFFER_LENGTH = 500;
 
     private ContactItemListAdapter mAdapter;
     private QueryHandler mQueryHandler;
@@ -849,7 +846,6 @@ public class MultiPickContactActivity extends ListActivity implements
             unregisterReceiver(mBroadcastReceiver);
         }
 
-        mAdapter = null;
         super.onDestroy();
     }
 
@@ -1232,13 +1228,9 @@ public class MultiPickContactActivity extends ListActivity implements
 
         @Override
         protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-            if (mAdapter != null) {
-                mAdapter.changeCursor(cursor);
-            }
+            mAdapter.changeCursor(cursor);
             if (cursor == null || cursor.getCount() == 0) {
                 if (isPickCall()) {
-                    Toast.makeText(MultiPickContactActivity.this,
-                            R.string.no_calllog, Toast.LENGTH_SHORT).show();
                     log("no call found");
                 } else {
                     Toast.makeText(MultiPickContactActivity.this,
@@ -1589,6 +1581,8 @@ public class MultiPickContactActivity extends ListActivity implements
 
         private Account mAccount;
 
+        private HashSet<String> mPhoneNumberSet = new HashSet<String>();
+
         public ImportAllSimContactsThread() {
         }
 
@@ -1603,29 +1597,15 @@ public class MultiPickContactActivity extends ListActivity implements
                     type != null ? type : SimContactsConstants.ACCOUNT_TYPE_PHONE);
             log("import sim contact to account: " + mAccount);
             mTotalCount = mChoiceSet.size();
-            ArrayList<ContentProviderOperation> operationList =
-                    new ArrayList<ContentProviderOperation>();
 
             for (String key : mChoiceSet.keySet()) {
                 if (mCanceled) {
-                    if (operationList.size() > 0) {
-                        doApplyBatch(operationList, resolver);
-                    }
                     break;
                 }
                 String[] values = mChoiceSet.getStringArray(key);
-                int firstBatch = operationList.size();
-                buildSimContentProviderOperationList(
-                        values, resolver, mAccount, firstBatch, operationList);
-                int size = operationList.size();
-                if (size > 0 && BUFFER_LENGTH - size < 10) {
-                    doApplyBatch(operationList, resolver);
-                }
+                actuallyImportOneSimContact(values, resolver, mAccount, mPhoneNumberSet);
                 mActualCount++;
                 mProgressDialog.incrementProgressBy(1);
-            }
-            if (operationList.size() > 0) {
-                doApplyBatch(operationList, resolver);
             }
             finish();
         }
@@ -1641,6 +1621,15 @@ public class MultiPickContactActivity extends ListActivity implements
                 Toast.makeText(context, text, Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(context, R.string.import_finish, Toast.LENGTH_SHORT).show();
+                if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                    Thread thread = new Thread() {
+                        @Override
+                        public void run() {
+                            RcsUtils.importContactUpdateEnhanceScreen(mPhoneNumberSet);
+                        }
+                    };
+                    thread.start();
+                }
             }
         }
 
@@ -1652,20 +1641,8 @@ public class MultiPickContactActivity extends ListActivity implements
         }
     }
 
-    private static void doApplyBatch(ArrayList<ContentProviderOperation> operationList,
-                ContentResolver resolver) {
-        try {
-            resolver.applyBatch(ContactsContract.AUTHORITY, operationList);
-        } catch (Exception e) {
-            Log.w(TAG, String.format("%s: %s", e.toString(), e.getMessage()));
-        } finally {
-            operationList.clear();
-        }
-    }
-
-    private static void buildSimContentProviderOperationList(
-            String[] values, final ContentResolver resolver, Account account,
-            int backReference, ArrayList<ContentProviderOperation> operationList) {
+    private static void actuallyImportOneSimContact(String[] values,
+            final ContentResolver resolver, Account account, HashSet<String> phoneNumberSet) {
 
         final String name = values[SIM_COLUMN_DISPLAY_NAME];
         final String phoneNumber = values[SIM_COLUMN_NUMBER];
@@ -1685,8 +1662,9 @@ public class MultiPickContactActivity extends ListActivity implements
         }
         log(" actuallyImportOneSimContact: name= " + name +
                 ", phoneNumber= " + phoneNumber + ", emails= " + emailAddresses
-                + ", anrs= " + anrs + ", account is " + account
-                + ", backReference=" + backReference);
+                + ", anrs= " + anrs + ", account is " + account);
+        final ArrayList<ContentProviderOperation> operationList =
+                new ArrayList<ContentProviderOperation>();
         ContentProviderOperation.Builder builder =
                 ContentProviderOperation.newInsert(RawContacts.CONTENT_URI);
         builder.withValue(RawContacts.AGGREGATION_MODE, RawContacts.AGGREGATION_MODE_SUSPENDED);
@@ -1698,7 +1676,7 @@ public class MultiPickContactActivity extends ListActivity implements
 
         if (!TextUtils.isEmpty(name)) {
             builder = ContentProviderOperation.newInsert(Data.CONTENT_URI);
-            builder.withValueBackReference(StructuredName.RAW_CONTACT_ID, backReference);
+            builder.withValueBackReference(StructuredName.RAW_CONTACT_ID, 0);
             builder.withValue(Data.MIMETYPE, StructuredName.CONTENT_ITEM_TYPE);
             builder.withValue(StructuredName.DISPLAY_NAME, name);
             operationList.add(builder.build());
@@ -1706,7 +1684,7 @@ public class MultiPickContactActivity extends ListActivity implements
 
         if (!TextUtils.isEmpty(phoneNumber)) {
             builder = ContentProviderOperation.newInsert(Data.CONTENT_URI);
-            builder.withValueBackReference(Phone.RAW_CONTACT_ID, backReference);
+            builder.withValueBackReference(Phone.RAW_CONTACT_ID, 0);
             builder.withValue(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
             builder.withValue(Phone.TYPE, Phone.TYPE_MOBILE);
             builder.withValue(Phone.NUMBER, phoneNumber);
@@ -1717,7 +1695,7 @@ public class MultiPickContactActivity extends ListActivity implements
         if (anrArray != null) {
             for (String anr : anrArray) {
                 builder = ContentProviderOperation.newInsert(Data.CONTENT_URI);
-                builder.withValueBackReference(Phone.RAW_CONTACT_ID, backReference);
+                builder.withValueBackReference(Phone.RAW_CONTACT_ID, 0);
                 builder.withValue(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
                 builder.withValue(Phone.TYPE, Phone.TYPE_HOME);
                 builder.withValue(Phone.NUMBER, anr);
@@ -1728,15 +1706,33 @@ public class MultiPickContactActivity extends ListActivity implements
         if (emailAddresses != null) {
             for (String emailAddress : emailAddressArray) {
                 builder = ContentProviderOperation.newInsert(Data.CONTENT_URI);
-                builder.withValueBackReference(Email.RAW_CONTACT_ID, backReference);
+                builder.withValueBackReference(Email.RAW_CONTACT_ID, 0);
                 builder.withValue(Data.MIMETYPE, Email.CONTENT_ITEM_TYPE);
                 builder.withValue(Email.TYPE, Email.TYPE_MOBILE);
                 builder.withValue(Email.ADDRESS, emailAddress);
                 operationList.add(builder.build());
             }
         }
-        RCSUtil.importContactUpdateEnhanceScreen(phoneNumber, anrs);
 
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (!TextUtils.isEmpty(phoneNumber)) {
+                phoneNumberSet.add(phoneNumber);
+            }
+            if (!TextUtils.isEmpty(anrs)) {
+                String[] anrList = anrs.split(",");
+                for (String anr : anrList) {
+                    phoneNumberSet.add(anrs);
+                }
+            }
+        }
+
+        try {
+            resolver.applyBatch(ContactsContract.AUTHORITY, operationList);
+        } catch (RemoteException e) {
+            log(String.format("%s: %s", e.toString(), e.getMessage()));
+        } catch (OperationApplicationException e) {
+            log(String.format("%s: %s", e.toString(), e.getMessage()));
+        }
     }
 
     /**

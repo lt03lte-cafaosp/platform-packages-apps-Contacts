@@ -36,7 +36,8 @@ public final class GroupMetaDataLoader extends CursorLoader {
         Groups.FAVORITES,
         Groups.GROUP_IS_READ_ONLY,
         Groups.DELETED,
-        Groups.SOURCE_ID //RCS
+        Groups.SOURCE_ID
+
     };
 
     public final static int ACCOUNT_NAME = 0;

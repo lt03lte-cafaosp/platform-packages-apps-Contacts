@@ -1042,7 +1042,6 @@ public class ExpandingEntryCardView extends CardView {
         private String mData;
         private Intent mWhiteIntent;
         private Intent mBlackIntent;
-        private ImageView mImageView;
 
         public EntryContextMenuInfo(String copyText, String copyLabel, String mimeType, long id,
                 boolean isSuperPrimary) {
@@ -1095,14 +1094,6 @@ public class ExpandingEntryCardView extends CardView {
 
         public Intent getBlackIntent() {
             return mBlackIntent;
-        }
-
-        public void setImageView(ImageView imageView) {
-            mImageView = imageView;
-        }
-
-        public ImageView getImageView() {
-            return mImageView;
         }
     }
 
