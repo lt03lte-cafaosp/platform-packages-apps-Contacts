@@ -818,13 +818,17 @@ public class MultiPickContactActivity extends ListActivity implements
         mProgressDialog = new ProgressDialog(MultiPickContactActivity.this);
         mProgressDialog.setTitle(title);
         mProgressDialog.setMessage(message);
-        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        if (isPickSim()) {
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        } else {
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mProgressDialog.setProgress(0);
+            mProgressDialog.setMax(mChoiceSet.size());
+        }
         mProgressDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
                 getString(android.R.string.cancel), (DialogInterface.OnClickListener) thread);
         mProgressDialog.setOnCancelListener((DialogInterface.OnCancelListener) thread);
         mProgressDialog.setOnKeyListener(this);
-        mProgressDialog.setProgress(0);
-        mProgressDialog.setMax(mChoiceSet.size());
 
         // set dialog can not be canceled by touching outside area of dialog
         mProgressDialog.setCanceledOnTouchOutside(false);
@@ -1622,7 +1626,6 @@ public class MultiPickContactActivity extends ListActivity implements
                     doApplyBatch(operationList, resolver);
                 }
                 mActualCount++;
-                mProgressDialog.incrementProgressBy(1);
             }
             if (operationList.size() > 0) {
                 doApplyBatch(operationList, resolver);
