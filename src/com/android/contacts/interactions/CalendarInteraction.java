@@ -288,4 +288,8 @@ public class CalendarInteraction implements ContactInteraction {
     public int getIconResourceId() {
         return CALENDAR_ICON_RES;
     }
+
+    public String getAccountId() {
+        return null;
+    }
 }

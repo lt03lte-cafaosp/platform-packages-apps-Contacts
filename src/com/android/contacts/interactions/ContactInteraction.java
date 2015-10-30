@@ -36,4 +36,5 @@ public interface ContactInteraction {
     Spannable getContentDescription(Context context);
     /** The resource id for the icon, if available. May be 0 if one is not available. */
     int getIconResourceId();
+    String getAccountId();
 }
