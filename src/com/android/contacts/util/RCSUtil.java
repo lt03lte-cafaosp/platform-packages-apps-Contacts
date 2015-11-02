@@ -39,6 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import com.android.contacts.common.model.Contact;
 import com.android.contacts.common.model.RawContact;
 import com.android.contacts.common.model.dataitem.DataItem;
@@ -57,6 +58,7 @@ import com.android.contacts.group.GroupBrowseListFragment;
 import com.android.contacts.group.GroupListItem;
 import com.android.contacts.quickcontact.MyQrcodeActivity;
 import com.android.contacts.quickcontact.QuickContactActivity;
+
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -76,6 +78,7 @@ import android.provider.ContactsContract.CommonDataKinds.Organization;
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.CommonDataKinds.Website;
 import android.database.sqlite.SqliteWrapper;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closeables;
 import com.suntek.mway.rcs.client.aidl.plugin.entity.profile.Avatar;
@@ -91,6 +94,7 @@ import com.suntek.mway.rcs.client.api.profile.callback.QRImgListener;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatModel;
 import com.suntek.mway.rcs.client.aidl.provider.model.GroupChatUser;
 import com.suntek.mway.rcs.client.aidl.capability.RCSCapabilities;
+import com.suntek.mway.rcs.client.aidl.setting.RcsUserProfileInfo;
 import com.suntek.mway.rcs.client.api.profile.callback.ProfileListener;
 import com.suntek.mway.rcs.client.api.profile.impl.ProfileApi;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
@@ -98,6 +102,7 @@ import com.suntek.mway.rcs.client.api.autoconfig.RcsAccountApi;
 import com.suntek.mway.rcs.client.api.capability.callback.CapabiltyListener;
 import com.android.contacts.RcsApiManager;
 import com.android.contacts.R;
+
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
@@ -1115,11 +1120,14 @@ public class RCSUtil {
         context.startActivity(intent);
     }
 
-    public static String getProfileAccountNumber(){
-    String myAccountNumber = "";
+    public static String getProfileAccountNumber() {
+        String myAccountNumber = "";
         try {
-            myAccountNumber = RcsApiManager.getRcsAccoutApi()
-                    .getRcsUserProfileInfo().getUserName();
+            RcsUserProfileInfo rcsUserProfileInfo = RcsApiManager.getRcsAccoutApi()
+                    .getRcsUserProfileInfo();
+            if (rcsUserProfileInfo != null) {
+                myAccountNumber = rcsUserProfileInfo.getUserName();
+            }
         } catch (ServiceDisconnectedException e1) {
             Log.w(TAG, e1);
         }
