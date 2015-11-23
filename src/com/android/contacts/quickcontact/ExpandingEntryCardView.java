@@ -52,6 +52,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.android.contacts.R;
+import com.android.contacts.common.MoreContactUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,6 +110,7 @@ public class ExpandingEntryCardView extends CardView {
         private final Intent mThirdIntent;
         private final String mThirdContentDescription;
         private final int mIconResourceId;
+        private final String mAccountId;
 
         public Entry(int id, Drawable mainIcon, String header, String subHeader,
                 Drawable subHeaderIcon, String text, Drawable textIcon,
@@ -117,6 +119,20 @@ public class ExpandingEntryCardView extends CardView {
                 boolean shouldApplyColor, boolean isEditable,
                 EntryContextMenuInfo entryContextMenuInfo, Drawable thirdIcon, Intent thirdIntent,
                 String thirdContentDescription, int iconResourceId) {
+            this(id, mainIcon, header, subHeader, subHeaderIcon, text, textIcon,
+                    primaryContentDescription, intent, alternateIcon, alternateIntent,
+                    alternateContentDescription, shouldApplyColor, isEditable,
+                    entryContextMenuInfo, thirdIcon, thirdIntent, thirdContentDescription,
+                    iconResourceId, null);
+        }
+
+        public Entry(int id, Drawable mainIcon, String header, String subHeader,
+                Drawable subHeaderIcon, String text, Drawable textIcon,
+                Spannable primaryContentDescription, Intent intent,
+                Drawable alternateIcon, Intent alternateIntent, String alternateContentDescription,
+                boolean shouldApplyColor, boolean isEditable,
+                EntryContextMenuInfo entryContextMenuInfo, Drawable thirdIcon, Intent thirdIntent,
+                String thirdContentDescription, int iconResourceId, String accountId) {
             mId = id;
             mIcon = mainIcon;
             mHeader = header;
@@ -136,6 +152,7 @@ public class ExpandingEntryCardView extends CardView {
             mThirdIntent = thirdIntent;
             mThirdContentDescription = thirdContentDescription;
             mIconResourceId = iconResourceId;
+            mAccountId = accountId;
         }
 
         Drawable getIcon() {
@@ -212,6 +229,10 @@ public class ExpandingEntryCardView extends CardView {
 
         int getIconResourceId() {
             return mIconResourceId;
+        }
+
+        String getAccountId() {
+            return mAccountId;
         }
     }
 
@@ -759,6 +780,18 @@ public class ExpandingEntryCardView extends CardView {
             textIcon.setImageDrawable(entry.getTextIcon());
         } else {
             textIcon.setVisibility(View.GONE);
+        }
+
+        final ImageView accountIconView = (ImageView) view.findViewById(R.id.call_account_icon);
+        accountIconView.setVisibility(View.GONE);
+        if (!TextUtils.isEmpty(entry.getAccountId())) {
+           int accountId = Integer.valueOf(entry.getAccountId());
+           final Drawable accountIcon = MoreContactUtils.getAccountIcon(getContext(),
+                    accountId);
+           if (accountIcon != null) {
+               accountIconView.setVisibility(View.VISIBLE);
+               accountIconView.setImageDrawable(accountIcon);
+            }
         }
 
         if (entry.getIntent() != null) {

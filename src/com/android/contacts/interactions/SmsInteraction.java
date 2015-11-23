@@ -173,4 +173,8 @@ public class SmsInteraction implements ContactInteraction {
     public int getIconResourceId() {
         return SMS_ICON_RES;
     }
+
+    public String getAccountId() {
+        return mValues.getAsString(Sms.PHONE_ID);
+    }
 }
