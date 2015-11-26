@@ -173,6 +173,13 @@ public class ContactEditorUtils {
                         return account;
                     }
                 }
+            } else {
+                // This is a walkaround when there are no writable accounts,
+                // and default storage is phone.
+                if (mContext.getResources().getInteger(R.integer.def_storage_position) ==
+                        DEFAULT_STORAGE_PHONE) {
+                    saveDefaultAndAllAccounts(null);
+                }
             }
         }
         return null;
