@@ -473,6 +473,9 @@ public class PeopleActivity extends ContactsActivity implements
         super.onPause();
         dismissDialog(ImportExportDialogFragment.TAG);
         dismissDialog(SelectAccountDialogFragment.TAG);
+        if (mExportThread != null && mExportThread.getProgressDialog() != null) {
+            mExportThread.getProgressDialog().dismiss();
+        }
     }
 
     @Override
