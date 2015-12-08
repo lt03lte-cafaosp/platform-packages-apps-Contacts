@@ -959,7 +959,7 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
         // If the user did nothing else expect change the account type, we must still
         // consider this as an unsaved change so the new rawcontact is passed back to the
         // compact editor on inserts.
-        if (!mNewContactAccountChanged && !hasPendingChanges()) {
+        if (!hasPendingChanges()) {
             if (mLookupUri == null && saveMode == SaveMode.RELOAD) {
                 // We don't have anything to save and there isn't even an existing contact yet.
                 // Nothing to do, simply go back to editing mode
