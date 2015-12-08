@@ -23,7 +23,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.database.Cursor;
 import android.graphics.ColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -56,6 +55,7 @@ import android.widget.TextView;
 import com.android.contacts.R;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.dialog.CallSubjectDialog;
+import com.android.phone.common.util.FirewallUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -306,10 +306,6 @@ public class ExpandingEntryCardView extends CardView {
     private List<View> mSeparators;
     private LinearLayout mContainer;
     private boolean mIsFireWallInstalled = false;
-    private static final Uri FIREWALL_BLACKLIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/blacklistitems");
-    private static final Uri FIREWALL_WHITELIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/whitelistitems");
 
     private final OnClickListener mExpandCollapseButtonListener = new OnClickListener() {
         @Override
@@ -713,7 +709,7 @@ public class ExpandingEntryCardView extends CardView {
         }
     }
 
-    public void isFireWallInstalled(boolean isFireWallInstalled) {
+    public void setFireWallInstalled(boolean isFireWallInstalled) {
         mIsFireWallInstalled = isFireWallInstalled;
     }
 
@@ -746,29 +742,13 @@ public class ExpandingEntryCardView extends CardView {
             String actionType = entry.getIntent().getAction();
             if (Intent.ACTION_CALL.equals(actionType)) {
                 String number = entry.getHeader();
-                number = number.replaceAll(" ", "");
-                number = number.replaceAll("-", "");
-                String selectionString = "number=?";
-                String[] selectionArgs = new String[] { number };
-                Cursor cursorBlack = getContext().getContentResolver().query(
-                        FIREWALL_BLACKLIST_CONTENT_URI, null,
-                        selectionString, selectionArgs, null);
-                if (cursorBlack != null && cursorBlack.getCount() > 0) {// in black list
+                if (FirewallUtils.isNumberInFirewall(getContext(), true, number)) {// in black list
                     blackWhiteListIndicator.setVisibility(View.VISIBLE);
                     blackWhiteListIndicator.setBackgroundResource(R.drawable.number_in_blacklist);
                 }
-                if (cursorBlack != null) {
-                    cursorBlack.close();
-                }
-                Cursor cursorWhite = getContext().getContentResolver().query(
-                        FIREWALL_WHITELIST_CONTENT_URI, null,
-                        selectionString, selectionArgs, null);
-                if (cursorWhite != null && cursorWhite.getCount() > 0) {// in white list
+                if (FirewallUtils.isNumberInFirewall(getContext(), false, number)) {// in white list
                     blackWhiteListIndicator.setVisibility(View.VISIBLE);
                     blackWhiteListIndicator.setBackgroundResource(R.drawable.number_in_whitelist);
-                }
-                if (cursorWhite != null) {
-                    cursorWhite.close();
                 }
             } else {
                 blackWhiteListIndicator.setVisibility(View.GONE);
