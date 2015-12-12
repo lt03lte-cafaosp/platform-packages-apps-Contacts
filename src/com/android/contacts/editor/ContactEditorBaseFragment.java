@@ -83,6 +83,9 @@ import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListPopupWindow;
 import android.widget.Toast;
+import android.text.TextUtils;
+import com.android.contacts.RcsApiManager;
+import com.android.contacts.util.RcsUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -396,6 +399,10 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
     // The name editor view for the new raw contact that was created so that the user can
     // edit a read-only contact (to which the new raw contact was joined)
     protected StructuredNameEditorView mReadOnlyNameEditorView;
+
+    /* Begin add for RCS */
+    public boolean mEditorsIsExpand;
+    /* End add for RCS */
 
     /**
      * The contact data loader listener.
@@ -947,7 +954,14 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
         if (!hasValidState() || mStatus != Status.EDITING) {
             return false;
         }
-
+        /* Begin add for RCS */
+        if (mIsUserProfile || (mIntentExtras != null &&
+                mIntentExtras.getBoolean(INTENT_EXTRA_NEW_LOCAL_PROFILE))) {
+            if (!RcsUtils.judgeUserNameLength(mContext, mState, mEditorsIsExpand)) {
+                return false;
+            }
+        }
+        /* End add for RCS */
         // If we are about to close the editor - there is no need to refresh the data
         if (saveMode == SaveMode.CLOSE || saveMode == SaveMode.COMPACT
                 || saveMode == SaveMode.SPLIT) {
@@ -1259,6 +1273,8 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
 
         // Ensure we have some default fields (if the account type does not support a field,
         // ensureKind will not add it, so it is safe to add e.g. Event)
+        ValuesDelta phoneChild = RawContactModifier.ensureKindExists(result, accountType,
+                Phone.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(result, accountType, Phone.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(result, accountType, Email.CONTENT_ITEM_TYPE);
         RawContactModifier.ensureKindExists(result, accountType, Organization.CONTENT_ITEM_TYPE);
@@ -1269,6 +1285,15 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
         // Set the correct URI for saving the contact as a profile
         if (mNewLocalProfile) {
             result.setProfileQueryUri();
+            /* Begin add for RCS */
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                String myPhoneNumber = RcsUtils.getMyPhoneNumber();
+                if (!TextUtils.isEmpty(myPhoneNumber)) {
+                    phoneChild.put(Phone.NUMBER, myPhoneNumber);
+                    phoneChild.put(ContactsContract.Data.DATA13, 1);
+                }
+            }
+            /* End add for RCS */
         }
 
         return result;
@@ -1439,6 +1464,14 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
                     if (null != contactLookupUri) {
                         Toast.makeText(mContext, R.string.contactSavedToast,
                                 Toast.LENGTH_SHORT).show();
+                        /* Begin add for RCS */
+                        if (RcsApiManager.getSupportApi().isRcsSupported()
+                                && RcsUtils.isNativeUIInstalled
+                                && RcsUtils.isPluginInstalled(mContext)
+                                && !isEditingUserProfile()) {
+                            RcsUtils.autoBackupOnceChanged(mContext);
+                        }
+                        /* End add for RCS */
                     } else {
                         Toast.makeText(mContext, R.string.contacts_deleted_toast,
                                 Toast.LENGTH_SHORT).show();
@@ -1493,6 +1526,32 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
                 } else if(result == ContactSaveService.RESULT_NUMBER_TYPE_FAILURE) {
                     Toast.makeText(mContext, R.string.invalid_number_type, Toast.LENGTH_SHORT)
                     .show();
+                /* Begin add for RCS */
+                }  else if (result == ContactSaveService.RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_company_name_is_too_long,
+                            Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else if (result == ContactSaveService.RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_company_title_is_too_long,
+                            Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else if (result == ContactSaveService.RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_email_address_is_too_long,
+                            Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                } else if (result == ContactSaveService.RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE) {
+                    Toast.makeText(mContext, R.string.rcs_email_address_is_invalid,
+                            Toast.LENGTH_SHORT).show();
+                    mStatus = Status.EDITING;
+                    setEnabled(true);
+                    return;
+                /* End add for RCS */
                 } else {
                     Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                             .show();

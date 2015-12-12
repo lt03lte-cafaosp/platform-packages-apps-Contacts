@@ -20,9 +20,9 @@ LOCAL_AAPT_FLAGS := \
     --extra-packages android.support.v7.cardview
 
 LOCAL_JAVA_LIBRARIES := telephony-common voip-common
+LOCAL_JAVA_LIBRARIES += rcs_service_api
 LOCAL_STATIC_JAVA_LIBRARIES := \
-    com.android.vcard \
-    android-common \
+   android-common \
     guava \
     android-support-v13 \
     android-support-v7-cardview \

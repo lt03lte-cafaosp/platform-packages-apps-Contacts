@@ -20,6 +20,7 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.provider.ContactsContract;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -35,7 +36,9 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.model.ValuesDelta;
@@ -280,9 +283,26 @@ public class TextFieldsEditorView extends LabeledEditorView {
                 }
             });
 
-            fieldView.setEnabled(isEnabled() && !readOnly);
-            fieldView.setOnFocusChangeListener(mTextFocusChangeListener);
-
+            /* Begin add for RCS */
+            if (RcsApiManager.getSupportApi().isRcsSupported()
+                    && entry.getAsInteger(ContactsContract.Data.DATA13) != null
+                    && 1 == entry.getAsInteger(ContactsContract.Data.DATA13)) {
+                String myPhoneNumber = RcsUtils.getMyPhoneNumber();
+                if (!TextUtils.isEmpty(myPhoneNumber)
+                        && !TextUtils.equals(myPhoneNumber, fieldView.getText())) {
+                    fieldView.setText(myPhoneNumber);
+                }
+                setDeleteButtonVisible(false);
+                fieldView.setEnabled(false);
+                fieldView.setFocusable(false);
+                fieldView.setFocusableInTouchMode(false);
+            } else {
+                // Show the delete button if we have a non-null value
+                setDeleteButtonVisible(value != null);
+                fieldView.setEnabled(isEnabled() && !readOnly);
+                fieldView.setOnFocusChangeListener(mTextFocusChangeListener);
+            }
+            /* End add for RCS */
             if (field.shortForm) {
                 hidePossible = true;
                 mHasShortAndLongForms = true;

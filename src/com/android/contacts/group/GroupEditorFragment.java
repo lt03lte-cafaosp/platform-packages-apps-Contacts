@@ -75,6 +75,7 @@ import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.common.util.ViewUtil;
 import com.android.contacts.common.SimContactsConstants;
+import com.android.contacts.util.RcsUtils;
 
 import com.google.common.base.Objects;
 
@@ -649,6 +650,10 @@ public class GroupEditorFragment extends Fragment implements SelectAccountDialog
             if (mListener != null) {
                 mListener.onReverted();
             }
+            return false;
+        }
+
+        if (!RcsUtils.isGroupNameValid(mContext,mGroupNameView.getText().toString())) {
             return false;
         }
 

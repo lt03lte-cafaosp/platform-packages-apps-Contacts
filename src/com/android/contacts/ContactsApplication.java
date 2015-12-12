@@ -123,6 +123,9 @@ public final class ContactsApplication extends Application {
         }
 
         AnalyticsUtil.initialize(this);
+        /* Begin add for RCS */
+        RcsApiManager.init(this);
+        /* End add for RCS */
     }
 
     private class DelayedInitializer extends AsyncTask<Void, Void, Void> {

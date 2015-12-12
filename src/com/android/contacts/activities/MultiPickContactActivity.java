@@ -93,6 +93,7 @@ import android.widget.Toast;
 
 import com.android.contacts.activities.PeopleActivity;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.SimContactsConstants;
@@ -101,12 +102,17 @@ import com.android.contacts.common.list.AccountFilterActivity;
 import com.android.contacts.common.list.ContactListFilter;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.SimAccountType;
+import com.android.contacts.util.RcsUtils;
 import com.android.internal.telephony.PhoneConstants;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 public class MultiPickContactActivity extends ListActivity implements
@@ -268,6 +274,13 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private static final int BUFFER_LENGTH = 500;
 
+    /* Begin add for RCS */
+    private boolean mFromPublicAccount = false;
+    private ArrayList<String> forwardNumberList;
+    private HashMap<Long, String> selectNumber;
+    private static final String SELECT_COME_FROM = "from_publicAccount";
+    private static final String RCS_PUBLICACCOUNT_EXTRA = "recipients";
+    /* End add for RCS */
     //registerReceiver to update content when airplane mode change.
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -291,6 +304,17 @@ public class MultiPickContactActivity extends ListActivity implements
         String action = intent.getAction();
         boolean isContact = intent.getBooleanExtra(
                 SimContactsConstants.IS_CONTACT, false);
+
+        /* Begin add for RCS */
+        if (intent.hasExtra(SELECT_COME_FROM)) {
+            mFromPublicAccount = intent.getBooleanExtra(SELECT_COME_FROM, false);
+        }
+        if (mFromPublicAccount) {
+            forwardNumberList = new ArrayList<String>();
+            selectNumber = new HashMap<>();
+        }
+        /* End add for RCS */
+
         if (Intent.ACTION_DELETE.equals(action)) {
             mMode = MODE_DEFAULT_CONTACT;
             setTitle(R.string.menu_deleteContact);
@@ -395,6 +419,9 @@ public class MultiPickContactActivity extends ListActivity implements
                         cache.name, cache.number, cache.type,
                         cache.label, cache.contact_id
                 };
+                if (mFromPublicAccount) {
+                    selectNumber.put(id, cache.number);
+                }
             } else if (isPickEmail()) {
                 value = new String[] {
                         cache.name, cache.email
@@ -417,6 +444,9 @@ public class MultiPickContactActivity extends ListActivity implements
                 }
             }
         } else {
+            if (mFromPublicAccount) {
+                selectNumber.remove(id);
+            }
             mChoiceSet.remove(String.valueOf(id));
             mSelectAllCheckBox.setChecked(false);
         }
@@ -729,9 +759,22 @@ public class MultiPickContactActivity extends ListActivity implements
                     }
                 } else if (mMode == MODE_DEFAULT_PHONE) {
                     Intent intent = new Intent();
-                    Bundle bundle = new Bundle();
-                    bundle.putBundle(SimContactsConstants.RESULT_KEY, mChoiceSet);
-                    intent.putExtras(bundle);
+                    /* Begin add for RCS */
+                    if (mFromPublicAccount) {
+                        forwardNumberList.clear();
+                        Iterator iterator = selectNumber.entrySet().iterator();
+                        while (iterator.hasNext()) {
+                            Map.Entry entry = (Map.Entry) iterator.next();
+                             String number = (String)entry.getValue();
+                             forwardNumberList.add(number);
+                        }
+                        intent.putExtra(RCS_PUBLICACCOUNT_EXTRA, forwardNumberList);
+                    } else {
+                        Bundle bundle = new Bundle();
+                        bundle.putBundle(SimContactsConstants.RESULT_KEY, mChoiceSet);
+                        intent.putExtras(bundle);
+                    }
+                    /* End add for RCS */
                     this.setResult(RESULT_OK, intent);
                     finish();
                 } else if (mMode == MODE_DEFAULT_SIM) {
@@ -1548,6 +1591,9 @@ public class MultiPickContactActivity extends ListActivity implements
         private int mActualCount = 0;
 
         private Account mAccount;
+        /* Begin add for RCS */
+        private HashSet<String> mPhoneNumberSet = new HashSet<String>();
+        /* End add for RCS */
 
         public ImportAllSimContactsThread() {
         }
@@ -1577,7 +1623,7 @@ public class MultiPickContactActivity extends ListActivity implements
                 String[] values = mChoiceSet.getStringArray(key);
                 int firstBatch = operationList.size();
                 buildSimContentProviderOperationList(
-                        values, resolver, mAccount, firstBatch, operationList);
+                        values, resolver, mAccount, firstBatch, operationList, mPhoneNumberSet);
                 int size = operationList.size();
                 if (size > 0 && BUFFER_LENGTH - size < 10) {
                     doApplyBatch(operationList, resolver);
@@ -1597,8 +1643,18 @@ public class MultiPickContactActivity extends ListActivity implements
             if (mActualCount < mTotalCount) {
                 Toast.makeText(mContext, R.string.import_stop, Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(mContext, R.string.import_finish, Toast.LENGTH_SHORT)
-                        .show();
+                Toast.makeText(mContext, R.string.import_finish, Toast.LENGTH_SHORT).show();
+                /* Begin add for RCS */
+                if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                    Thread thread = new Thread() {
+                        @Override
+                        public void run() {
+                            RcsUtils.importContactUpdateEnhanceScreen(mPhoneNumberSet);
+                        }
+                    };
+                    thread.start();
+                }
+                /* End add for RCS */
             }
         }
 
@@ -1623,7 +1679,8 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private static void buildSimContentProviderOperationList(
             String[] values, final ContentResolver resolver, Account account,
-            int backReference, ArrayList<ContentProviderOperation> operationList) {
+            int backReference, ArrayList<ContentProviderOperation> operationList,
+            HashSet<String> phoneNumberSet) {
         final String name = values[SIM_COLUMN_DISPLAY_NAME];
         final String phoneNumber = values[SIM_COLUMN_NUMBER];
         final String emailAddresses = values[SIM_COLUMN_EMAILS];
@@ -1693,6 +1750,19 @@ public class MultiPickContactActivity extends ListActivity implements
             }
         }
 
+        /* Begin add for RCS */
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (!TextUtils.isEmpty(phoneNumber)) {
+                phoneNumberSet.add(phoneNumber);
+            }
+            if (!TextUtils.isEmpty(anrs)) {
+                String[] anrList = anrs.split(",");
+                for (String anr : anrList) {
+                    phoneNumberSet.add(anrs);
+                }
+            }
+        }
+        /* End add for RCS */
     }
 
     /**
@@ -1708,7 +1778,12 @@ public class MultiPickContactActivity extends ListActivity implements
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.label_groups));
         ContentResolver resolver = getContentResolver();
-        String selection = Groups.ACCOUNT_TYPE + " =? AND " + Groups.DELETED + " != ?";
+        String selection = Groups.ACCOUNT_TYPE + " =? AND "
+                           + Groups.DELETED + " != ? AND ("
+                           //+ Groups.SOURCE_ID + " != ?";
+                           + Groups.SOURCE_ID + "!='RCS'"+" OR "
+                           + Groups.SOURCE_ID+" IS NULL)";
+
         ArrayList<String> items = new ArrayList<String>();
 
         mGroupIds.clear();

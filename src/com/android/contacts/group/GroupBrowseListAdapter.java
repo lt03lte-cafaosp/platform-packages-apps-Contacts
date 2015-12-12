@@ -21,32 +21,47 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract.Groups;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.PhoneAccountType;
 import com.android.contacts.common.model.AccountTypeManager;
+import com.android.contacts.util.RcsUtils;
 import com.google.common.base.Objects;
-
+import com.suntek.mway.rcs.client.aidl.service.entity.GroupChat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 /**
  * Adapter to populate the list of groups.
  */
 public class GroupBrowseListAdapter extends BaseAdapter {
 
+    private static final String TAG = "GroupBrowseListAdapter";
     private final Context mContext;
     private final LayoutInflater mLayoutInflater;
     private final AccountTypeManager mAccountTypeManager;
 
     private Cursor mCursor;
-
     private boolean mSelectionVisible;
     private Uri mSelectedGroupUri;
+
+    /* Begin add for RCS */
+    private int normalContactCount = 0;
+    private int mLocalGroupsCount;
+    private ArrayList<GroupChat> mRcsChatGroups = new ArrayList<GroupChat>();
+    private HashMap<String, Integer> mCountMap = new HashMap<String, Integer>();
+    /* End add for RCS */
 
     public GroupBrowseListAdapter(Context context) {
         mContext = context;
@@ -104,6 +119,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
+        mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
         return (mCursor == null || mCursor.isClosed()) ? 0 : mCursor.getCount();
     }
 
@@ -117,12 +133,28 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         if (mCursor == null || mCursor.isClosed() || !mCursor.moveToPosition(position)) {
             return null;
         }
+        String sourceId = mCursor.getString(GroupListLoader.SOURCE_ID);
+        String systemId = mCursor.getString(GroupListLoader.SYSTEM_ID);
         String accountName = mCursor.getString(GroupListLoader.ACCOUNT_NAME);
         String accountType = mCursor.getString(GroupListLoader.ACCOUNT_TYPE);
         String dataSet = mCursor.getString(GroupListLoader.DATA_SET);
         long groupId = mCursor.getLong(GroupListLoader.GROUP_ID);
         String title = mCursor.getString(GroupListLoader.TITLE);
         int memberCount = mCursor.getInt(GroupListLoader.MEMBER_COUNT);
+
+        /* Begin add for RCS */
+        if (RcsApiManager.getSupportApi().isRcsSupported() && (!TextUtils.isEmpty(sourceId))) {
+            if(sourceId.equals("RCS")){
+                accountType=sourceId;
+                String strGroupId = mCursor.getString(GroupListLoader.SYSTEM_ID);
+                if(TextUtils.isEmpty(strGroupId)){
+                    groupId = -1;
+                } else {
+                    groupId = Long.valueOf(strGroupId);
+                }
+            }
+        }
+        /* End add for RCS */
 
         // Figure out if this is the first group for this account name / account type pair by
         // checking the previous entry. This is to determine whether or not we need to display an
@@ -141,7 +173,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
             }
         }
 
-        return new GroupListItem(accountName, accountType, dataSet, groupId, title,
+        return new GroupListItem(accountName, accountType, dataSet, groupId, title,systemId,
                 isFirstGroupInAccount, memberCount);
     }
 
@@ -149,36 +181,121 @@ public class GroupBrowseListAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         GroupListItem entry = getItem(position);
         View result;
-        GroupListItemViewCache viewCache;
+        GroupListItemViewCache viewCache = null;
+        ViewHolder holder = new ViewHolder();
         if (convertView != null) {
-            result = convertView;
-            viewCache = (GroupListItemViewCache) result.getTag();
-        } else {
-            result = mLayoutInflater.inflate(R.layout.group_browse_list_item, parent, false);
-            viewCache = new GroupListItemViewCache(result);
-            result.setTag(viewCache);
-        }
+            if (entry.getAccountType().equals("RCS")) {
+                result = convertView;
+                if ((result.getTag()) instanceof ViewHolder)
+                    holder = (ViewHolder) result.getTag();
+                else {
+                    result = mLayoutInflater
+                            .inflate(R.layout.rcs_contact_group_item, parent, false);
 
-        // Add a header if this is the first group in an account and hide the divider
-        if (entry.isFirstGroupInAccount()) {
-            bindHeaderView(entry, viewCache);
-            viewCache.accountHeader.setVisibility(View.VISIBLE);
-            viewCache.divider.setVisibility(View.GONE);
-            if (position == 0) {
-                // Have the list's top padding in the first header.
-                //
-                // This allows the ListView to show correct fading effect on top.
-                // If we have topPadding in the ListView itself, an inappropriate padding is
-                // inserted between fading items and the top edge.
-                viewCache.accountHeaderExtraTopPadding.setVisibility(View.VISIBLE);
+                    holder.group_icon_view = (View) result.findViewById(R.id.group_icon_view);
+                    holder.groupName = (TextView) result.findViewById(R.id.group_name);
+                    holder.groupCount = (TextView) result.findViewById(R.id.group_count);
+                    holder.title_view = (TextView) result.findViewById(R.id.title_view);
+                    result.setTag(holder);
+                }
             } else {
-                viewCache.accountHeaderExtraTopPadding.setVisibility(View.GONE);
+
+                result = convertView;
+                if ((result.getTag()) instanceof GroupListItemViewCache)
+                    viewCache = (GroupListItemViewCache) result.getTag();
+                else {
+                    result = mLayoutInflater
+                            .inflate(R.layout.group_browse_list_item, parent, false);
+                    viewCache = new GroupListItemViewCache(result);
+                    result.setTag(viewCache);
+                }
             }
         } else {
-            viewCache.accountHeader.setVisibility(View.GONE);
-            viewCache.divider.setVisibility(View.VISIBLE);
-            viewCache.accountHeaderExtraTopPadding.setVisibility(View.GONE);
+            /* Begin add for RCS */
+            if (entry.getAccountType().equals("RCS")) {
+
+                result = mLayoutInflater.inflate(R.layout.rcs_contact_group_item, parent, false);
+
+                holder.group_icon_view = (View) result.findViewById(R.id.group_icon_view);
+                holder.groupName = (TextView) result.findViewById(R.id.group_name);
+                holder.groupCount = (TextView) result.findViewById(R.id.group_count);
+                holder.title_view = (TextView) result.findViewById(R.id.title_view);
+                result.setTag(holder);
+
+            } else {
+                result = mLayoutInflater.inflate(R.layout.group_browse_list_item, parent, false);
+                viewCache = new GroupListItemViewCache(result);
+                result.setTag(viewCache);
+            }
         }
+        if (entry == null)
+            return result;
+
+        if (entry.getAccountType().equals("RCS")) {
+            holder = (ViewHolder) result.getTag();
+            holder.groupName.setText(entry.getTitle());
+            String memberCountString = mContext.getResources().getQuantityString(
+                    R.plurals.group_list_num_contacts_in_group,
+                    RcsUtils.getMessageChatCount(Integer.valueOf(entry.getSystemId())),
+                    RcsUtils.getMessageChatCount(Integer.valueOf(entry.getSystemId())));
+            holder.groupCount.setText(memberCountString);
+
+            int res_id;
+            switch (position % 6) {
+            case 0:
+                res_id = R.drawable.group_icon_1;
+                break;
+            case 1:
+                res_id = R.drawable.group_icon_2;
+                break;
+            case 2:
+                res_id = R.drawable.group_icon_3;
+                break;
+            case 3:
+                res_id = R.drawable.group_icon_4;
+                break;
+            case 4:
+                res_id = R.drawable.group_icon_5;
+                break;
+            case 5:
+                res_id = R.drawable.group_icon_6;
+                break;
+            default:
+                res_id = R.drawable.group_icon_6;
+                break;
+            }
+            holder.group_icon_view.setBackgroundResource(res_id);
+            if(mLocalGroupsCount == position){
+                holder.title_view.setVisibility(View.VISIBLE);
+                holder.title_view.setText(R.string.rcs_group_chat_item_grouplist);
+            } else {
+                holder.title_view.setVisibility(View.GONE);
+            }
+
+        } else {
+
+            viewCache = (GroupListItemViewCache) result.getTag();
+            // Add a header if this is the first group in an account and hide the divider
+            if (entry.isFirstGroupInAccount()) {
+                bindHeaderView(entry, viewCache);
+                viewCache.accountHeader.setVisibility(View.VISIBLE);
+                viewCache.divider.setVisibility(View.GONE);
+                if (position == 0) {
+                    // Have the list's top padding in the first header.
+                    //
+                    // This allows the ListView to show correct fading effect on top.
+                    // If we have topPadding in the ListView itself, an inappropriate padding is
+                    // inserted between fading items and the top edge.
+                    viewCache.accountHeaderExtraTopPadding.setVisibility(View.VISIBLE);
+                } else {
+                    viewCache.accountHeaderExtraTopPadding.setVisibility(View.GONE);
+                }
+            } else {
+                viewCache.accountHeader.setVisibility(View.GONE);
+                viewCache.divider.setVisibility(View.VISIBLE);
+                viewCache.accountHeaderExtraTopPadding.setVisibility(View.GONE);
+            }
+            /* End add for RCS */
 
         // Bind the group data
         Uri groupUri = getGroupUriFromId(entry.getGroupId());
@@ -189,20 +306,26 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         viewCache.groupTitle.setText(entry.getTitle());
         viewCache.groupMemberCount.setText(memberCountString);
 
-        if (mSelectionVisible) {
-            result.setActivated(isSelectedGroup(groupUri));
+            if (mSelectionVisible) {
+                result.setActivated(isSelectedGroup(groupUri));
+            }
         }
         return result;
     }
 
     private void bindHeaderView(GroupListItem entry, GroupListItemViewCache viewCache) {
-        AccountType accountType = mAccountTypeManager.getAccountType(
-                entry.getAccountType(), entry.getDataSet());
-        viewCache.accountType.setText(accountType.getDisplayLabel(mContext));
-        // According to the UI SPEC, we will not show the account name for Phone account
-        if (!PhoneAccountType.ACCOUNT_TYPE.equals(entry.getAccountType())) {
-            viewCache.accountName.setText(entry.getAccountName());
+
+        /* Begin add for RCS */
+        if (!entry.getAccountType().equals("RCS")) {
+            AccountType accountType = mAccountTypeManager.getAccountType(
+                    entry.getAccountType(), entry.getDataSet());
+            viewCache.accountType.setText(accountType.getDisplayLabel(mContext));
+            // According to the UI SPEC, we will not show the account name for Phone account
+            if (!PhoneAccountType.ACCOUNT_TYPE.equals(entry.getAccountType())) {
+                viewCache.accountName.setText(entry.getAccountName());
+            }
         }
+        /* End add for RCS */
     }
 
     private static Uri getGroupUriFromId(long groupId) {
@@ -241,4 +364,21 @@ public class GroupBrowseListAdapter extends BaseAdapter {
             return mUri;
         }
     }
+
+    /* Begin add for RCS */
+    private class ViewHolder {
+        View group_icon_view;
+        TextView groupName, groupCount;
+        TextView title_view;
+    }
+
+    public void setRcsGroupsData(ArrayList<GroupChat> data,HashMap<String, Integer> countMap){
+
+        this.mRcsChatGroups.clear();
+        this.mRcsChatGroups.addAll(data);
+        this.mCountMap.clear();
+        this.mCountMap.putAll(countMap);
+        this.notifyDataSetChanged();
+    }
+    /* End add for RCS */
 }

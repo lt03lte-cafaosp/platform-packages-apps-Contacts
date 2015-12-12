@@ -35,6 +35,10 @@ public final class GroupListLoader extends CursorLoader {
         Groups._ID,
         Groups.TITLE,
         Groups.SUMMARY_COUNT,
+        /* Begin add for RCS */
+        Groups.SOURCE_ID,
+        Groups.SYSTEM_ID
+        /* End add for RCS */
     };
 
     public final static int ACCOUNT_NAME = 0;
@@ -43,12 +47,36 @@ public final class GroupListLoader extends CursorLoader {
     public final static int GROUP_ID = 3;
     public final static int TITLE = 4;
     public final static int MEMBER_COUNT = 5;
+    /* Begin add for RCS */
+    public final static int SOURCE_ID = 6;
+    public final static int SYSTEM_ID = 7;
+    /* End add for RCS */
 
     private static final Uri GROUP_LIST_URI = Groups.CONTENT_SUMMARY_URI;
 
     public GroupListLoader(Context context) {
-        super(context, GROUP_LIST_URI, COLUMNS, Groups.ACCOUNT_TYPE + " NOT NULL AND "
-                + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.AUTO_ADD + "=0 AND " +
-                Groups.FAVORITES + "=0 AND " + Groups.DELETED + "=0", null, "account_id");
+
+        super(context, GROUP_LIST_URI, COLUMNS, createSelection(), null, createSortOrder());
     }
+
+    /* Begin add for RCS */
+    private static String createSelection() {
+        StringBuilder where = new StringBuilder();
+        where.append(Groups.ACCOUNT_TYPE + " NOT NULL AND "
+                + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.AUTO_ADD + "=0 AND " +
+                Groups.FAVORITES + "=0 AND " + Groups.DELETED + "!=1");
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+            where.append(" AND ("+Groups.SOURCE_ID + "!='RCS'"+" OR "+Groups.SOURCE_ID+" IS NULL)");
+        }
+        return where.toString();
+    }
+
+    private static String createSortOrder(){
+        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+            return "account_id";
+        } else {
+            return Groups.SOURCE_ID;
+        }
+    }
+    /* End add for RCS */
 }
