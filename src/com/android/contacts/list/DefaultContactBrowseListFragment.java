@@ -33,6 +33,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.list.ContactListAdapter;
 import com.android.contacts.common.list.ContactListFilter;
 import com.android.contacts.common.list.ContactListFilterController;
@@ -41,7 +42,9 @@ import com.android.contacts.common.list.DefaultContactListAdapter;
 import com.android.contacts.common.list.ProfileAndContactsLoader;
 import com.android.contacts.common.util.ImplicitIntentsUtil;
 import com.android.contacts.editor.ContactEditorFragment;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.common.util.AccountFilterUtil;
+import com.android.contacts.common.util.ContactsCommonRcsUtil;
 
 /**
  * Fragment containing a contact list used for browsing (as compared to
@@ -60,6 +63,9 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     private TextView mProfileTitle;
     private View mSearchProgress;
     private TextView mSearchProgressText;
+    /* Begin add for RCS */
+    private ContactListItemView mPulicAccountView;
+    /* End add for RCS */
 
     private class FilterHeaderClickListener implements OnClickListener {
         @Override
@@ -122,6 +128,13 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         addEmptyUserProfileHeader(inflater);
         showEmptyUserProfile(false);
 
+        /* Begin add for RCS */
+        if (RcsApiManager.getSupportApi().isRcsSupported() && RcsUtils.isNativeUIInstalled
+                && RcsUtils.isPluginInstalled(getActivity())) {
+            addPublicAccountView();
+        }
+        /* End add for RCS */
+
         // Putting the header view inside a container will allow us to make
         // it invisible later. See checkHeaderViewVisibility()
         FrameLayout headerContainer = new FrameLayout(inflater.getContext());
@@ -179,6 +192,11 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
     @Override
     protected void setProfileHeader() {
+        /* Begin add for RCS */
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            showPublicAccountView(!isSearchMode());
+        }
+        /* End add for RCS */
         mUserProfileExists = getAdapter().hasProfile();
         showEmptyUserProfile(!mUserProfileExists && !isSearchMode());
 
@@ -256,4 +274,30 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
             }
         });
     }
+
+    /* Begin add for RCS */
+    private void addPublicAccountView() {
+        ListView list = getListView();
+        mPulicAccountView = new ContactListItemView(getActivity(), null);
+        mPulicAccountView.getPhotoView().setBackground(
+                getActivity().getDrawable(R.drawable.public_account));
+        mPulicAccountView.setDisplayName(getActivity().getResources().getString(
+                R.string.public_account));
+        mPulicAccountView.setIsSectionHeaderEnabled(true);
+        list.addHeaderView(mPulicAccountView);
+        mPulicAccountView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(RcsUtils.ACTION_PUBLIC_ACCOUNT_ACTIVITY);
+                startActivity(intent);
+            }
+        });
+    }
+
+    private void showPublicAccountView(boolean show) {
+        if (mPulicAccountView != null) {
+            mPulicAccountView.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+    }
+    /* End add for RCS */
 }

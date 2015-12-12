@@ -27,6 +27,7 @@ public final class GroupListItem {
     private final String mTitle;
     private final boolean mIsFirstGroupInAccount;
     private final int mMemberCount;
+    private String mSystemId = "";
 
     public GroupListItem(String accountName, String accountType, String dataSet, long groupId,
             String title, boolean isFirstGroupInAccount, int memberCount) {
@@ -70,4 +71,22 @@ public final class GroupListItem {
     public boolean isFirstGroupInAccount() {
         return mIsFirstGroupInAccount;
     }
+
+    /* Begin add for RCS */
+    public GroupListItem(String accountName, String accountType, String dataSet, long groupId,
+            String title, String systemId, boolean isFirstGroupInAccount, int memberCount) {
+        mAccountName = accountName;
+        mAccountType = accountType;
+        mDataSet = dataSet;
+        mGroupId = groupId;
+        mTitle = title;
+        mSystemId = systemId;
+        mIsFirstGroupInAccount = isFirstGroupInAccount;
+        mMemberCount = memberCount;
+    }
+
+    public String getSystemId(){
+        return mSystemId;
+    }
+    /* End add for RCS */
 }

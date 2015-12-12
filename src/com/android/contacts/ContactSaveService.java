@@ -41,6 +41,7 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.AggregationExceptions;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
+import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Groups;
@@ -48,6 +49,8 @@ import android.provider.ContactsContract.PinnedPositions;
 import android.provider.ContactsContract.Profile;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract.RawContactsEntity;
+import android.provider.ContactsContract.CommonDataKinds.Organization;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.text.TextUtils;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
@@ -60,20 +63,28 @@ import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.model.RawContactDeltaList;
 import com.android.contacts.common.model.RawContactModifier;
+import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.common.util.PermissionsUtil;
+import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.SimContactsOperation;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.editor.ContactEditorFragment;
 import com.android.contacts.util.ContactPhotoUtils;
-
+import com.android.contacts.util.RcsUtils;
 import com.android.internal.telephony.uicc.AdnRecord;
 import com.android.internal.telephony.uicc.IccConstants;
 import com.android.internal.telephony.IIccPhoneBook;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.suntek.rcs.ui.common.RcsLog;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -195,6 +206,17 @@ public class ContactSaveService extends IntentService {
             new CopyOnWriteArrayList<Listener>();
 
     private Handler mMainHandler;
+    /* Begin add for RCS */
+    public static final int RESULT_ADDRESS_IS_TOO_LONG_FAILURE = 13;
+    public static final int RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE = 14;
+    public static final int RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE = 15;
+    public static final int RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE = 16;
+    public static final int RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE = 17;
+    private static final int RCS_MAX_ADDRESS_LENGTH = 40;
+    private static final int RCS_MAX_COMPANY_TITLE_LENGTH = 20;
+    private static final int RCS_MAX_COMPANY_NAME_LENGTH = 40;
+    private static final int RCS_MAX_EMAIL_LENGTH = 50;
+    /* End add for RCS */
 
     public ContactSaveService() {
         super(TAG);
@@ -297,6 +319,17 @@ public class ContactSaveService extends IntentService {
             deleteMultipleContacts(intent);
         } else if (ACTION_DELETE_CONTACT.equals(action)) {
             deleteContact(intent);
+            /* Begin add for RCS */
+            boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+            if (isRcsSupported && RcsUtils.isNativeUIInstalled
+                    && RcsUtils.isPluginInstalled(this)) {
+                Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
+                if (!TextUtils.isEmpty(contactUri.getPath())
+                        && !contactUri.getPath().contains("profile")) {
+                    RcsUtils.autoBackupOnceChanged(this);
+                }
+            }
+            /* End add for RCS */
         } else if (ACTION_JOIN_CONTACTS.equals(action)) {
             joinContacts(intent);
         } else if (ACTION_JOIN_SEVERAL_CONTACTS.equals(action)) {
@@ -434,7 +467,7 @@ public class ContactSaveService extends IntentService {
         RawContactDeltaList state = intent.getParcelableExtra(EXTRA_CONTACT_STATE);
         boolean isProfile = intent.getBooleanExtra(EXTRA_SAVE_IS_PROFILE, false);
         Bundle updatedPhotos = intent.getParcelableExtra(EXTRA_UPDATED_PHOTOS);
-
+        boolean isInsert = intent.getBooleanExtra(RcsUtils.KEY_IS_INSERT, false);
         if (state == null) {
             Log.e(TAG, "Invalid arguments for saveContact request");
             return;
@@ -471,6 +504,23 @@ public class ContactSaveService extends IntentService {
                 result = doSaveToSimCard(entity, resolver, subscription);
                 Log.d(TAG, "doSaveToSimCard result is  " + result);
             }
+            /* Begin add for RCS */
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity,
+                        StructuredPostal.CONTENT_ITEM_TYPE)) {
+                    return;
+                }
+                if (deliverCallbackRorRcsEdit(callbackIntent,
+                        entity, Organization.CONTENT_ITEM_TYPE)) {
+                    return;
+                }
+                if (deliverCallbackRorRcsEdit(callbackIntent, entity,
+                        Email.CONTENT_ITEM_TYPE)) {
+                    return;
+                }
+            }
+            /* End add for RCS */
         }
         int tries = 0;
         while (tries++ < PERSIST_TRIES) {
@@ -526,10 +576,18 @@ public class ContactSaveService extends IntentService {
                                     rawContactId);
                     lookupUri = RawContacts.getContactLookupUri(resolver, rawContactUri);
                 }
-                if (lookupUri != null) {
-                    Log.v(TAG, "Saved contact. New URI: " + lookupUri);
-                }
-
+                /* Begin add for RCS */
+                Log.v(TAG, "Saved contact. New URI: " + lookupUri);
+                    if (lookupUri == null) {
+                        resolver.delete(RawContacts.CONTENT_URI,
+                            RawContacts._ID + "=?",
+                            new String[] {
+                                String.valueOf(rawContactId)
+                            });
+                    }
+                RcsUtils.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
+                        resolver, rawContactId);
+                /* End add for RCS */
                 // We can change this back to false later, if we fail to save the contact photo.
                 succeeded = true;
                 break;
@@ -598,6 +656,8 @@ public class ContactSaveService extends IntentService {
         // Now save any updated photos.  We do this at the end to ensure that
         // the ContactProvider already knows about newly-created contacts.
         if (updatedPhotos != null) {
+            boolean isSomethingChangedExceptPhoto = intent.getBooleanExtra(
+                    RcsUtils.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO, false);
             for (String key : updatedPhotos.keySet()) {
                 Uri photoUri = updatedPhotos.getParcelable(key);
                 long rawContactId = Long.parseLong(key);
@@ -607,12 +667,27 @@ public class ContactSaveService extends IntentService {
                 if (rawContactId < 0) {
                     rawContactId = insertedRawContactId;
                 }
-
                 // If the save failed, insertedRawContactId will be -1
                 if (rawContactId < 0 || !saveUpdatedPhoto(rawContactId, photoUri)) {
                     succeeded = false;
+                /* Begin add for RCS */
+                } else if(RcsApiManager.getSupportApi().isRcsSupported() && rawContactId >= 0) {
+                    if (!isProfile) {
+                        RcsLog.d("Setted Local Photo!");
+                        RcsUtils.setLocalSetted(resolver, true, rawContactId);
+                    }
                 }
             }
+            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                if (updatedPhotos.isEmpty() && !isSomethingChangedExceptPhoto
+                        && !isProfile && !isInsert) {
+                    RcsLog.d("Photo has deleted!");
+                    for(long rawContact : rawContactsList) {
+                        RcsUtils.setLocalSetted(resolver, false, rawContact);
+                    }
+                }
+            }
+            /* End add for RCS */
         }
 
         Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
@@ -1543,4 +1618,80 @@ public class ContactSaveService extends IntentService {
             }
         }
     }
+
+    /* Begin add for RCS */
+    private boolean deliverCallbackRorRcsEdit(Intent callbackIntent, RawContactDelta entity,
+            String mimeType) {
+        ArrayList<ValuesDelta> valueList = entity.getMimeEntries(mimeType);
+        if (valueList != null) {
+            for (ValuesDelta aValue : valueList) {
+                if (TextUtils.equals(mimeType, StructuredPostal.CONTENT_ITEM_TYPE)) {
+                    String formattedAddress = aValue
+                            .getAsString(StructuredPostal.FORMATTED_ADDRESS);
+                    if (formattedAddress != null
+                            && formattedAddress.length() > RCS_MAX_ADDRESS_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_ADDRESS_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+                if (TextUtils.equals(mimeType, Organization.CONTENT_ITEM_TYPE)) {
+                    String companyName = aValue.getAsString(Organization.COMPANY);
+                    if (companyName != null && companyName.length() > RCS_MAX_COMPANY_NAME_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_COMPANY_NAME_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                    String companyTitle = aValue.getAsString(Organization.TITLE);
+                    if (companyTitle != null
+                            && companyTitle.length() > RCS_MAX_COMPANY_TITLE_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_COMPANY_TITLE_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+                if (TextUtils.equals(mimeType, Email.CONTENT_ITEM_TYPE)) {
+                    String emailAddress = aValue.getAsString(Email.ADDRESS);
+                    if (emailAddress != null && emailAddress.length() > RCS_MAX_EMAIL_LENGTH) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_EMAIL_ADDRESS_IS_TOO_LONG_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                    if (emailAddress != null && !RcsUtils.isRegularEmail(emailAddress)) {
+                        if (callbackIntent != null) {
+                            callbackIntent.putExtra(EXTRA_SAVE_SUCCEEDED, false);
+                            callbackIntent.setData(null);
+                            callbackIntent.putExtra(SAVE_CONTACT_RESULT,
+                                    RESULT_EMAIL_ADDRESS_IS_INVALID_FAILURE);
+                            deliverCallback(callbackIntent);
+                        }
+                        return true;
+                    }
+                }
+
+            }
+        }
+        return false;
+    }
+    /* End add for RCS */
 }
