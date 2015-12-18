@@ -30,9 +30,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -167,6 +165,7 @@ import com.android.contacts.widget.MultiShrinkScroller;
 import com.android.contacts.widget.MultiShrinkScroller.MultiShrinkScrollerListener;
 import com.android.contacts.widget.QuickContactImageView;
 import com.android.contactsbind.HelpUtils;
+import com.android.phone.common.util.FirewallUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.ImmutableList;
@@ -328,17 +327,9 @@ public class QuickContactActivity extends ContactsActivity {
     private static final int MIN_NUM_COLLAPSED_RECENT_ENTRIES_SHOWN = 3;
     private static final int CARD_ENTRY_ID_EDIT_CONTACT = -2;
 
-    private boolean isFireWallInstalled = false;
-    private static final String FIREWALL_APK_NAME = "com.android.firewall";
-    private static final String FIREWALL_BLACK_WHITE_LIST = "com.android.firewall.FirewallListPage";
-    private static final Uri FIREWALL_BLACKLIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/blacklistitems");
-    private static final Uri FIREWALL_WHITELIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/whitelistitems");
+    private boolean mFireWallInstalled = false;
     private static final String BLACKLIST = "blacklist";
     private static final String WHITELIST = "whitelist";
-    private static final int VALID_NUMBER_LENGTH = 11;
-    private static final int FIREWALL_LIST_MAX_ITEM_NUM = 100;
     private static final int NOT_IN_FIREWALL = 1;
     private static final int IN_BLACKLIST = -1;
     private static final int IN_WHITHLIST = 0;
@@ -532,7 +523,7 @@ public class QuickContactActivity extends ContactsActivity {
                 menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
-                if (isFireWallInstalled) {
+                if (mFireWallInstalled) {
                     ImageView firewallIcon = (ImageView) v.findViewById(
                             R.id.black_white_list_indicator);
                     info.setImageView(firewallIcon);
@@ -631,44 +622,12 @@ public class QuickContactActivity extends ContactsActivity {
         }
     }
 
-    private boolean isNumberInFirewall(String mode, String number) {
-        Uri uri = null;
-        Cursor cursor = null;
-        number = number.replaceAll(" ", "");
-        number = number.replaceAll("-", "");
-        String tempNumber = number;
-        int length = tempNumber.length();
-        if (length > VALID_NUMBER_LENGTH) {
-            tempNumber = number.substring(
-                    length - VALID_NUMBER_LENGTH, length);
-        }
-        String selection = "number" + " LIKE '%" + tempNumber + "'";
-        if (BLACKLIST.equals(mode)) {
-            uri = FIREWALL_BLACKLIST_CONTENT_URI;
-        } else {
-            uri = FIREWALL_WHITELIST_CONTENT_URI;
-        }
-        try {
-            cursor = getContentResolver().query(uri, null, selection,
-                    null, null);
-            if (cursor != null && cursor.getCount() > 0) {
-                return true;
-            } else {
-                return false;
-            }
-        } finally {
-            if (cursor != null && !cursor.isClosed()) {
-                cursor.close();
-            }
-        }
-    }
-
     private int numberInWhichFirewallList(String number) {
         int result = NOT_IN_FIREWALL;
         if (number != null) {
-            if (isNumberInFirewall(BLACKLIST, number)) {
+            if (FirewallUtils.isNumberInFirewall(this, true, number)) {
                 result = IN_BLACKLIST;
-            } else if (isNumberInFirewall(WHITELIST, number)) {
+            } else if (FirewallUtils.isNumberInFirewall(this, false, number)) {
                 result = IN_WHITHLIST;
             }
         }
@@ -680,26 +639,14 @@ public class QuickContactActivity extends ContactsActivity {
             Bundle bundle = intent.getExtras();
             String number = bundle.getString(NUMBER_KEY);
             String mode = bundle.getString(MODE_KEY);
-            boolean result = false;
-            Uri uri = null;
-            number = number.replaceAll(" ", "");
-            number = number.replaceAll("-", "");
-            if (BLACKLIST.equals(mode)) {
-                uri = FIREWALL_BLACKLIST_CONTENT_URI;
-            } else {
-                uri = FIREWALL_WHITELIST_CONTENT_URI;
-            }
-            String deleteSelection = "number=?";
-            String deleteSelectionArgs [] = new String[] {
-                    String.valueOf(number)
-                };
-            result = getContentResolver().delete(uri, deleteSelection,
-                    deleteSelectionArgs) >= 0;
+            boolean blacklisted = mode.equals(BLACKLIST);
+            boolean result = FirewallUtils.removeFromFirewall(this,
+                    blacklisted, number);
             if (result) {
                 if (imageView != null) {
                     imageView.setVisibility(View.GONE);
                 }
-                Toast.makeText(this, mode == BLACKLIST
+                Toast.makeText(this, blacklisted
                         ? R.string.remove_blacklist_success
                         : R.string.remove_whitelist_success, Toast.LENGTH_SHORT).show();
             }
@@ -713,33 +660,9 @@ public class QuickContactActivity extends ContactsActivity {
             String number = bundle.getString(NUMBER_KEY);
             String mode = bundle.getString(MODE_KEY);
             int personId = bundle.getInt(PERSON_KEY, -1);
-            boolean result = false;
-            Uri uri = null;
-            if (BLACKLIST.equals(mode)) {
-                uri = FIREWALL_BLACKLIST_CONTENT_URI;
-            } else {
-                uri = FIREWALL_WHITELIST_CONTENT_URI;
-            }
-            Cursor cursor = null;
-            try {
-                cursor = getContentResolver().query(uri, null, null, null, null);
-                if (cursor.getCount() >= FIREWALL_LIST_MAX_ITEM_NUM) {
-                    Toast.makeText(this, R.string.firewall_reach_maximun,
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-            } finally {
-                if (cursor != null && !cursor.isClosed()) {
-                    cursor.close();
-                }
-            }
-            ContentValues values = new ContentValues();
-            number = number.replaceAll(" ", "");
-            number = number.replaceAll("-", "");
-            values.put(NAME_KEY, name);
-            values.put(NUMBER_KEY, number);
-            values.put(PERSON_KEY, personId);
-            result = getContentResolver().insert(uri, values) != null;
+            boolean blacklisted = mode.equals(BLACKLIST);
+            boolean result = FirewallUtils.addToFirewall(this,
+                    blacklisted, number, name, personId);
             if (result) {
                 if (imageView != null) {
                     imageView.setVisibility(View.VISIBLE);
@@ -747,7 +670,7 @@ public class QuickContactActivity extends ContactsActivity {
                             ? R.drawable.number_in_blacklist
                             : R.drawable.number_in_whitelist);
                 }
-                Toast.makeText(this, mode == BLACKLIST
+                Toast.makeText(this, blacklisted
                         ? R.string.add_blacklist_success
                         : R.string.add_whitelist_success, Toast.LENGTH_SHORT).show();
             }
@@ -1065,19 +988,6 @@ public class QuickContactActivity extends ContactsActivity {
         Trace.endSection();
     }
 
-    private boolean isFirewalltalled() {
-        boolean installed = false;
-        try {
-            ApplicationInfo info = getApplicationContext().getPackageManager().getApplicationInfo(
-                    FIREWALL_APK_NAME, PackageManager.GET_PROVIDERS);
-            installed = info != null;
-        } catch (NameNotFoundException e) {
-            installed = false;
-        }
-        Log.d(TAG,"Is Firewall installed ? " + installed);
-        return installed;
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_CONTACT_EDITOR_ACTIVITY &&
@@ -1335,9 +1245,9 @@ public class QuickContactActivity extends ContactsActivity {
             mHasIntentLaunched = false;
             populateContactAndAboutCard(mCachedCp2DataCardModel);
         }
-        isFireWallInstalled = isFirewalltalled();
+        mFireWallInstalled = FirewallUtils.isFireWallInstalled(this);
         if (mContactCard != null) {
-            mContactCard.isFireWallInstalled(isFireWallInstalled);
+            mContactCard.setFireWallInstalled(mFireWallInstalled);
         }
         // When exiting the activity and resuming, we want to force a full reload of all the
         // interaction data in case something changed in the background. On screen rotation,
