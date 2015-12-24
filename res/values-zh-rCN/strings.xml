@@ -269,7 +269,7 @@
     <string name="memory_size">"容量:"</string>
     <string name="memory_available">"可用"</string>
     <string name="memory_used">"已用:"</string>
-    <string name="calculating_status_now">正在计算存储状态…</string>
+    <string name="no_account">手机上没有账户！</string>
     <string name="menu_export_database" msgid="2659719297530170820">"导出数据库文件"</string>
     <string name="action_menu_add_new_contact_button" msgid="3180222523336380017">"添加新联系人"</string>
     <string name="expanding_entry_card_view_see_more" msgid="3779194067124758079">"查看更多"</string>
