@@ -364,6 +364,9 @@ public class QuickContactActivity extends ContactsActivity {
 
     private static final String FRAGMENT_TAG_SELECT_ACCOUNT = "select_account_fragment";
 
+    private Context mContext;
+    private boolean mEnablePresence = false;
+
     /* Begin add for RCS */
     private boolean mNeverQueryRcsPhoto;
     private boolean mNeverQueryRcsCapability;
@@ -882,7 +885,7 @@ public class QuickContactActivity extends ContactsActivity {
     protected void onCreate(Bundle savedInstanceState) {
         Trace.beginSection("onCreate()");
         super.onCreate(savedInstanceState);
-
+        mContext = this;
         if (RequestPermissionsActivity.startPermissionActivity(this)) {
             return;
         }
@@ -917,13 +920,20 @@ public class QuickContactActivity extends ContactsActivity {
         mContactCard.setExpandButtonText(
         getResources().getString(R.string.expanding_entry_card_view_see_all));
         mContactCard.setOnCreateContextMenuListener(mEntryContextMenuListener);
-        mContactCard.disPlayVideoCallSwitch(CallUtil.isVideoEnabled(this));
-        mContactCard.setCallBack(new VideoCallingCallback(){
-            @Override
-            public void updateContact(){
-                reFreshContact();
+        mEnablePresence = mContext.getResources().getBoolean(
+                R.bool.config_regional_presence_enable);
+        if (mEnablePresence) {
+            mContactCard.disPlayVideoCallSwitch(mEnablePresence);
+            if (!ContactDisplayUtils.mIsBound) {
+                ContactDisplayUtils.bindService(mContext);
             }
-        });
+            mContactCard.setCallBack(new VideoCallingCallback(){
+                @Override
+                public void updateContact(){
+                    reFreshContact();
+                }
+            });
+        }
 
         mRecentCard.setOnClickListener(mEntryClickHandler);
         mRecentCard.setTitle(getResources().getString(R.string.recent_card_title));
@@ -2568,6 +2578,9 @@ public class QuickContactActivity extends ContactsActivity {
         }
         if (mRecentDataTask != null) {
             mRecentDataTask.cancel(/* mayInterruptIfRunning = */ false);
+        }
+        if (mEnablePresence && ContactDisplayUtils.mIsBound) {
+            ContactDisplayUtils.unbindService(mContext);
         }
     }
 
