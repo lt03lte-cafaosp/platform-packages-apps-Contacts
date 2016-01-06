@@ -29,6 +29,7 @@
 
 package com.android.contacts.activities;
 
+import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
@@ -76,6 +77,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
@@ -319,6 +321,10 @@ public class MultiPickContactActivity extends ListActivity implements
             mMode = MODE_DEFAULT_SIM;
         }
 
+        ActionBar actionBar = getActionBar();
+        actionBar.setHomeButtonEnabled(true);
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
         setContentView(R.layout.pick_contact);
         mChoiceSet = new Bundle();
         mAdapter = new ContactItemListAdapter(this);
@@ -434,6 +440,16 @@ public class MultiPickContactActivity extends ListActivity implements
             }
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return false;
     }
 
     private String getOKString() {
