@@ -58,7 +58,6 @@ import android.widget.Toast;
 import com.android.contacts.GroupMemberLoader;
 import com.android.contacts.GroupMetaDataLoader;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.MultiPickContactActivity;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.util.ImplicitIntentsUtil;
@@ -469,7 +468,7 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     public void onCreateOptionsMenu(Menu menu, final MenuInflater inflater) {
         inflater.inflate(R.menu.view_group, menu);
         /* Begin add for RCS */
-        mOptionsMenuRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+        mOptionsMenuRcsSupported = RcsUtils.isRcsSupported();
         mOptionsMenuRcsEnhanceScreenSupported = mOptionsMenuRcsSupported
                 && RcsUtils.isEnhanceScreenInstalled(mContext);
         /* End add for RCS */

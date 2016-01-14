@@ -104,7 +104,6 @@ import com.android.contacts.ContactsActivity;
 import com.android.contacts.NfcHandler;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.SimContactsConstants;
-import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.android.contacts.R;
 import com.android.contacts.common.CallUtil;
 import com.android.contacts.common.ClipboardUtils;
@@ -890,9 +889,9 @@ public class QuickContactActivity extends ContactsActivity {
             return;
         }
 
-        if (ContactsCommonRcsUtil.isRcsSupported()) {
-             mNeverQueryRcsPhoto = true;
-             mNeverQueryRcsCapability = true;
+        if (RcsUtils.isRcsSupported() && RcsUtils.isRcsOnline()) {
+            mNeverQueryRcsPhoto = true;
+            mNeverQueryRcsCapability = true;
         }
 
         mResolver = getContentResolver();
@@ -1049,7 +1048,7 @@ public class QuickContactActivity extends ContactsActivity {
         mHasAlreadyBeenOpened = true;
         mIsEntranceAnimationFinished = true;
         mHasComputedThemeColor = false;
-        if (ContactsCommonRcsUtil.isRcsSupported()){
+        if (RcsUtils.isRcsSupported() && RcsUtils.isRcsOnline()) {
             mNeverQueryRcsCapability = true;
         }
         processIntent(intent);
@@ -2349,7 +2348,7 @@ public class QuickContactActivity extends ContactsActivity {
                 bindContactData(data);
 
                 /* Begin add for RCS */
-                if (ContactsCommonRcsUtil.isRcsSupported()) {
+                if (RcsUtils.isRcsSupported()) {
                     if (RcsUtils.isLocalProfile(mContactData)) {
                         final WeakReference<QuickContactActivity> quickRef;
                         quickRef = new WeakReference<QuickContactActivity>
@@ -2922,7 +2921,7 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
-            if (ContactsCommonRcsUtil.isRcsSupported()
+            if (RcsUtils.isRcsSupported()
                     && RcsUtils.isLocalProfile(mContactData)) {
                 uploadOrDownload.setVisible(true);
             } else {

@@ -95,7 +95,6 @@ import android.widget.Toast;
 
 import com.android.contacts.activities.PeopleActivity;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.SimContactsConstants;
@@ -1658,7 +1657,7 @@ public class MultiPickContactActivity extends ListActivity implements
             } else {
                 Toast.makeText(mContext, R.string.import_finish, Toast.LENGTH_SHORT).show();
                 /* Begin add for RCS */
-                if (RcsApiManager.getSupportApi().isRcsSupported()) {
+                if (RcsUtils.isRcsSupported()) {
                     Thread thread = new Thread() {
                         @Override
                         public void run() {
@@ -1764,7 +1763,7 @@ public class MultiPickContactActivity extends ListActivity implements
         }
 
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RcsUtils.isRcsSupported()) {
             if (!TextUtils.isEmpty(phoneNumber)) {
                 phoneNumberSet.add(phoneNumber);
             }
@@ -1792,8 +1791,9 @@ public class MultiPickContactActivity extends ListActivity implements
         builder.setTitle(getString(R.string.label_groups));
         ContentResolver resolver = getContentResolver();
         String selection = Groups.ACCOUNT_TYPE + " =? AND "
-                           + Groups.DELETED + " != ? AND "
-                           + Groups.SOURCE_ID + " != 'RCS'";
+                           + Groups.DELETED + " != ? AND ("
+                           + Groups.SOURCE_ID + "!='RCS'"+" OR "
+                           + Groups.SOURCE_ID+" IS NULL)";
 
         ArrayList<String> items = new ArrayList<String>();
 

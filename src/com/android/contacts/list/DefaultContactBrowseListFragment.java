@@ -33,7 +33,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.list.ContactListAdapter;
 import com.android.contacts.common.list.ContactListFilter;
 import com.android.contacts.common.list.ContactListFilterController;
@@ -44,7 +43,6 @@ import com.android.contacts.common.util.ImplicitIntentsUtil;
 import com.android.contacts.editor.ContactEditorFragment;
 import com.android.contacts.util.RcsUtils;
 import com.android.contacts.common.util.AccountFilterUtil;
-import com.android.contacts.common.util.ContactsCommonRcsUtil;
 
 /**
  * Fragment containing a contact list used for browsing (as compared to
@@ -129,7 +127,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         showEmptyUserProfile(false);
 
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported() && RcsUtils.isNativeUIInstalled
+        if (RcsUtils.isRcsSupported() && RcsUtils.isNativeUIInstalled
                 && RcsUtils.isPluginInstalled(getActivity())) {
             addPublicAccountView();
         }
@@ -193,7 +191,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     @Override
     protected void setProfileHeader() {
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RcsUtils.isRcsSupported()) {
             showPublicAccountView(!isSearchMode());
         }
         /* End add for RCS */
