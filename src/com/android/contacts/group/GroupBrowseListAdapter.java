@@ -32,7 +32,6 @@ import android.widget.TextView;
 
 import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.PhoneAccountType;
 import com.android.contacts.common.model.AccountTypeManager;
@@ -143,7 +142,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         int memberCount = mCursor.getInt(GroupListLoader.MEMBER_COUNT);
 
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported() && (!TextUtils.isEmpty(sourceId))) {
+        if (RcsUtils.isRcsSupported() && (!TextUtils.isEmpty(sourceId))) {
             if(sourceId.equals("RCS")){
                 accountType = sourceId;
                 String strGroupId = mCursor.getString(GroupListLoader.SYSTEM_ID);

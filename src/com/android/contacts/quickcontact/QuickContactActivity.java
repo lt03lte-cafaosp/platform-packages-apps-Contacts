@@ -885,9 +885,9 @@ public class QuickContactActivity extends ContactsActivity {
             return;
         }
 
-        if (ContactsCommonRcsUtil.isRcsSupported()) {
-             mNeverQueryRcsPhoto = true;
-             mNeverQueryRcsCapability = true;
+        if (ContactsCommonRcsUtil.isRcsSupported() && RcsUtils.isRcsOnline()) {
+            mNeverQueryRcsPhoto = true;
+            mNeverQueryRcsCapability = true;
         }
 
         mResolver = getContentResolver();
@@ -1030,7 +1030,7 @@ public class QuickContactActivity extends ContactsActivity {
         mHasAlreadyBeenOpened = true;
         mIsEntranceAnimationFinished = true;
         mHasComputedThemeColor = false;
-        if (ContactsCommonRcsUtil.isRcsSupported()){
+        if (ContactsCommonRcsUtil.isRcsSupported() && RcsUtils.isRcsOnline()) {
             mNeverQueryRcsCapability = true;
         }
         processIntent(intent);

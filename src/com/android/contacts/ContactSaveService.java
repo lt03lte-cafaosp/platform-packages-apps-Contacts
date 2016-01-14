@@ -320,7 +320,7 @@ public class ContactSaveService extends IntentService {
         } else if (ACTION_DELETE_CONTACT.equals(action)) {
             deleteContact(intent);
             /* Begin add for RCS */
-            boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+            boolean isRcsSupported = RcsUtils.isRcsSupported();
             if (isRcsSupported && RcsUtils.isNativeUIInstalled
                     && RcsUtils.isPluginInstalled(this)) {
                 Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
@@ -505,7 +505,7 @@ public class ContactSaveService extends IntentService {
                 Log.d(TAG, "doSaveToSimCard result is  " + result);
             }
             /* Begin add for RCS */
-            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (RcsUtils.isRcsSupported()) {
                 Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
                 if (deliverCallbackRorRcsEdit(callbackIntent, entity,
                         StructuredPostal.CONTENT_ITEM_TYPE)) {
@@ -671,14 +671,14 @@ public class ContactSaveService extends IntentService {
                 if (rawContactId < 0 || !saveUpdatedPhoto(rawContactId, photoUri)) {
                     succeeded = false;
                 /* Begin add for RCS */
-                } else if(RcsApiManager.getSupportApi().isRcsSupported() && rawContactId >= 0) {
+                } else if(RcsUtils.isRcsSupported() && rawContactId >= 0) {
                     if (!isProfile) {
                         RcsLog.d("Setted Local Photo!");
                         RcsUtils.setLocalSetted(resolver, true, rawContactId);
                     }
                 }
             }
-            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (RcsUtils.isRcsSupported()) {
                 if (updatedPhotos.isEmpty() && !isSomethingChangedExceptPhoto
                         && !isProfile && !isInsert) {
                     RcsLog.d("Photo has deleted!");

@@ -84,7 +84,6 @@ import android.widget.LinearLayout;
 import android.widget.ListPopupWindow;
 import android.widget.Toast;
 import android.text.TextUtils;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.util.RcsUtils;
 
 import java.util.ArrayList;
@@ -1285,7 +1284,7 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
         if (mNewLocalProfile) {
             result.setProfileQueryUri();
             /* Begin add for RCS */
-            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (RcsUtils.isRcsSupported()) {
                 String myPhoneNumber = RcsUtils.getMyPhoneNumber();
                 if (!TextUtils.isEmpty(myPhoneNumber)) {
                     phoneChild.put(Phone.NUMBER, myPhoneNumber);
@@ -1464,7 +1463,7 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
                         Toast.makeText(mContext, R.string.contactSavedToast,
                                 Toast.LENGTH_SHORT).show();
                         /* Begin add for RCS */
-                        if (RcsApiManager.getSupportApi().isRcsSupported()
+                        if (RcsUtils.isRcsSupported()
                                 && RcsUtils.isNativeUIInstalled
                                 && RcsUtils.isPluginInstalled(mContext)
                                 && !isEditingUserProfile()) {

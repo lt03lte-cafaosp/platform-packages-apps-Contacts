@@ -57,7 +57,6 @@ import android.widget.Toolbar;
 
 import com.android.contacts.ContactsActivity;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.ActionBarAdapter.TabState;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.activity.RequestPermissionsActivity;
@@ -285,7 +284,7 @@ public class PeopleActivity extends ContactsActivity implements
         getWindow().setBackgroundDrawable(null);
         registerReceiver();
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RcsUtils.isRcsSupported()) {
             RcsUtils.resotreIfTerminalChanged(this, RcsUtils.RESTORE_CONTACTS, null, null);
         }
         /* End add for RCS */
@@ -1295,7 +1294,7 @@ public class PeopleActivity extends ContactsActivity implements
                     contactsFilterMenu.setVisible(true);
                     clearFrequentsMenu.setVisible(false);
                     /* Begin add for RCS */
-                    boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
+                    boolean isRcsSupport = RcsUtils.isRcsSupported();
                     boolean isRcsPluginInstalled = RcsUtils.isPluginInstalled(this);
                     scanMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
                     cloudMenu.setVisible(isRcsSupport && RcsUtils.isNativeUIInstalled &&

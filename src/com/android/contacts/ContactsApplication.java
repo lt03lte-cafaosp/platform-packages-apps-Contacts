@@ -35,6 +35,7 @@ import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.testing.InjectedServices;
 import com.android.contacts.common.util.Constants;
 import com.android.contacts.commonbind.analytics.AnalyticsUtil;
+import com.android.contacts.util.RcsUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -124,7 +125,7 @@ public final class ContactsApplication extends Application {
 
         AnalyticsUtil.initialize(this);
         /* Begin add for RCS */
-        RcsApiManager.init(this);
+        RcsUtils.init(this);
         /* End add for RCS */
     }
 

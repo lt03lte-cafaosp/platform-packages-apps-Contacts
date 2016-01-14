@@ -55,7 +55,6 @@ import android.widget.TextView;
 
 import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.util.ImplicitIntentsUtil;
 import com.android.contacts.group.GroupBrowseListAdapter.GroupListItemViewCache;
 import com.android.contacts.util.RcsUtils;
@@ -442,7 +441,7 @@ public class GroupBrowseListFragment extends Fragment
     public void onResume() {
         super.onResume();
         // start to load chat-group data when first initialization.
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RcsUtils.isRcsSupported()) {
              new AsyncDataLoaderTask(GroupBrowseListFragment.this).execute();
          }
     }

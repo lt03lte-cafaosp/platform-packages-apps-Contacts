@@ -35,7 +35,6 @@ import android.widget.ListPopupWindow;
 
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.ContactEditorActivity;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.RawContactDelta;
@@ -510,7 +509,7 @@ public class ContactEditorFragment extends ContactEditorBaseFragment implements
                 ((Activity) mContext).getClass(), ContactEditorActivity.ACTION_SAVE_COMPLETED,
                 mUpdatedPhotos, backPressed);
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RcsUtils.isRcsSupported()) {
             intent.putExtra(RcsUtils.KEY_IS_INSERT, !mIsEdit);
             intent.putExtra(
                     RcsUtils.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
