@@ -269,7 +269,7 @@
     <string name="memory_size">"容量:"</string>
     <string name="memory_available">"可用"</string>
     <string name="memory_used">"已用:"</string>
-    <string name="calculating_status_now">正在计算存储状态…</string>
+    <string name="no_account">手机上没有账户！</string>
     <string name="menu_export_database" msgid="2659719297530170820">"导出数据库文件"</string>
     <string name="action_menu_add_new_contact_button" msgid="3180222523336380017">"添加新联系人"</string>
     <string name="expanding_entry_card_view_see_more" msgid="3779194067124758079">"查看更多"</string>
@@ -321,7 +321,6 @@
     <string name="remove_whitelist_success">"这个号码已经成功从白名单移除。"</string>
     <string name="remove_from_black">"移除黑名单"</string>
     <string name="remove_from_white">"移除白名单"</string>
-    <string name="firewall_reach_maximun">"列表已满!"</string>
     <string name="title_add_members">"添加成员"</string>
     <string name="title_move_members">"移动成员"</string>
     <string name="message_add_members">"添加成员..."</string>

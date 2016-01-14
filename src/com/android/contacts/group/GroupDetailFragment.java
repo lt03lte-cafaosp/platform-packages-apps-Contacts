@@ -576,6 +576,9 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
             public void run() {
                 // For starting RCS group-chat.
                 StringBuilder sb = new StringBuilder();
+                if (mGroupMembersPhonesList == null) {
+                    return;
+                }
                 mGroupMembersPhonesList.clear();
                 for (long id : contactIds) {
                     String phoneNumber = RcsUtils.getPhoneforContactId(context, id);

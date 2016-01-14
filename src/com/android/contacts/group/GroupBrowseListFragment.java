@@ -414,6 +414,9 @@ public class GroupBrowseListFragment extends Fragment
                     e.printStackTrace();
                 }
             }
+            if (isDetached()) {
+                return;
+            }
             if(loaderManager != null)
                 loaderManager.restartLoader(LOADER_GROUPS, null, mGroupLoaderListener);
             mAdapter.setRcsGroupsData(result,contactCountMap);

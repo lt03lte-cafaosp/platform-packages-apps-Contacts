@@ -31,9 +31,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -114,6 +112,7 @@ import com.android.contacts.common.Collapser;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.GroupMetaData;
 import com.android.contacts.common.activity.RequestPermissionsActivity;
+import com.android.contacts.common.dialog.CallSubjectDialog;
 import com.android.contacts.common.editor.SelectAccountDialogFragment;
 import com.android.contacts.common.interactions.TouchPointManager;
 import com.android.contacts.common.lettertiles.LetterTileDrawable;
@@ -147,6 +146,7 @@ import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.util.DateUtils;
 import com.android.contacts.common.util.MaterialColorMapUtils;
 import com.android.contacts.common.util.MaterialColorMapUtils.MaterialPalette;
+import com.android.contacts.common.util.UriUtils;
 import com.android.contacts.common.util.ViewUtil;
 import com.android.contacts.detail.ContactDisplayUtils;
 import com.android.contacts.editor.ContactEditorFragment;
@@ -174,6 +174,7 @@ import com.android.contacts.widget.MultiShrinkScroller;
 import com.android.contacts.widget.MultiShrinkScroller.MultiShrinkScrollerListener;
 import com.android.contacts.widget.QuickContactImageView;
 import com.android.contactsbind.HelpUtils;
+import com.android.phone.common.util.FirewallUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.ImmutableList;
@@ -336,17 +337,9 @@ public class QuickContactActivity extends ContactsActivity {
     private static final int MIN_NUM_COLLAPSED_RECENT_ENTRIES_SHOWN = 3;
     private static final int CARD_ENTRY_ID_EDIT_CONTACT = -2;
 
-    private boolean isFireWallInstalled = false;
-    private static final String FIREWALL_APK_NAME = "com.android.firewall";
-    private static final String FIREWALL_BLACK_WHITE_LIST = "com.android.firewall.FirewallListPage";
-    private static final Uri FIREWALL_BLACKLIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/blacklistitems");
-    private static final Uri FIREWALL_WHITELIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/whitelistitems");
+    private boolean mFireWallInstalled = false;
     private static final String BLACKLIST = "blacklist";
     private static final String WHITELIST = "whitelist";
-    private static final int VALID_NUMBER_LENGTH = 11;
-    private static final int FIREWALL_LIST_MAX_ITEM_NUM = 100;
     private static final int NOT_IN_FIREWALL = 1;
     private static final int IN_BLACKLIST = -1;
     private static final int IN_WHITHLIST = 0;
@@ -548,7 +541,7 @@ public class QuickContactActivity extends ContactsActivity {
                 menu.add(ContextMenu.NONE, ContextMenuIds.EDIT_BEFORE_CALL,
                         ContextMenu.NONE, getString(R.string.edit_before_call));
 
-                if (isFireWallInstalled) {
+                if (mFireWallInstalled) {
                     ImageView firewallIcon = (ImageView) v.findViewById(
                             R.id.black_white_list_indicator);
                     info.setImageView(firewallIcon);
@@ -557,20 +550,14 @@ public class QuickContactActivity extends ContactsActivity {
                     if (number != null) {
                         result = numberInWhichFirewallList(number);
                     }
-                    /* Begin add for RCS */
                     if (NOT_IN_FIREWALL == result) {
-                        if (RcsUtils.checkNumberInFirewall(mResolver, true, info.getData())) {
-                            menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
-                                    ContextMenu.NONE, getString(R.string.add_to_black))
-                                    .setIntent(info.getBlackIntent());
-                        }
-                    if (RcsUtils.checkNumberInFirewall(mResolver, true, info.getData())) {
-                            menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
+                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_BLACKLIST,
+                                ContextMenu.NONE, getString(R.string.add_to_black))
+                                .setIntent(info.getBlackIntent());
+                        menu.add(ContextMenu.NONE, ContextMenuIds.ADD_TO_WHITELIST,
                                 ContextMenu.NONE, getString(R.string.add_to_white))
                                 .setIntent(info.getWhiteIntent());
-                        }
                     }
-                    /* End add for RCS */
                     if (IN_BLACKLIST == result) {
                         menu.add(ContextMenu.NONE, ContextMenuIds.REMOVE_FROM_BLACKLIST,
                                 ContextMenu.NONE, getString(R.string.remove_from_black))
@@ -653,44 +640,12 @@ public class QuickContactActivity extends ContactsActivity {
         }
     }
 
-    private boolean isNumberInFirewall(String mode, String number) {
-        Uri uri = null;
-        Cursor cursor = null;
-        number = number.replaceAll(" ", "");
-        number = number.replaceAll("-", "");
-        String tempNumber = number;
-        int length = tempNumber.length();
-        if (length > VALID_NUMBER_LENGTH) {
-            tempNumber = number.substring(
-                    length - VALID_NUMBER_LENGTH, length);
-        }
-        String selection = "number" + " LIKE '%" + tempNumber + "'";
-        if (BLACKLIST.equals(mode)) {
-            uri = FIREWALL_BLACKLIST_CONTENT_URI;
-        } else {
-            uri = FIREWALL_WHITELIST_CONTENT_URI;
-        }
-        try {
-            cursor = getContentResolver().query(uri, null, selection,
-                    null, null);
-            if (cursor != null && cursor.getCount() > 0) {
-                return true;
-            } else {
-                return false;
-            }
-        } finally {
-            if (cursor != null && !cursor.isClosed()) {
-                cursor.close();
-            }
-        }
-    }
-
     private int numberInWhichFirewallList(String number) {
         int result = NOT_IN_FIREWALL;
         if (number != null) {
-            if (isNumberInFirewall(BLACKLIST, number)) {
+            if (FirewallUtils.isNumberInFirewall(this, true, number)) {
                 result = IN_BLACKLIST;
-            } else if (isNumberInFirewall(WHITELIST, number)) {
+            } else if (FirewallUtils.isNumberInFirewall(this, false, number)) {
                 result = IN_WHITHLIST;
             }
         }
@@ -702,26 +657,14 @@ public class QuickContactActivity extends ContactsActivity {
             Bundle bundle = intent.getExtras();
             String number = bundle.getString(NUMBER_KEY);
             String mode = bundle.getString(MODE_KEY);
-            boolean result = false;
-            Uri uri = null;
-            number = number.replaceAll(" ", "");
-            number = number.replaceAll("-", "");
-            if (BLACKLIST.equals(mode)) {
-                uri = FIREWALL_BLACKLIST_CONTENT_URI;
-            } else {
-                uri = FIREWALL_WHITELIST_CONTENT_URI;
-            }
-            String deleteSelection = "number=?";
-            String deleteSelectionArgs [] = new String[] {
-                    String.valueOf(number)
-                };
-            result = getContentResolver().delete(uri, deleteSelection,
-                    deleteSelectionArgs) >= 0;
+            boolean blacklisted = mode.equals(BLACKLIST);
+            boolean result = FirewallUtils.removeFromFirewall(this,
+                    blacklisted, number);
             if (result) {
                 if (imageView != null) {
                     imageView.setVisibility(View.GONE);
                 }
-                Toast.makeText(this, mode == BLACKLIST
+                Toast.makeText(this, blacklisted
                         ? R.string.remove_blacklist_success
                         : R.string.remove_whitelist_success, Toast.LENGTH_SHORT).show();
             }
@@ -735,33 +678,9 @@ public class QuickContactActivity extends ContactsActivity {
             String number = bundle.getString(NUMBER_KEY);
             String mode = bundle.getString(MODE_KEY);
             int personId = bundle.getInt(PERSON_KEY, -1);
-            boolean result = false;
-            Uri uri = null;
-            if (BLACKLIST.equals(mode)) {
-                uri = FIREWALL_BLACKLIST_CONTENT_URI;
-            } else {
-                uri = FIREWALL_WHITELIST_CONTENT_URI;
-            }
-            Cursor cursor = null;
-            try {
-                cursor = getContentResolver().query(uri, null, null, null, null);
-                if (cursor.getCount() >= FIREWALL_LIST_MAX_ITEM_NUM) {
-                    Toast.makeText(this, R.string.firewall_reach_maximun,
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-            } finally {
-                if (cursor != null && !cursor.isClosed()) {
-                    cursor.close();
-                }
-            }
-            ContentValues values = new ContentValues();
-            number = number.replaceAll(" ", "");
-            number = number.replaceAll("-", "");
-            values.put(NAME_KEY, name);
-            values.put(NUMBER_KEY, number);
-            values.put(PERSON_KEY, personId);
-            result = getContentResolver().insert(uri, values) != null;
+            boolean blacklisted = mode.equals(BLACKLIST);
+            boolean result = FirewallUtils.addToFirewall(this,
+                    blacklisted, number, name, personId);
             if (result) {
                 if (imageView != null) {
                     imageView.setVisibility(View.VISIBLE);
@@ -769,7 +688,7 @@ public class QuickContactActivity extends ContactsActivity {
                             ? R.drawable.number_in_blacklist
                             : R.drawable.number_in_whitelist);
                 }
-                Toast.makeText(this, mode == BLACKLIST
+                Toast.makeText(this, blacklisted
                         ? R.string.add_blacklist_success
                         : R.string.add_whitelist_success, Toast.LENGTH_SHORT).show();
             }
@@ -1093,19 +1012,6 @@ public class QuickContactActivity extends ContactsActivity {
         Trace.endSection();
     }
 
-    private boolean isFirewalltalled() {
-        boolean installed = false;
-        try {
-            ApplicationInfo info = getApplicationContext().getPackageManager().getApplicationInfo(
-                    FIREWALL_APK_NAME, PackageManager.GET_PROVIDERS);
-            installed = info != null;
-        } catch (NameNotFoundException e) {
-            installed = false;
-        }
-        Log.d(TAG,"Is Firewall installed ? " + installed);
-        return installed;
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_CONTACT_EDITOR_ACTIVITY &&
@@ -1366,9 +1272,9 @@ public class QuickContactActivity extends ContactsActivity {
             mHasIntentLaunched = false;
             populateContactAndAboutCard(mCachedCp2DataCardModel);
         }
-        isFireWallInstalled = isFirewalltalled();
+        mFireWallInstalled = FirewallUtils.isFireWallInstalled(this);
         if (mContactCard != null) {
-            mContactCard.isFireWallInstalled(isFireWallInstalled);
+            mContactCard.setFireWallInstalled(mFireWallInstalled);
         }
         // When exiting the activity and resuming, we want to force a full reload of all the
         // interaction data in case something changed in the background. On screen rotation,
@@ -1432,7 +1338,9 @@ public class QuickContactActivity extends ContactsActivity {
                     /* thirdIcon = */ null,
                     /* thirdIntent = */ null,
                     /* thirdContentDescription = */ null,
-                    /* iconResourceId = */ 0);
+                    /* thirdAction = */ Entry.ACTION_NONE,
+                    /* thirdExtras = */ null,
+                    /* iconResourceId = */  0);
             List<Entry> phoneticList = new ArrayList<>();
             phoneticList.add(phoneticEntry);
             // Phonetic name comes after nickname. Check to see if the first entry type is nickname
@@ -1508,7 +1416,10 @@ public class QuickContactActivity extends ContactsActivity {
                 /* alternateContentDescription = */ null, /* shouldApplyColor = */ true,
                 /* isEditable = */ false, /* EntryContextMenuInfo = */ null,
                 /* thirdIcon = */ null, /* thirdIntent = */ null,
-                /* thirdContentDescription = */ null, R.drawable.ic_phone_24dp);
+                /* thirdContentDescription = */ null,
+                /* thirdAction = */ Entry.ACTION_NONE,
+                /* thirdExtras = */ null,
+                R.drawable.ic_phone_24dp);
 
         final Drawable emailIcon = getResources().getDrawable(
                 R.drawable.ic_email_24dp).mutate();
@@ -1521,6 +1432,7 @@ public class QuickContactActivity extends ContactsActivity {
                 /* shouldApplyColor = */ true, /* isEditable = */ false,
                 /* EntryContextMenuInfo = */ null, /* thirdIcon = */ null,
                 /* thirdIntent = */ null, /* thirdContentDescription = */ null,
+                /* thirdAction = */ Entry.ACTION_NONE, /* thirdExtras = */ null,
                 R.drawable.ic_email_24dp);
 
         final List<List<Entry>> promptEntries = new ArrayList<>();
@@ -1687,7 +1599,9 @@ public class QuickContactActivity extends ContactsActivity {
         EntryContextMenuInfo entryContextMenuInfo = null;
         Drawable thirdIcon = null;
         Intent thirdIntent = null;
+        int thirdAction = Entry.ACTION_NONE;
         String thirdContentDescription = null;
+        Bundle thirdExtras = null;
         int iconResourceId = 0;
 
         context = context.getApplicationContext();
@@ -1800,6 +1714,7 @@ public class QuickContactActivity extends ContactsActivity {
             }
         } else if (dataItem instanceof PhoneDataItem) {
             final PhoneDataItem phone = (PhoneDataItem) dataItem;
+            String phoneLabel = null;
             if (!TextUtils.isEmpty(phone.getNumber())) {
                 primaryContentDescription.append(res.getString(R.string.call_other)).append(" ");
                 header = sBidiFormatter.unicodeWrap(phone.buildDataStringForDisplay(context, kind),
@@ -1828,10 +1743,12 @@ public class QuickContactActivity extends ContactsActivity {
                 if (phone.hasKindTypeColumn(kind)) {
                     final int kindTypeColumn = phone.getKindTypeColumn(kind);
                     final String label = phone.getLabel();
+                    phoneLabel = label;
                     if (kindTypeColumn == Phone.TYPE_CUSTOM && TextUtils.isEmpty(label)) {
                         text = "";
                     } else {
                         text = Phone.getTypeLabel(res, kindTypeColumn, label).toString();
+                        phoneLabel= text;
                         primaryContentDescription.append(text).append(" ");
                     }
                 }
@@ -1847,9 +1764,33 @@ public class QuickContactActivity extends ContactsActivity {
                 alternateIcon = res.getDrawable(R.drawable.ic_message_24dp);
                 alternateContentDescription.append(res.getString(R.string.sms_custom, header));
 
-                // Add video call button if supported
-                if (CallUtil.isVideoEnabled(context)) {
+                if (CallUtil.isCallWithSubjectSupported(context)) {
+                    thirdIcon = res.getDrawable(R.drawable.ic_call_note_white_24dp);
+                    thirdAction = Entry.ACTION_CALL_WITH_SUBJECT;
+                    thirdContentDescription =
+                            res.getString(R.string.call_with_a_note);
+
+                    // Create a bundle containing the data the call subject dialog requires.
+                    thirdExtras = new Bundle();
+                    thirdExtras.putLong(CallSubjectDialog.ARG_PHOTO_ID,
+                            contactData.getPhotoId());
+                    thirdExtras.putParcelable(CallSubjectDialog.ARG_PHOTO_URI,
+                            UriUtils.parseUriOrNull(contactData.getPhotoUri()));
+                    thirdExtras.putParcelable(CallSubjectDialog.ARG_CONTACT_URI,
+                            contactData.getLookupUri());
+                    thirdExtras.putString(CallSubjectDialog.ARG_NAME_OR_NUMBER,
+                            contactData.getDisplayName());
+                    thirdExtras.putBoolean(CallSubjectDialog.ARG_IS_BUSINESS, false);
+                    thirdExtras.putString(CallSubjectDialog.ARG_NUMBER,
+                            phone.getNumber());
+                    thirdExtras.putString(CallSubjectDialog.ARG_DISPLAY_NUMBER,
+                            phone.getFormattedPhoneNumber());
+                    thirdExtras.putString(CallSubjectDialog.ARG_NUMBER_LABEL,
+                            phoneLabel);
+                } else if (CallUtil.isVideoEnabled(context)) {
+                    // Add video call button if supported
                     thirdIcon = res.getDrawable(R.drawable.ic_videocam);
+                    thirdAction = Entry.ACTION_INTENT;
                     thirdIntent = CallUtil.getVideoCallIntent(phone.getNumber(),
                             CALL_ORIGIN_QUICK_CONTACTS_ACTIVITY);
                     thirdContentDescription =
@@ -1960,6 +1901,8 @@ public class QuickContactActivity extends ContactsActivity {
                         /* thirdIcon = */null,
                         /* thirdIntent = */null,
                         /* thirdContentDescription = */null,
+                        /* thirdAction = */ Entry.ACTION_NONE,
+                        /* thirdExtras = */ null,
                         /* iconResourceId = */0);
             }
             return null;
@@ -2073,8 +2016,8 @@ public class QuickContactActivity extends ContactsActivity {
                 new SpannableString(primaryContentDescription.toString()),
                 intent, alternateIcon, alternateIntent,
                 alternateContentDescription.toString(), shouldApplyColor, isEditable,
-                entryContextMenuInfo, thirdIcon, thirdIntent, thirdContentDescription,
-                iconResourceId);
+                entryContextMenuInfo, thirdIcon, thirdIntent, thirdContentDescription, thirdAction,
+                thirdExtras, iconResourceId);
     }
 
     private List<Entry> dataItemsToEntries(List<DataItem> dataItems,
@@ -2345,7 +2288,10 @@ public class QuickContactActivity extends ContactsActivity {
                     /* thirdIcon = */ null,
                     /* thirdIntent = */ null,
                     /* thirdContentDescription = */ null,
-                    interaction.getIconResourceId()));
+                    /* thirdAction = */ Entry.ACTION_NONE,
+                    /* thirdActionExtras = */ null,
+                    interaction.getIconResourceId(),
+                    interaction.getAccountId()));
         }
         return entries;
     }
@@ -2830,8 +2776,23 @@ public class QuickContactActivity extends ContactsActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         if (mContactData != null) {
             final MenuItem starredMenuItem = menu.findItem(R.id.menu_star);
+            ContactDisplayUtils.configureStarredMenuItem(starredMenuItem,
+                    mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
+                    mContactData.getStarred());
+
             // Configure edit MenuItem
             final MenuItem editMenuItem = menu.findItem(R.id.menu_edit);
+            editMenuItem.setVisible(true);
+            if (DirectoryContactUtil.isDirectoryContact(mContactData) || InvisibleContactUtil
+                    .isInvisibleAndAddable(mContactData, this)) {
+                editMenuItem.setIcon(R.drawable.ic_person_add_tinted_24dp);
+                editMenuItem.setTitle(R.string.menu_add_contact);
+            } else if (isContactEditable()) {
+                editMenuItem.setIcon(R.drawable.ic_create_24dp);
+                editMenuItem.setTitle(R.string.menu_editContact);
+            } else {
+                editMenuItem.setVisible(false);
+            }
 
             final MenuItem deleteMenuItem = menu.findItem(R.id.menu_delete);
             deleteMenuItem.setVisible(isContactEditable());
@@ -2915,26 +2876,6 @@ public class QuickContactActivity extends ContactsActivity {
 
             /* Begin add for RCS */
             RcsUtils.initRcsMenu(getApplicationContext(), menu, mContactData);
-
-            if (!mScanToInsertContact) {
-                ContactDisplayUtils.configureStarredMenuItem(starredMenuItem,
-                        mContactData.isDirectoryEntry(), mContactData.isUserProfile(),
-                        mContactData.getStarred());
-            }
-
-            if (!mScanToInsertContact) {
-                editMenuItem.setVisible(true);
-                if (DirectoryContactUtil.isDirectoryContact(mContactData) || InvisibleContactUtil
-                        .isInvisibleAndAddable(mContactData, this)) {
-                    editMenuItem.setIcon(R.drawable.ic_person_add_tinted_24dp);
-                    editMenuItem.setTitle(R.string.menu_add_contact);
-                } else if (isContactEditable()) {
-                    editMenuItem.setIcon(R.drawable.ic_create_24dp);
-                    editMenuItem.setTitle(R.string.menu_editContact);
-                } else {
-                    editMenuItem.setVisible(false);
-                }
-            }
 
             //If RCS function available,add a MenuItem to insert a contact from scanning QR-code.
             final MenuItem insertContactFromQrcodMenuItem =

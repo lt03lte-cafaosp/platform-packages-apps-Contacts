@@ -180,6 +180,10 @@ public class CallLogInteraction implements ContactInteraction {
         return mValues.getAsInteger(Calls.TYPE);
     }
 
+    public String getAccountId() {
+        return mValues.getAsString(Calls.PHONE_ACCOUNT_ID);
+    }
+
     @Override
     public Spannable getContentDescription(Context context) {
         final String phoneNumber = getViewHeader(context);

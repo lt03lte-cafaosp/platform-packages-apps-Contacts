@@ -721,7 +721,7 @@
     <string name="memory_size">Total:</string>
     <string name="memory_available">Available</string>
     <string name="memory_used">Used:</string>
-    <string name="calculating_status_now">Calculating Status now...</string>
+    <string name="no_account">No Account Exist!</string>
     <string name="contact_detail_picture_description">Picture. Select to change</string>
 
     <!-- Content description for the button that adds a new contact
@@ -846,5 +846,4 @@
     <string name="remove_whitelist_success">"This number has been removed from whitelist successfully."</string>
     <string name="remove_from_black">Remove from blacklist</string>
     <string name="remove_from_white">Remove from whitelist</string>
-    <string name="firewall_reach_maximun">The list is full and can not be filled in!</string>
 </resources>

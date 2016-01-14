@@ -64,7 +64,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/calculating_status_now"
+            android:text="@string/no_account"
             android:textSize="20sp"
             android:textColor="?android:attr/textColorSecondary"
             android:gravity="center"/>

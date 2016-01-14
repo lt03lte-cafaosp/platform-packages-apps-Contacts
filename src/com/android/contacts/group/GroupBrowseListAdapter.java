@@ -145,7 +145,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         /* Begin add for RCS */
         if (RcsApiManager.getSupportApi().isRcsSupported() && (!TextUtils.isEmpty(sourceId))) {
             if(sourceId.equals("RCS")){
-                accountType=sourceId;
+                accountType = sourceId;
                 String strGroupId = mCursor.getString(GroupListLoader.SYSTEM_ID);
                 if(TextUtils.isEmpty(strGroupId)){
                     groupId = -1;
@@ -242,27 +242,27 @@ public class GroupBrowseListAdapter extends BaseAdapter {
 
             int res_id;
             switch (position % 6) {
-            case 0:
-                res_id = R.drawable.group_icon_1;
-                break;
-            case 1:
-                res_id = R.drawable.group_icon_2;
-                break;
-            case 2:
-                res_id = R.drawable.group_icon_3;
-                break;
-            case 3:
-                res_id = R.drawable.group_icon_4;
-                break;
-            case 4:
-                res_id = R.drawable.group_icon_5;
-                break;
-            case 5:
-                res_id = R.drawable.group_icon_6;
-                break;
-            default:
-                res_id = R.drawable.group_icon_6;
-                break;
+                case 0:
+                    res_id = R.drawable.group_icon_1;
+                    break;
+                case 1:
+                    res_id = R.drawable.group_icon_2;
+                    break;
+                case 2:
+                    res_id = R.drawable.group_icon_3;
+                    break;
+                case 3:
+                    res_id = R.drawable.group_icon_4;
+                    break;
+                case 4:
+                    res_id = R.drawable.group_icon_5;
+                    break;
+                case 5:
+                    res_id = R.drawable.group_icon_6;
+                    break;
+                default:
+                    res_id = R.drawable.group_icon_6;
+                    break;
             }
             holder.group_icon_view.setBackgroundResource(res_id);
             if(mLocalGroupsCount == position){
@@ -282,7 +282,6 @@ public class GroupBrowseListAdapter extends BaseAdapter {
                 viewCache.divider.setVisibility(View.GONE);
                 if (position == 0) {
                     // Have the list's top padding in the first header.
-                    //
                     // This allows the ListView to show correct fading effect on top.
                     // If we have topPadding in the ListView itself, an inappropriate padding is
                     // inserted between fading items and the top edge.

@@ -18,3 +18,4 @@
 }
 
 -verbose
+-dontwarn com.suntek.rcs.ui.common.VNodeBuilder

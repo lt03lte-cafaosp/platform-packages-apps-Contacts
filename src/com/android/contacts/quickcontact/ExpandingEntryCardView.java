@@ -19,14 +19,15 @@ import android.animation.Animator;
 import android.animation.Animator.AnimatorListener;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.database.Cursor;
 import android.graphics.ColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.v7.widget.CardView;
 import android.text.Spannable;
 import android.text.TextUtils;
@@ -52,6 +53,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.android.contacts.R;
+import com.android.contacts.common.MoreContactUtils;
+import com.android.contacts.common.dialog.CallSubjectDialog;
+import com.android.phone.common.util.FirewallUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,6 +93,12 @@ public class ExpandingEntryCardView extends CardView {
      * Entry data.
      */
     public static final class Entry {
+        // No action when clicking a button is specified.
+        public static final int ACTION_NONE = 1;
+        // Button action is an intent.
+        public static final int ACTION_INTENT = 2;
+        // Button action will open the call with subject dialog.
+        public static final int ACTION_CALL_WITH_SUBJECT = 3;
 
         private final int mId;
         private final Drawable mIcon;
@@ -109,6 +119,9 @@ public class ExpandingEntryCardView extends CardView {
         private final Intent mThirdIntent;
         private final String mThirdContentDescription;
         private final int mIconResourceId;
+        private final String mAccountId;
+        private final int mThirdAction;
+        private final Bundle mThirdExtras;
 
         public Entry(int id, Drawable mainIcon, String header, String subHeader,
                 Drawable subHeaderIcon, String text, Drawable textIcon,
@@ -116,7 +129,23 @@ public class ExpandingEntryCardView extends CardView {
                 Drawable alternateIcon, Intent alternateIntent, String alternateContentDescription,
                 boolean shouldApplyColor, boolean isEditable,
                 EntryContextMenuInfo entryContextMenuInfo, Drawable thirdIcon, Intent thirdIntent,
-                String thirdContentDescription, int iconResourceId) {
+                String thirdContentDescription, int thirdAction, Bundle thirdExtras, int iconResourceId) {
+            this(id, mainIcon, header, subHeader, subHeaderIcon, text, textIcon,
+                    primaryContentDescription, intent, alternateIcon, alternateIntent,
+                    alternateContentDescription, shouldApplyColor, isEditable,
+                    entryContextMenuInfo, thirdIcon, thirdIntent, thirdContentDescription,
+                    thirdAction,thirdExtras,iconResourceId, null);
+        }
+
+        public Entry(int id, Drawable mainIcon, String header, String subHeader,
+                Drawable subHeaderIcon, String text, Drawable textIcon,
+                Spannable primaryContentDescription, Intent intent,
+                Drawable alternateIcon, Intent alternateIntent, String alternateContentDescription,
+                boolean shouldApplyColor, boolean isEditable,
+                EntryContextMenuInfo entryContextMenuInfo, Drawable thirdIcon, Intent thirdIntent,
+                String thirdContentDescription, int thirdAction, Bundle thirdExtras, int iconResourceId,
+                String accountId) {
+
             mId = id;
             mIcon = mainIcon;
             mHeader = header;
@@ -135,7 +164,10 @@ public class ExpandingEntryCardView extends CardView {
             mThirdIcon = thirdIcon;
             mThirdIntent = thirdIntent;
             mThirdContentDescription = thirdContentDescription;
+            mThirdAction = thirdAction;
+            mThirdExtras = thirdExtras;
             mIconResourceId = iconResourceId;
+            mAccountId = accountId;
         }
 
         Drawable getIcon() {
@@ -213,6 +245,18 @@ public class ExpandingEntryCardView extends CardView {
         int getIconResourceId() {
             return mIconResourceId;
         }
+
+        String getAccountId() {
+            return mAccountId;
+        }
+
+        public int getThirdAction() {
+            return mThirdAction;
+        }
+
+        public Bundle getThirdExtras() {
+            return mThirdExtras;
+        }
     }
 
     public interface ExpandingEntryCardViewListener {
@@ -262,10 +306,6 @@ public class ExpandingEntryCardView extends CardView {
     private List<View> mSeparators;
     private LinearLayout mContainer;
     private boolean mIsFireWallInstalled = false;
-    private static final Uri FIREWALL_BLACKLIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/blacklistitems");
-    private static final Uri FIREWALL_WHITELIST_CONTENT_URI = Uri
-            .parse("content://com.android.firewall/whitelistitems");
 
     private final OnClickListener mExpandCollapseButtonListener = new OnClickListener() {
         @Override
@@ -669,7 +709,7 @@ public class ExpandingEntryCardView extends CardView {
         }
     }
 
-    public void isFireWallInstalled(boolean isFireWallInstalled) {
+    public void setFireWallInstalled(boolean isFireWallInstalled) {
         mIsFireWallInstalled = isFireWallInstalled;
     }
 
@@ -702,29 +742,13 @@ public class ExpandingEntryCardView extends CardView {
             String actionType = entry.getIntent().getAction();
             if (Intent.ACTION_CALL.equals(actionType)) {
                 String number = entry.getHeader();
-                number = number.replaceAll(" ", "");
-                number = number.replaceAll("-", "");
-                String selectionString = "number=?";
-                String[] selectionArgs = new String[] { number };
-                Cursor cursorBlack = getContext().getContentResolver().query(
-                        FIREWALL_BLACKLIST_CONTENT_URI, null,
-                        selectionString, selectionArgs, null);
-                if (cursorBlack != null && cursorBlack.getCount() > 0) {// in black list
+                if (FirewallUtils.isNumberInFirewall(getContext(), true, number)) {// in black list
                     blackWhiteListIndicator.setVisibility(View.VISIBLE);
                     blackWhiteListIndicator.setBackgroundResource(R.drawable.number_in_blacklist);
                 }
-                if (cursorBlack != null) {
-                    cursorBlack.close();
-                }
-                Cursor cursorWhite = getContext().getContentResolver().query(
-                        FIREWALL_WHITELIST_CONTENT_URI, null,
-                        selectionString, selectionArgs, null);
-                if (cursorWhite != null && cursorWhite.getCount() > 0) {// in white list
+                if (FirewallUtils.isNumberInFirewall(getContext(), false, number)) {// in white list
                     blackWhiteListIndicator.setVisibility(View.VISIBLE);
                     blackWhiteListIndicator.setBackgroundResource(R.drawable.number_in_whitelist);
-                }
-                if (cursorWhite != null) {
-                    cursorWhite.close();
                 }
             } else {
                 blackWhiteListIndicator.setVisibility(View.GONE);
@@ -759,6 +783,18 @@ public class ExpandingEntryCardView extends CardView {
             textIcon.setImageDrawable(entry.getTextIcon());
         } else {
             textIcon.setVisibility(View.GONE);
+        }
+
+        final ImageView accountIconView = (ImageView) view.findViewById(R.id.call_account_icon);
+        accountIconView.setVisibility(View.GONE);
+        if (!TextUtils.isEmpty(entry.getAccountId())) {
+           int accountId = Integer.valueOf(entry.getAccountId());
+           final Drawable accountIcon = MoreContactUtils.getAccountIcon(getContext(),
+                    accountId);
+           if (accountIcon != null) {
+               accountIconView.setVisibility(View.VISIBLE);
+               accountIconView.setImageDrawable(accountIcon);
+            }
         }
 
         if (entry.getIntent() != null) {
@@ -810,10 +846,28 @@ public class ExpandingEntryCardView extends CardView {
             alternateIcon.setContentDescription(entry.getAlternateContentDescription());
         }
 
-        if (entry.getThirdIcon() != null && entry.getThirdIntent() != null) {
+        if (entry.getThirdIcon() != null && entry.getThirdAction() != Entry.ACTION_NONE) {
             thirdIcon.setImageDrawable(entry.getThirdIcon());
-            thirdIcon.setOnClickListener(mOnClickListener);
-            thirdIcon.setTag(new EntryTag(entry.getId(), entry.getThirdIntent()));
+            if (entry.getThirdAction() == Entry.ACTION_INTENT) {
+                thirdIcon.setOnClickListener(mOnClickListener);
+                thirdIcon.setTag(new EntryTag(entry.getId(), entry.getThirdIntent()));
+            } else if (entry.getThirdAction() == Entry.ACTION_CALL_WITH_SUBJECT) {
+                thirdIcon.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Object tag = v.getTag();
+                        if (!(tag instanceof Bundle)) {
+                            return;
+                        }
+
+                        Context context = getContext();
+                        if (context instanceof Activity) {
+                            CallSubjectDialog.start((Activity) context, entry.getThirdExtras());
+                        }
+                    }
+                });
+                thirdIcon.setTag(entry.getThirdExtras());
+            }
             thirdIcon.setVisibility(View.VISIBLE);
             thirdIcon.setContentDescription(entry.getThirdContentDescription());
         }

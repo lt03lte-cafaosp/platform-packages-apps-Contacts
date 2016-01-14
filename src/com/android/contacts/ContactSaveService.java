@@ -666,16 +666,12 @@ public class ContactSaveService extends IntentService {
                 // replace the bogus ID with the new one that we actually saved the contact at.
                 if (rawContactId < 0) {
                     rawContactId = insertedRawContactId;
-                    if (rawContactId == -1) {
-                        throw new IllegalStateException(
-                                "Could not determine RawContact ID for image insertion");
-                    }
                 }
                 // If the save failed, insertedRawContactId will be -1
                 if (rawContactId < 0 || !saveUpdatedPhoto(rawContactId, photoUri)) {
                     succeeded = false;
                 /* Begin add for RCS */
-                } else if(RcsApiManager.getSupportApi().isRcsSupported()) {
+                } else if(RcsApiManager.getSupportApi().isRcsSupported() && rawContactId >= 0) {
                     if (!isProfile) {
                         RcsLog.d("Setted Local Photo!");
                         RcsUtils.setLocalSetted(resolver, true, rawContactId);

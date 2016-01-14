@@ -233,6 +233,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
             }
             int inputType = field.inputType;
             fieldView.setInputType(inputType);
+            fieldView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
             if (inputType == InputType.TYPE_CLASS_PHONE) {
                 PhoneNumberFormatter.setPhoneNumberFormattingTextWatcher(getContext(), fieldView);
                 fieldView.setTextDirection(View.TEXT_DIRECTION_LTR);
