@@ -502,16 +502,12 @@ public class MultiPickContactActivity extends ListActivity implements
 
     private void enterSearchMode() {
         mMode |= MODE_MASK_SEARCH;
-        mSelectAllLabel.setVisibility(View.GONE);
-        mSelectAllCheckBox.setVisibility(View.GONE);
         backupChoiceSet();
     }
 
     private void exitSearchMode(boolean isConfirmed) {
         mMode &= ~MODE_MASK_SEARCH;
         hideSoftKeyboard();
-        mSelectAllLabel.setVisibility(View.VISIBLE);
-        mSelectAllCheckBox.setVisibility(View.VISIBLE);
         if (!isConfirmed) {
             restoreChoiceSet();
         }
