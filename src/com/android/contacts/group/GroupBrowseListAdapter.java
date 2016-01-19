@@ -72,6 +72,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
     public void setCursor(Cursor cursor) {
         mCursor = cursor;
 
+        mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
         // If there's no selected group already and the cursor is valid, then by default, select the
         // first group
         if (mSelectedGroupUri == null && cursor != null && cursor.getCount() > 0) {
@@ -119,7 +120,6 @@ public class GroupBrowseListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
         return (mCursor == null || mCursor.isClosed()) ? 0 : mCursor.getCount();
     }
 
