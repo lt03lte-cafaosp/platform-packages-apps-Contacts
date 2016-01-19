@@ -272,7 +272,8 @@ public class MultiPickContactActivity extends ListActivity implements
      */
     private static final String EXT_NOT_SHOW_SIM_FLAG = "not_sim_show";
 
-    private int MAX_CONTACTS_NUM_TO_SELECT_ONCE = 2000;
+    // reduce the value to avoid too large transaction.
+    private int MAX_CONTACTS_NUM_TO_SELECT_ONCE = 1000;
 
     private static final int BUFFER_LENGTH = 500;
 
