@@ -51,7 +51,7 @@ public final class GroupMetaDataLoader extends CursorLoader {
     public GroupMetaDataLoader(Context context, Uri groupUri) {
         super(context, ensureIsGroupUri(groupUri), COLUMNS, Groups.ACCOUNT_TYPE + " NOT NULL AND "
                 + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.DELETED + " != ?"
-                + " AND " + Groups.SOURCE_ID + " != 'RCS'"
+                + " AND (" + Groups.SOURCE_ID + " != 'RCS'" + " OR " + Groups.SOURCE_ID +" IS NULL)"
                 , new String[] {"1"}
                 , null);
     }

@@ -66,7 +66,8 @@ public final class GroupListLoader extends CursorLoader {
                 + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.AUTO_ADD + "=0 AND " +
                 Groups.FAVORITES + "=0 AND " + Groups.DELETED + "!=1");
         if (!RcsApiManager.getSupportApi().isRcsSupported()) {
-            where.append(" AND " + Groups.SOURCE_ID + " != 'RCS'");
+            where.append(" AND (" + Groups.SOURCE_ID + "!='RCS'" + " OR "
+                    + Groups.SOURCE_ID + " IS NULL)");
         }
         return where.toString();
     }
