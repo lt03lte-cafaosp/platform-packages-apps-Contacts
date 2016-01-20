@@ -1272,7 +1272,6 @@ public class PeopleActivity extends ContactsActivity implements
             contactsFilterMenu.setVisible(false);
             clearFrequentsMenu.setVisible(false);
             helpMenu.setVisible(false);
-            makeMenuItemVisible(menu, R.id.menu_delete, false);
             /* Begin add for RCS */
             contactsPhotoUpdateMenu.setVisible(false);
             cloudMenu.setVisible(false);
@@ -1334,6 +1333,8 @@ public class PeopleActivity extends ContactsActivity implements
         makeMenuItemVisible(menu, R.id.menu_share, showSelectedContactOptions);
         makeMenuItemVisible(menu, R.id.menu_join, showSelectedContactOptions);
         makeMenuItemEnabled(menu, R.id.menu_join, mAllFragment.getSelectedContactIds().size() > 1);
+        // Disable delete menu
+        makeMenuItemVisible(menu, R.id.menu_delete, showSelectedContactOptions);
 
         // Debug options need to be visible even in search mode.
         makeMenuItemVisible(menu, R.id.export_database, mEnableDebugMenuOptions);
@@ -1427,14 +1428,8 @@ public class PeopleActivity extends ContactsActivity implements
                 return true;
             }
             case R.id.menu_delete: {
-                final Intent intent = new Intent(Intent.ACTION_DELETE, Contacts.CONTENT_URI);
-                intent.putExtra(EDITABLE_KEY, mActionBarAdapter.getQueryString());
-
-                ContactListFilter filter = ContactListFilter.restoreDefaultPreferences(
-                    PreferenceManager.getDefaultSharedPreferences(this));
-                intent.putExtra(AccountFilterActivity.KEY_EXTRA_CONTACT_LIST_FILTER, filter);
-
-                startActivity(intent);
+                // Delete the selected contacts
+                deleteSelectedContacts();
                 return true;
             }
             case R.id.menu_import_export: {
