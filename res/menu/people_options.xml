@@ -21,6 +21,14 @@
         android:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/menu_scan"
+        android:title="@string/menu_scan" />
+
+    <item
+        android:id="@+id/menu_cloud"
+        android:title="@string/menu_cloud" />
+
+    <item
         android:id="@+id/menu_contacts_filter"
         android:title="@string/menu_contacts_filter" />
 
@@ -69,5 +77,9 @@
     <item
         android:id="@+id/menu_share"
         android:title="@string/menu_share" />
+
+    <item
+        android:id="@+id/menu_contacts_photo_update"
+        android:title="@string/menu_contacts_photo_update" />
 
 </menu>

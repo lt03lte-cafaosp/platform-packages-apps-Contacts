@@ -49,6 +49,10 @@ public class StructuredNameEditorView extends TextFieldsEditorView {
     private StructuredNameDataItem mSnapshot;
     private boolean mChanged;
 
+    /* Begin add for RCS */
+    private ExpandListener mExpandListener;
+    /* End add for RCS */
+
     public StructuredNameEditorView(Context context) {
         super(context);
     }
@@ -60,6 +64,16 @@ public class StructuredNameEditorView extends TextFieldsEditorView {
     public StructuredNameEditorView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
+
+    /* Begin add for RCS */
+    public interface ExpandListener {
+        public void onExpand(boolean isExpand);
+    }
+
+    public void setExpandListener(ExpandListener expandListener) {
+        this.mExpandListener = expandListener;
+    }
+    /* End add for RCS */
 
     @Override
     public void setValues(DataKind kind, ValuesDelta entry, RawContactDelta state, boolean readOnly,
@@ -109,6 +123,11 @@ public class StructuredNameEditorView extends TextFieldsEditorView {
             }
         }
 
+        /* Begin add for RCS */
+        if(mExpandListener != null){
+            mExpandListener.onExpand(areOptionalFieldsVisible());
+        }
+        /* End add for RCS */
         super.onOptionalFieldVisibilityChange();
     }
 

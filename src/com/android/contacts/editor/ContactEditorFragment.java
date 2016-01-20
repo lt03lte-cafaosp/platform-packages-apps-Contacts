@@ -35,6 +35,7 @@ import android.widget.ListPopupWindow;
 
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.R;
+import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.ContactEditorActivity;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.RawContactDelta;
@@ -46,7 +47,9 @@ import com.android.contacts.common.util.AccountsListAdapter;
 import com.android.contacts.common.util.AccountsListAdapter.AccountListFilter;
 import com.android.contacts.detail.PhotoSelectionHandler;
 import com.android.contacts.editor.Editor.EditorListener;
+import com.android.contacts.editor.StructuredNameEditorView.ExpandListener;
 import com.android.contacts.util.ContactPhotoUtils;
+import com.android.contacts.util.RcsUtils;
 import com.android.contacts.util.UiClosables;
 
 import java.io.FileNotFoundException;
@@ -289,6 +292,14 @@ public class ContactEditorFragment extends ContactEditorBaseFragment implements
                     public void onDeleteRequested(Editor removedEditor) {
                     }
                 };
+                /* Begin add for RCS */
+                ExpandListener expandListener = new ExpandListener(){
+                    @Override
+                    public void onExpand(boolean isExpand) {
+                        mEditorsIsExpand = isExpand;
+                    }
+                };
+                /* End add for RCS */
 
                 final StructuredNameEditorView nameEditor = rawContactEditor.getNameEditor();
                 nameEditor.setEditorListener(structuredNameListener);
@@ -498,6 +509,14 @@ public class ContactEditorFragment extends ContactEditorBaseFragment implements
                 SAVE_MODE_EXTRA_KEY, saveMode, isEditingUserProfile(),
                 ((Activity) mContext).getClass(), ContactEditorActivity.ACTION_SAVE_COMPLETED,
                 mUpdatedPhotos, backPressed);
+        /* Begin add for RCS */
+        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            intent.putExtra(RcsUtils.KEY_IS_INSERT, !mIsEdit);
+            intent.putExtra(
+                    RcsUtils.KEY_IS_SOMETHING_CHANGED_EXCEPT_PHOTO,
+                    isSomethingChangedExceptPhoto());
+        }
+        /* End add for RCS */
         mContext.startService(intent);
 
         // Don't try to save the same photos twice.
@@ -732,4 +751,27 @@ public class ContactEditorFragment extends ContactEditorBaseFragment implements
             }
         }
     }
+
+    /**
+     * Returns true if something changed except photo.
+     * Begin add for RCS
+     */
+    private boolean isSomethingChangedExceptPhoto() {
+        int countWithPicture = 0;
+        final int numEntities = mState.size();
+        for (int i = 0; i < numEntities; i++) {
+            final RawContactDelta entity = mState.get(i);
+            if (entity.isVisible()) {
+                final ValuesDelta primary = entity.getPrimaryEntry(Photo.CONTENT_ITEM_TYPE);
+                if (primary != null && primary.getPhoto() != null) {
+                    countWithPicture++;
+                }
+                if (countWithPicture > 0) {
+                    break;
+                }
+            }
+        }
+        return (countWithPicture > 0) && mUpdatedPhotos.isEmpty();
+    }
+    /* End add for RCS */
 }
