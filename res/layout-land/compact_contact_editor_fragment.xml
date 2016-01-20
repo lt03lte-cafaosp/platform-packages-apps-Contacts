@@ -14,13 +14,18 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/compact_contact_editor_fragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/background_primary"
+            android:fadingEdge="none"
+            android:fillViewport="true">
 
 <com.android.contacts.editor.CompactRawContactsEditorView
-        xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/editors"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/background_primary"
         android:orientation="horizontal"
         android:visibility="invisible">
 
@@ -52,3 +57,5 @@
     </ScrollView>
 
 </com.android.contacts.editor.CompactRawContactsEditorView>
+
+</ScrollView>
