@@ -613,6 +613,11 @@ public class ContactSaveService extends IntentService {
                     deliverCallback(callbackIntent);
                 }
                 return;
+            }
+              catch (IllegalStateException e) {
+                Log.e(TAG, "Contact save failed,raw contact id is -1", e);
+                showToast(R.string.contactSavedErrorToast);
+                break;
             } catch (OperationApplicationException e) {
                 // Version consistency failed, re-parent change and try again
                 Log.w(TAG, "Version consistency failed, re-parenting: " + e.toString());
@@ -649,6 +654,10 @@ public class ContactSaveService extends IntentService {
                         delta.setProfileQueryUri();
                        }
                     }
+                } catch (Exception e) {
+                    Log.e(TAG, "Contact save failed", e);
+                    showToast(R.string.contactSavedErrorToast);
+                    break;
                 }
             }
         }
