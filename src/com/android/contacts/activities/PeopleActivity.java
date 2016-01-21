@@ -990,9 +990,6 @@ public class PeopleActivity extends ContactsActivity implements
         if (mProviderStatus.equals(ProviderStatus.STATUS_NORMAL)) {
             // Ensure that the mTabPager is visible; we may have made it invisible below.
             contactsUnavailableView.setVisibility(View.GONE);
-            if (mTabPager != null) {
-                mTabPager.setVisibility(View.VISIBLE);
-            }
 
             if (mAllFragment != null) {
                 mAllFragment.setEnabled(true);
@@ -1032,9 +1029,6 @@ public class PeopleActivity extends ContactsActivity implements
             // Show the contactsUnavailableView, and hide the mTabPager so that we don't
             // see it sliding in underneath the contactsUnavailableView at the edges.
             contactsUnavailableView.setVisibility(View.VISIBLE);
-            if (mTabPager != null) {
-                mTabPager.setVisibility(View.GONE);
-            }
 
             showEmptyStateForTab(mActionBarAdapter.getCurrentTab());
         }
