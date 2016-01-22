@@ -414,11 +414,12 @@ public class GroupBrowseListFragment extends Fragment
                     e.printStackTrace();
                 }
             }
-            if (isDetached()) {
+            if (isDetached() || mContext == null) {
                 return;
             }
-            if(loaderManager != null)
+            if (loaderManager != null) {
                 loaderManager.restartLoader(LOADER_GROUPS, null, mGroupLoaderListener);
+            }
             mAdapter.setRcsGroupsData(result,contactCountMap);
             mAdapter.notifyDataSetChanged();
 
