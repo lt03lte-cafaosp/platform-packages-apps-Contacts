@@ -32,6 +32,8 @@ import android.graphics.drawable.Drawable;
 import android.provider.Settings;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.widget.CardView;
 import android.text.Spannable;
 import android.text.TextUtils;
@@ -60,11 +62,13 @@ import android.widget.LinearLayout.LayoutParams;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.contacts.R;
 import com.android.contacts.common.CallUtil;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.dialog.CallSubjectDialog;
+import com.android.contacts.detail.ContactDisplayUtils;
 import com.android.phone.common.util.FirewallUtils;
 
 import java.util.ArrayList;
@@ -82,6 +86,7 @@ public class ExpandingEntryCardView extends CardView {
 
     public static final int DURATION_EXPAND_ANIMATION_CHANGE_BOUNDS = 300;
     public static final int DURATION_COLLAPSE_ANIMATION_CHANGE_BOUNDS = 300;
+    public static final int PRESENCE_AVAILABILITY_FETCH = 0;
 
     private static final String SHARE_FILE_NMAE = "video_callling_reminder";
     private boolean isSupportVideoCall = false;
@@ -92,6 +97,8 @@ public class ExpandingEntryCardView extends CardView {
     private int mEnable;
     private VideoCallingCallback mVideoCallingCallback = null;
     private String mContactName;
+    private Handler mHandler;
+    private boolean mEnablePresence = false;
 
     private static final Property<View, Integer> VIEW_LAYOUT_HEIGHT_PROPERTY =
             new Property<View, Integer>(Integer.class, "height") {
@@ -351,7 +358,6 @@ public class ExpandingEntryCardView extends CardView {
             if (mVideoCallingCallback != null)
                 mVideoCallingCallback.updateContact();
         }
-
     };
 
     public interface VideoCallingCallback {
@@ -373,13 +379,17 @@ public class ExpandingEntryCardView extends CardView {
         mTitleTextView = (TextView) expandingEntryCardView.findViewById(R.id.title);
         mContainer = (LinearLayout) expandingEntryCardView.findViewById(R.id.container);
 
-        mVideoCalling = (Switch) expandingEntryCardView
-                .findViewById(R.id.switch_video_call);
-        mDefaultEnable = Settings.System.getInt(mContext.getContentResolver(),
-                CallUtil.CONFIG_VIDEO_CALLING,CallUtil.DISABLE_VIDEO_CALLING);
-        mEnable = mDefaultEnable;
-        mVideoCalling.setChecked(mDefaultEnable == CallUtil.ENABLE_VIDEO_CALLING);
-        mVideoCalling.setOnCheckedChangeListener(mSwitchVideoCalling);
+        mEnablePresence = mContext.getResources().getBoolean(
+                R.bool.config_regional_presence_enable);
+        if (mEnablePresence) {
+            mVideoCalling = (Switch) expandingEntryCardView
+                    .findViewById(R.id.switch_video_call);
+            mDefaultEnable = Settings.System.getInt(mContext.getContentResolver(),
+                    CallUtil.CONFIG_VIDEO_CALLING,CallUtil.DISABLE_VIDEO_CALLING);
+            mEnable = mDefaultEnable;
+            mVideoCalling.setChecked(mDefaultEnable == CallUtil.ENABLE_VIDEO_CALLING);
+            mVideoCalling.setOnCheckedChangeListener(mSwitchVideoCalling);
+        }
 
         mExpandCollapseButton = inflater.inflate(
                 R.layout.quickcontact_expanding_entry_card_button, this, false);
@@ -639,6 +649,22 @@ public class ExpandingEntryCardView extends CardView {
      * Inflates the initial entries to be shown.
      */
     private void inflateInitialEntries(LayoutInflater layoutInflater) {
+
+        if (mEnablePresence) {
+            mHandler = new Handler(){
+
+                @Override
+                public void handleMessage(Message msg) {
+                    switch (msg.what) {
+                        case PRESENCE_AVAILABILITY_FETCH:
+                            if (mVideoCallingCallback != null )
+                                mVideoCallingCallback.updateContact();
+                            Log.d(TAG, "AvailabilityFetch result updateContact");
+                            break;
+                    }
+                }
+            };
+        }
         // If the number of collapsed entries equals total entries, inflate all
         if (mCollapsedEntriesCount == mNumEntries) {
             inflateAllEntries(layoutInflater);
@@ -714,6 +740,11 @@ public class ExpandingEntryCardView extends CardView {
     public void setEntryContactName(String name){
         mContactName = name;
     }
+
+    public String getEntryContactName(){
+        return mContactName;
+    }
+
     public void setEntryHeaderColor(int color) {
         if (mEntries != null) {
             for (List<View> entryList : mEntryViews) {
@@ -910,8 +941,28 @@ public class ExpandingEntryCardView extends CardView {
             alternateIcon.setContentDescription(entry.getAlternateContentDescription());
         }
 
+        boolean showVTicon = false;
+        if (mEnablePresence) {
+            if (mEnable == CallUtil.ENABLE_VIDEO_CALLING) {
+                showVTicon = ContactDisplayUtils.getVTCapability(entry.getHeader());
+                new Thread(new Runnable(){
+                    public void run(){
+                        if (null != entry.getHeader()) {
+                            boolean oldVT = ContactDisplayUtils.getVTCapability(
+                                        entry.getHeader());
+                            boolean newVT = ContactDisplayUtils.startAvailabilityFetch(
+                                        entry.getHeader());
+                            if (oldVT != newVT) {
+                                mHandler.sendEmptyMessage(PRESENCE_AVAILABILITY_FETCH);
+                            }
+                        }
+                    }
+
+                }).start();
+            }
+        }
         if (entry.getThirdIcon() != null && entry.getThirdAction() != Entry.ACTION_NONE
-                && mEnable == CallUtil.ENABLE_VIDEO_CALLING) {
+                && showVTicon) {
             thirdIcon.setImageDrawable(entry.getThirdIcon());
             if (entry.getThirdAction() == Entry.ACTION_INTENT) {
                 thirdIcon.setOnClickListener(mOnClickListener);
