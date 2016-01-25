@@ -191,10 +191,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.lang.ref.WeakReference;
 
+import com.android.contacts.quickcontact.ExpandingEntryCardView.VideoCallingCallback;
+
 /**
  * Mostly translucent {@link Activity} that shows QuickContact dialog. It loads
  * data asynchronously, and then shows a popup with details centered around
- * {@link Intent#getSourceBounds()}.
+ * {@link Intent#getSourceBounds()}.ExpandingEntryCardView
  */
 public class QuickContactActivity extends ContactsActivity {
 
@@ -915,6 +917,13 @@ public class QuickContactActivity extends ContactsActivity {
         mContactCard.setExpandButtonText(
         getResources().getString(R.string.expanding_entry_card_view_see_all));
         mContactCard.setOnCreateContextMenuListener(mEntryContextMenuListener);
+        mContactCard.disPlayVideoCallSwitch(CallUtil.isVideoEnabled(this));
+        mContactCard.setCallBack(new VideoCallingCallback(){
+            @Override
+            public void updateContact(){
+                reFreshContact();
+            }
+        });
 
         mRecentCard.setOnClickListener(mEntryClickHandler);
         mRecentCard.setTitle(getResources().getString(R.string.recent_card_title));
@@ -1150,7 +1159,7 @@ public class QuickContactActivity extends ContactsActivity {
         } else {
             setHeaderNameText(displayName);
         }
-
+        mContactCard.setEntryContactName(displayName);
         Trace.endSection();
 
         mEntriesAndActionsTask = new AsyncTask<Void, Void, Cp2DataCardModel>() {
@@ -1538,7 +1547,6 @@ public class QuickContactActivity extends ContactsActivity {
                 }
             }
         }
-
         Trace.endSection();
 
         final Cp2DataCardModel dataModel = new Cp2DataCardModel();
@@ -2563,6 +2571,15 @@ public class QuickContactActivity extends ContactsActivity {
         }
     }
 
+    private void reFreshContact(){
+        if (mCachedCp2DataCardModel != null) {
+            populateContactAndAboutCard(mCachedCp2DataCardModel);
+        }
+        if(mContactCard!=null){
+            mContactCard.invalidate();
+        }
+    }
+
     /**
      * Returns true if it is possible to edit the current contact.
      */
@@ -2794,6 +2811,9 @@ public class QuickContactActivity extends ContactsActivity {
                 editMenuItem.setVisible(false);
             }
 
+            final MenuItem refreshMenuItem = menu.findItem(R.id.menu_refresh);
+            refreshMenuItem.setVisible(isContactEditable());
+
             final MenuItem deleteMenuItem = menu.findItem(R.id.menu_delete);
             deleteMenuItem.setVisible(isContactEditable());
 
@@ -2967,6 +2987,9 @@ public class QuickContactActivity extends ContactsActivity {
                 } else if (isContactEditable()) {
                     editContact();
                 }
+                return true;
+            case R.id.menu_refresh:
+                reFreshContact();
                 return true;
             case R.id.menu_delete:
                 if (isContactEditable()) {

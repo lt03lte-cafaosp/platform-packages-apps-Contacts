@@ -15,17 +15,21 @@
  */
 package com.android.contacts.quickcontact;
 
+import android.app.AlertDialog;
 import android.animation.Animator;
 import android.animation.Animator.AnimatorListener;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.content.SharedPreferences;
 import android.graphics.ColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.provider.Settings;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.widget.CardView;
@@ -46,13 +50,19 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.RelativeLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.android.contacts.R;
+import com.android.contacts.common.CallUtil;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.dialog.CallSubjectDialog;
 import com.android.phone.common.util.FirewallUtils;
@@ -72,6 +82,16 @@ public class ExpandingEntryCardView extends CardView {
 
     public static final int DURATION_EXPAND_ANIMATION_CHANGE_BOUNDS = 300;
     public static final int DURATION_COLLAPSE_ANIMATION_CHANGE_BOUNDS = 300;
+
+    private static final String SHARE_FILE_NMAE = "video_callling_reminder";
+    private boolean isSupportVideoCall = false;
+    private boolean isEnable = false;
+    private Switch mVideoCalling;
+    private Context mContext;
+    private int mDefaultEnable;
+    private int mEnable;
+    private VideoCallingCallback mVideoCallingCallback = null;
+    private String mContactName;
 
     private static final Property<View, Integer> VIEW_LAYOUT_HEIGHT_PROPERTY =
             new Property<View, Integer>(Integer.class, "height") {
@@ -266,6 +286,7 @@ public class ExpandingEntryCardView extends CardView {
     }
 
     private View mExpandCollapseButton;
+    private View mExpandSwitchVideoCall;
     private TextView mExpandCollapseTextView;
     private TextView mTitleTextView;
     private CharSequence mExpandButtonText;
@@ -318,18 +339,47 @@ public class ExpandingEntryCardView extends CardView {
         }
     };
 
+    private final OnCheckedChangeListener mSwitchVideoCalling = new OnCheckedChangeListener() {
+
+        @Override
+        public void onCheckedChanged(CompoundButton buttonView,
+                boolean isChecked) {
+            mEnable = isChecked ? CallUtil.ENABLE_VIDEO_CALLING:CallUtil.DISABLE_VIDEO_CALLING;
+            CallUtil.createVideoCallingDialog(isChecked , mContext);
+            Settings.System.putInt(mContext.getContentResolver(),CallUtil.CONFIG_VIDEO_CALLING,
+                    mEnable);
+            if (mVideoCallingCallback != null)
+                mVideoCallingCallback.updateContact();
+        }
+
+    };
+
+    public interface VideoCallingCallback {
+        public void updateContact();
+    }
+
     public ExpandingEntryCardView(Context context) {
         this(context, null);
+        mContext = context;
     }
 
     public ExpandingEntryCardView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mContext = context;
         LayoutInflater inflater = LayoutInflater.from(context);
         View expandingEntryCardView = inflater.inflate(R.layout.expanding_entry_card_view, this);
         mEntriesViewGroup = (LinearLayout)
                 expandingEntryCardView.findViewById(R.id.content_area_linear_layout);
         mTitleTextView = (TextView) expandingEntryCardView.findViewById(R.id.title);
         mContainer = (LinearLayout) expandingEntryCardView.findViewById(R.id.container);
+
+        mVideoCalling = (Switch) expandingEntryCardView
+                .findViewById(R.id.switch_video_call);
+        mDefaultEnable = Settings.System.getInt(mContext.getContentResolver(),
+                CallUtil.CONFIG_VIDEO_CALLING,CallUtil.DISABLE_VIDEO_CALLING);
+        mEnable = mDefaultEnable;
+        mVideoCalling.setChecked(mDefaultEnable == CallUtil.ENABLE_VIDEO_CALLING);
+        mVideoCalling.setOnCheckedChangeListener(mSwitchVideoCalling);
 
         mExpandCollapseButton = inflater.inflate(
                 R.layout.quickcontact_expanding_entry_card_button, this, false);
@@ -370,6 +420,9 @@ public class ExpandingEntryCardView extends CardView {
         mNumEntries = 0;
         mAllEntriesInflated = false;
         mShowFirstEntryTypeTwice = showFirstEntryTypeTwice;
+        if (isSupportVideoCall) {
+            mVideoCalling.setVisibility(View.VISIBLE);
+        }
         for (List<Entry> entryList : mEntries) {
             mNumEntries += entryList.size();
             mEntryViews.add(new ArrayList<View>());
@@ -425,6 +478,10 @@ public class ExpandingEntryCardView extends CardView {
     @Override
     public void setOnCreateContextMenuListener (OnCreateContextMenuListener listener) {
         mOnCreateContextMenuListener = listener;
+    }
+
+    public void setCallBack(VideoCallingCallback callback){
+        mVideoCallingCallback = callback;
     }
 
     private List<View> calculateEntriesToRemoveDuringCollapse() {
@@ -574,6 +631,10 @@ public class ExpandingEntryCardView extends CardView {
         }
     }
 
+    public void disPlayVideoCallSwitch(boolean isSupportVideocall) {
+        this.isSupportVideoCall = isSupportVideocall;
+    }
+
     /**
      * Inflates the initial entries to be shown.
      */
@@ -650,6 +711,9 @@ public class ExpandingEntryCardView extends CardView {
         applyColor();
     }
 
+    public void setEntryContactName(String name){
+        mContactName = name;
+    }
     public void setEntryHeaderColor(int color) {
         if (mEntries != null) {
             for (List<View> entryList : mEntryViews) {
@@ -846,7 +910,8 @@ public class ExpandingEntryCardView extends CardView {
             alternateIcon.setContentDescription(entry.getAlternateContentDescription());
         }
 
-        if (entry.getThirdIcon() != null && entry.getThirdAction() != Entry.ACTION_NONE) {
+        if (entry.getThirdIcon() != null && entry.getThirdAction() != Entry.ACTION_NONE
+                && mEnable == CallUtil.ENABLE_VIDEO_CALLING) {
             thirdIcon.setImageDrawable(entry.getThirdIcon());
             if (entry.getThirdAction() == Entry.ACTION_INTENT) {
                 thirdIcon.setOnClickListener(mOnClickListener);
