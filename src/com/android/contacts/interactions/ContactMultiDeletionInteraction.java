@@ -435,6 +435,7 @@ public class ContactMultiDeletionInteraction extends Fragment
             // dialog.
             mProgressDialog.setCanceledOnTouchOutside(false);
             mProgressDialog.show();
+            notifyListenerActivity();
             // Start delete contacts thread
             mThread.start();
         }
