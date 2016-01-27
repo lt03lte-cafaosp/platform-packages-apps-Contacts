@@ -584,8 +584,21 @@ public class ContactSaveService extends IntentService {
                                 String.valueOf(rawContactId)
                             });
                     }
-                RcsUtils.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
-                        resolver, rawContactId);
+                    boolean isRcsSupportedAndOnline = RcsUtils.isRcsSupported()
+                            && RcsUtils.isRcsOnline();
+                    if (isRcsSupportedAndOnline) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    RcsUtils.newAndEditContactsUpdateEnhanceScreen(
+                                            getApplicationContext(), resolver, rawContactId);
+                                } catch (Exception e) {
+                                    RcsLog.w(e);
+                                }
+                            }
+                        }).start();
+                    }
                 /* End add for RCS */
                 // We can change this back to false later, if we fail to save the contact photo.
                 succeeded = true;
