@@ -36,4 +36,18 @@ public class UiClosables {
         }
         return false;
     }
+
+    /**
+     * Show a {@link ListPopupWindow}
+     *
+     * @param popup The popup window to show
+     * @return {@code true} if the popup was showing. {@code false } otherwise.
+     */
+    public static boolean showQuiety(ListPopupWindow popup) {
+        if (popup != null && !popup.isShowing()) {
+            popup.show();
+            return true;
+        }
+        return false;
+    }
 }

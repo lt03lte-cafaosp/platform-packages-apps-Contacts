@@ -509,6 +509,22 @@ public class PeopleActivity extends ContactsActivity implements
     }
 
     @Override
+    public void onAttachedToWindow() {
+        if (mActionBarAdapter != null) {
+            mActionBarAdapter.showPopupWindowIfNeed();
+        }
+        super.onAttachedToWindow();
+    }
+
+    @Override
+    protected void onStop() {
+        if (mActionBarAdapter != null) {
+            mActionBarAdapter.onClosePopupWindow();
+        }
+        super.onStop();
+    }
+
+    @Override
     protected void onDestroy() {
         mProviderStatusWatcher.removeListener(this);
 
@@ -676,6 +692,16 @@ public class PeopleActivity extends ContactsActivity implements
     @Override
     public void onUpButtonPressed() {
         onBackPressed();
+    }
+
+    @Override
+    public void onPopupItemClick(boolean selectAll) {
+        if (mActionBarAdapter != null && mActionBarAdapter.isSelectionMode()) {
+            mAllFragment.setSelectAll(selectAll);
+            if (!selectAll) {
+                mActionBarAdapter.setSelectionMode(false);
+            }
+        }
     }
 
     private void updateDebugOptionsVisibility(boolean visible) {
@@ -1087,7 +1113,17 @@ public class PeopleActivity extends ContactsActivity implements
 
         @Override
         public void onSelectedContactIdsChanged() {
-            mActionBarAdapter.setSelectionCount(mAllFragment.getSelectedContactIds().size());
+            if (mActionBarAdapter != null && mActionBarAdapter.isSelectionMode()) {
+                int selectedCount = mAllFragment.getSelectedContactIds().size();
+                int allContactsCount = mAllFragment.getAdapter().getAllVisibleContactIds().size();
+                mActionBarAdapter.setSelectionCount(selectedCount);
+                // When screen rotate, contacts cursor need reload, before cursor
+                // reload complete, the allContactsCount is 0.
+                if (allContactsCount != 0) {
+                    mActionBarAdapter.updatePopupWindowViewIfNeed(
+                            allContactsCount == selectedCount);
+                }
+            }
             invalidateOptionsMenu();
         }
 
