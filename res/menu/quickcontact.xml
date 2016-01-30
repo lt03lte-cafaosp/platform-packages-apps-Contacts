@@ -28,6 +28,10 @@
         android:alphabeticShortcut="q" />
 
     <item
+        android:id="@+id/menu_fetion"
+        android:title="@string/fetion" />
+
+    <item
         android:id="@+id/menu_updateenhancedscreen"
         android:title="@string/menu_updateenhancedscreen"
         android:alphabeticShortcut="q" />

@@ -3071,6 +3071,10 @@ public class QuickContactActivity extends ContactsActivity {
                 mIsScanToInsertBtnClicked = true;
                 return true;
             }
+            case R.id.menu_fetion:{
+                RcsUtils.startFetionActivity(this);
+                return true;
+            }
             case R.id.menu_upload_download: {
                 final WeakReference<QuickContactActivity> quickRef;
                 quickRef = new WeakReference<QuickContactActivity>(QuickContactActivity.this);

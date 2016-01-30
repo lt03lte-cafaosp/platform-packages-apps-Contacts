@@ -265,6 +265,8 @@ public class RcsUtils {
 
     private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
 
+    private static final String FETION_PACKAGE = "cn.com.fetion.nfa";
+    private static final String FETION_CLASS_NAME = "cn.com.fetion.nfa.ui.PluginsListActivity";
     public static boolean isNativeUIInstalled;
 
     private static SupportApi sSupportApi = SupportApi.getInstance();
@@ -290,6 +292,10 @@ public class RcsUtils {
 
     public static boolean isNativeUiInstalled(Context context) {
         return isPackageInstalled(context, NATIVE_UI_PACKAGE);
+    }
+
+    public static boolean isFetionInstalled(Context context) {
+        return isPackageInstalled(context, FETION_PACKAGE);
     }
 
     public static boolean isPluginInstalled(Context context) {
@@ -2225,6 +2231,11 @@ public class RcsUtils {
             optionsQrcode.setVisible(isRcsSupport && isUserProfile);
         }
 
+        final MenuItem optionsFetion = menu.findItem(R.id.menu_fetion);
+        if (optionsFetion != null) {
+            optionsFetion.setVisible(isRcsSupport && isFetionInstalled(context)
+                    && isUserProfile);
+        }
         final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
         if (optionsPluginCenter != null) {
             optionsPluginCenter.setVisible(isRcsSupport && isPlunginCenterInstalled(context)
@@ -2254,6 +2265,14 @@ public class RcsUtils {
         RawContact rawContact = contactData.getRawContacts().get(0);
         bundle.putParcelable("raw_contact", rawContact);
         intent.putExtras(bundle);
+        context.startActivity(intent);
+    }
+
+    public static void startFetionActivity(Context context) {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        ComponentName cn = new ComponentName(FETION_PACKAGE, FETION_CLASS_NAME);
+        intent.setComponent(cn);
         context.startActivity(intent);
     }
 
