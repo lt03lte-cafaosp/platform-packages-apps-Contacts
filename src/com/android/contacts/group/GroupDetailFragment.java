@@ -147,6 +147,8 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     private boolean mOptionsMenuRcsSupported;
     private boolean mOptionsMenuRcsEnhanceScreenSupported;
     private String mGroupMembersPhones;
+    private static String ACTION_CREATR_GROUP_CHAT = "com.suntek.rcs.action.CREATR_GROUP_CHAT";
+    private static String RECIPIENT = "recipients";
     /* End add for RCS */
 
     public GroupDetailFragment() {
@@ -599,8 +601,8 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     }
 
     public void startCreateGroupChatActivity(String number) {
-        Intent intent = new Intent("com.android.mms.rcs.CREATR_GROUP_CHAT");
-        intent.putExtra("recipients", number);
+        Intent intent = new Intent(ACTION_CREATR_GROUP_CHAT);
+        intent.putExtra(RECIPIENT, number);
         mContext.startActivity(intent);
     }
     /* End add for RCS */

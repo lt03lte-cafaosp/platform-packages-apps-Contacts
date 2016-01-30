@@ -344,7 +344,7 @@ public class RcsUtils {
                 } else {
                     return;
                 }
-                String latestTerminal = prefs.getString(RcsUtils.PREF_MY_TEMINAL, "");
+                final String latestTerminal = prefs.getString(RcsUtils.PREF_MY_TEMINAL, "");
                 if (!TextUtils.isEmpty(myAccountNumber)
                         && !TextUtils.equals(myAccountNumber, latestTerminal)) {
                     handler.post(new Runnable() {
@@ -359,6 +359,16 @@ public class RcsUtils {
                                                 @Override
                                                 public void onClick(DialogInterface dialog,
                                                         int whichButton) {
+                                                    if (!TextUtils.isEmpty(latestTerminal)) {
+                                                        String where = Phone.NUMBER + " like " +
+                                                                "'" + latestTerminal + "'";
+                                                        try {
+                                                            context.getContentResolver().delete(
+                                                                    PROFILE_DATA_URI, where, null);
+                                                        }  catch(Exception e) {
+                                                            RcsLog.w(e);
+                                                        }
+                                                    }
                                                     if (mode == RESTORE_CONTACTS) {
                                                         try {
                                                              context.startActivity(
