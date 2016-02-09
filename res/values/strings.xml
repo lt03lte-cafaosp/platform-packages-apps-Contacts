@@ -467,7 +467,7 @@
     <string name="menu_select_all">"Select all"</string>
 
     <!-- Label to clear all selection in multiple picker -->
-    <string name="menu_select_none">"Unselect all"</string>
+    <string name="menu_select_none">"Deselect all"</string>
 
     <!-- The button to add another entry of a specific data type (i.e. email, phone, address) to a contact in the Raw Contact Editor [CHAR LIMIT=22] -->
     <string name="add_new_entry_for_section">Add new</string>
@@ -851,4 +851,6 @@
     <string name="remove_whitelist_success">"This number has been removed from whitelist successfully."</string>
     <string name="remove_from_black">Remove from blacklist</string>
     <string name="remove_from_white">Remove from whitelist</string>
+    <string name="remove_blacklist_fail">"This number has been removed from blacklist fail."</string>
+    <string name="remove_whitelist_fail">"This number has been removed from whitelist fail."</string>
 </resources>

@@ -651,6 +651,10 @@ public class QuickContactActivity extends ContactsActivity {
                 Toast.makeText(this, blacklisted
                         ? R.string.remove_blacklist_success
                         : R.string.remove_whitelist_success, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, blacklisted
+                        ? R.string.remove_blacklist_fail
+                        : R.string.remove_whitelist_fail, Toast.LENGTH_SHORT).show();
             }
         }
     }
