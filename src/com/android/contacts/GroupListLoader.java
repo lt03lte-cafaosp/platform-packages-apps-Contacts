@@ -20,6 +20,8 @@ import android.content.CursorLoader;
 import android.net.Uri;
 import android.provider.ContactsContract.Groups;
 
+import com.android.contacts.util.RcsUtils;
+
 /**
  * Group loader for the group list that includes details such as the number of contacts per group
  * and number of groups per account. This list is sorted by account type, account name, where the
@@ -65,14 +67,15 @@ public final class GroupListLoader extends CursorLoader {
         where.append(Groups.ACCOUNT_TYPE + " NOT NULL AND "
                 + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.AUTO_ADD + "=0 AND " +
                 Groups.FAVORITES + "=0 AND " + Groups.DELETED + "!=1");
-        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
-            where.append(" AND " + Groups.SOURCE_ID + " != 'RCS'");
+        if (!RcsUtils.isRcsSupported()) {
+            where.append(" AND (" + Groups.SOURCE_ID + "!='RCS'" + " OR "
+                    + Groups.SOURCE_ID + " IS NULL)");
         }
         return where.toString();
     }
 
     private static String createSortOrder(){
-        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (!RcsUtils.isRcsSupported()) {
             return "account_id";
         } else {
             return Groups.SOURCE_ID;

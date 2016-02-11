@@ -66,7 +66,6 @@ import com.android.contacts.common.model.RawContactModifier;
 import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.common.util.PermissionsUtil;
-import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.SimContactsOperation;
 import com.android.contacts.common.MoreContactUtils;
@@ -320,7 +319,7 @@ public class ContactSaveService extends IntentService {
         } else if (ACTION_DELETE_CONTACT.equals(action)) {
             deleteContact(intent);
             /* Begin add for RCS */
-            boolean isRcsSupported = RcsApiManager.getSupportApi().isRcsSupported();
+            boolean isRcsSupported = RcsUtils.isRcsSupported();
             if (isRcsSupported && RcsUtils.isNativeUIInstalled
                     && RcsUtils.isPluginInstalled(this)) {
                 Uri contactUri = intent.getParcelableExtra(EXTRA_CONTACT_URI);
@@ -505,7 +504,7 @@ public class ContactSaveService extends IntentService {
                 Log.d(TAG, "doSaveToSimCard result is  " + result);
             }
             /* Begin add for RCS */
-            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (RcsUtils.isRcsSupported()) {
                 Intent callbackIntent = intent.getParcelableExtra(EXTRA_CALLBACK_INTENT);
                 if (deliverCallbackRorRcsEdit(callbackIntent, entity,
                         StructuredPostal.CONTENT_ITEM_TYPE)) {
@@ -585,8 +584,21 @@ public class ContactSaveService extends IntentService {
                                 String.valueOf(rawContactId)
                             });
                     }
-                RcsUtils.newAndEditContactsUpdateEnhanceScreen(getApplicationContext(),
-                        resolver, rawContactId);
+                    boolean isRcsSupportedAndOnline = RcsUtils.isRcsSupported()
+                            && RcsUtils.isRcsOnline();
+                    if (isRcsSupportedAndOnline) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    RcsUtils.newAndEditContactsUpdateEnhanceScreen(
+                                            getApplicationContext(), resolver, rawContactId);
+                                } catch (Exception e) {
+                                    RcsLog.w(e);
+                                }
+                            }
+                        }).start();
+                    }
                 /* End add for RCS */
                 // We can change this back to false later, if we fail to save the contact photo.
                 succeeded = true;
@@ -613,6 +625,11 @@ public class ContactSaveService extends IntentService {
                     deliverCallback(callbackIntent);
                 }
                 return;
+            }
+              catch (IllegalStateException e) {
+                Log.e(TAG, "Contact save failed,raw contact id is -1", e);
+                showToast(R.string.contactSavedErrorToast);
+                break;
             } catch (OperationApplicationException e) {
                 // Version consistency failed, re-parent change and try again
                 Log.w(TAG, "Version consistency failed, re-parenting: " + e.toString());
@@ -649,6 +666,10 @@ public class ContactSaveService extends IntentService {
                         delta.setProfileQueryUri();
                        }
                     }
+                } catch (Exception e) {
+                    Log.e(TAG, "Contact save failed", e);
+                    showToast(R.string.contactSavedErrorToast);
+                    break;
                 }
             }
         }
@@ -671,14 +692,14 @@ public class ContactSaveService extends IntentService {
                 if (rawContactId < 0 || !saveUpdatedPhoto(rawContactId, photoUri)) {
                     succeeded = false;
                 /* Begin add for RCS */
-                } else if(RcsApiManager.getSupportApi().isRcsSupported() && rawContactId >= 0) {
+                } else if(RcsUtils.isRcsSupported() && rawContactId >= 0) {
                     if (!isProfile) {
                         RcsLog.d("Setted Local Photo!");
                         RcsUtils.setLocalSetted(resolver, true, rawContactId);
                     }
                 }
             }
-            if (RcsApiManager.getSupportApi().isRcsSupported()) {
+            if (RcsUtils.isRcsSupported()) {
                 if (updatedPhotos.isEmpty() && !isSomethingChangedExceptPhoto
                         && !isProfile && !isInsert) {
                     RcsLog.d("Photo has deleted!");
@@ -789,8 +810,14 @@ public class ContactSaveService extends IntentService {
         }
 
         if (!TextUtils.isEmpty(tag)) {
-            if (tag.getBytes().length > MAX_EN_LENGTH) {
-                return RESULT_TAG_FAILURE;
+            if (tag.getBytes().length > tag.length()) {
+                if (tag.length() > MAX_CH_LENGTH) {
+                    return RESULT_TAG_FAILURE;
+                }
+            } else {
+                if (tag.getBytes().length > MAX_EN_LENGTH) {
+                    return RESULT_TAG_FAILURE;
+                }
             }
         }
 

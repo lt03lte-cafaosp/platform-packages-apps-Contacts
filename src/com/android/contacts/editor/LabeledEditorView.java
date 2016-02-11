@@ -45,15 +45,16 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.RawContactDelta;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.RawContactModifier;
 import com.android.contacts.common.model.account.AccountType.EditType;
 import com.android.contacts.common.model.dataitem.DataKind;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.util.DialogManager;
 import com.android.contacts.util.DialogManager.DialogShowingView;
+import com.android.contacts.util.RcsUtils;
 
 import java.util.List;
 
@@ -260,8 +261,16 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
      * Makes the type drop down visible if it is not already so, and there are types to display.
      */
     public void showType() {
-        if (mHasTypes && mLabel != null && mLabel.getVisibility() != View.VISIBLE) {
-            EditorAnimator.getInstance().slideAndFadeIn(mLabel, mLabel.getHeight());
+        if (mState != null && mState.getAccountType() != null
+                && mState.getAccountType().equals(SimAccountType.ACCOUNT_TYPE)) {
+            // hide phone type for sim contacts
+            hideType();
+        } else {
+            if (mHasTypes && mLabel != null
+                    && mLabel.getVisibility() != View.VISIBLE) {
+                EditorAnimator.getInstance().slideAndFadeIn(mLabel,
+                        mLabel.getHeight());
+            }
         }
     }
 
@@ -422,7 +431,7 @@ public abstract class LabeledEditorView extends LinearLayout implements Editor, 
         mHasTypes = RawContactModifier.hasEditTypes(kind);
         setupLabelButton(mHasTypes);
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported()
+        if (RcsUtils.isRcsSupported()
                 && entry.getAsInteger(ContactsContract.Data.DATA13) != null
                 && 1 == entry.getAsInteger(ContactsContract.Data.DATA13)) {
             mLabel.setEnabled(false);

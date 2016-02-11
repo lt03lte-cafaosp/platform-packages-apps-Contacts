@@ -104,7 +104,6 @@ import com.android.contacts.ContactsActivity;
 import com.android.contacts.NfcHandler;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.SimContactsConstants;
-import com.android.contacts.common.util.ContactsCommonRcsUtil;
 import com.android.contacts.R;
 import com.android.contacts.common.CallUtil;
 import com.android.contacts.common.ClipboardUtils;
@@ -364,6 +363,13 @@ public class QuickContactActivity extends ContactsActivity {
 
     private static final String FRAGMENT_TAG_SELECT_ACCOUNT = "select_account_fragment";
 
+    private Context mContext;
+    private boolean mEnablePresence = false;
+
+    private boolean simOneLoadComplete = false;
+    private boolean simTwoLoadComplete = false;
+
+    private boolean stopThread = false;
     /* Begin add for RCS */
     private boolean mNeverQueryRcsPhoto;
     private boolean mNeverQueryRcsCapability;
@@ -403,7 +409,8 @@ public class QuickContactActivity extends ContactsActivity {
 
             mHasIntentLaunched = true;
             try {
-                startActivity(intent);
+                ImplicitIntentsUtil.startActivityInAppIfPossible(
+                        QuickContactActivity.this, intent);
             } catch (SecurityException ex) {
                 Toast.makeText(QuickContactActivity.this, R.string.missing_app,
                         Toast.LENGTH_SHORT).show();
@@ -442,31 +449,6 @@ public class QuickContactActivity extends ContactsActivity {
                 }
             } else {
                 Log.w(TAG, "Invalid Data ID");
-            }
-
-            // Pass the touch point through the intent for use in the InCallUI
-            if (Intent.ACTION_CALL.equals(intent.getAction())) {
-                if (TouchPointManager.getInstance().hasValidPoint()) {
-                    Bundle extras = new Bundle();
-                    extras.putParcelable(TouchPointManager.TOUCH_POINT,
-                            TouchPointManager.getInstance().getPoint());
-                    intent.putExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS, extras);
-                }
-            }
-
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-            mHasIntentLaunched = true;
-            try {
-                ImplicitIntentsUtil.startActivityInAppIfPossible(QuickContactActivity.this, intent);
-            } catch (SecurityException ex) {
-                Toast.makeText(QuickContactActivity.this, R.string.missing_app,
-                        Toast.LENGTH_SHORT).show();
-                Log.e(TAG, "QuickContacts does not have permission to launch "
-                        + intent);
-            } catch (ActivityNotFoundException ex) {
-                Toast.makeText(QuickContactActivity.this, R.string.missing_app,
-                        Toast.LENGTH_SHORT).show();
             }
         }
     };
@@ -669,6 +651,10 @@ public class QuickContactActivity extends ContactsActivity {
                 Toast.makeText(this, blacklisted
                         ? R.string.remove_blacklist_success
                         : R.string.remove_whitelist_success, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, blacklisted
+                        ? R.string.remove_blacklist_fail
+                        : R.string.remove_whitelist_fail, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -882,14 +868,14 @@ public class QuickContactActivity extends ContactsActivity {
     protected void onCreate(Bundle savedInstanceState) {
         Trace.beginSection("onCreate()");
         super.onCreate(savedInstanceState);
-
+        mContext = this;
         if (RequestPermissionsActivity.startPermissionActivity(this)) {
             return;
         }
 
-        if (ContactsCommonRcsUtil.isRcsSupported()) {
-             mNeverQueryRcsPhoto = true;
-             mNeverQueryRcsCapability = true;
+        if (RcsUtils.isRcsSupported() && RcsUtils.isRcsOnline()) {
+            mNeverQueryRcsPhoto = true;
+            mNeverQueryRcsCapability = true;
         }
 
         mResolver = getContentResolver();
@@ -917,13 +903,20 @@ public class QuickContactActivity extends ContactsActivity {
         mContactCard.setExpandButtonText(
         getResources().getString(R.string.expanding_entry_card_view_see_all));
         mContactCard.setOnCreateContextMenuListener(mEntryContextMenuListener);
-        mContactCard.disPlayVideoCallSwitch(CallUtil.isVideoEnabled(this));
-        mContactCard.setCallBack(new VideoCallingCallback(){
-            @Override
-            public void updateContact(){
-                reFreshContact();
+        mEnablePresence = mContext.getResources().getBoolean(
+                R.bool.config_regional_presence_enable);
+        if (mEnablePresence) {
+            mContactCard.disPlayVideoCallSwitch(mEnablePresence);
+            if (!ContactDisplayUtils.mIsBound) {
+                ContactDisplayUtils.bindService(mContext);
             }
-        });
+            mContactCard.setCallBack(new VideoCallingCallback(){
+                @Override
+                public void updateContact(){
+                    reFreshContact();
+                }
+            });
+        }
 
         mRecentCard.setOnClickListener(mEntryClickHandler);
         mRecentCard.setTitle(getResources().getString(R.string.recent_card_title));
@@ -1039,7 +1032,7 @@ public class QuickContactActivity extends ContactsActivity {
         mHasAlreadyBeenOpened = true;
         mIsEntranceAnimationFinished = true;
         mHasComputedThemeColor = false;
-        if (ContactsCommonRcsUtil.isRcsSupported()){
+        if (RcsUtils.isRcsSupported() && RcsUtils.isRcsOnline()) {
             mNeverQueryRcsCapability = true;
         }
         processIntent(intent);
@@ -2339,7 +2332,7 @@ public class QuickContactActivity extends ContactsActivity {
                 bindContactData(data);
 
                 /* Begin add for RCS */
-                if (ContactsCommonRcsUtil.isRcsSupported()) {
+                if (RcsUtils.isRcsSupported()) {
                     if (RcsUtils.isLocalProfile(mContactData)) {
                         final WeakReference<QuickContactActivity> quickRef;
                         quickRef = new WeakReference<QuickContactActivity>
@@ -2569,6 +2562,15 @@ public class QuickContactActivity extends ContactsActivity {
         if (mRecentDataTask != null) {
             mRecentDataTask.cancel(/* mayInterruptIfRunning = */ false);
         }
+        if (mEnablePresence && ContactDisplayUtils.mIsBound) {
+            ContactDisplayUtils.unbindService(mContext);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopThread = true;
     }
 
     private void reFreshContact(){
@@ -2832,6 +2834,15 @@ public class QuickContactActivity extends ContactsActivity {
             accoutName = rawContact.getAccountName();
             accoutType = rawContact.getAccountTypeString();
 
+            if (!simOneLoadComplete) {
+                simOneLoadComplete = (MoreContactUtils.getAdnCount(
+                        PhoneConstants.SUB1) > 0) ? true : false;
+            }
+            if (!simTwoLoadComplete) {
+                simTwoLoadComplete = (MoreContactUtils.getAdnCount(
+                        PhoneConstants.SUB2) > 0) ? true : false;
+            }
+
             final MenuItem copyToPhoneMenu = menu.findItem(R.id.menu_copy_to_phone);
             if (copyToPhoneMenu != null) {
                 copyToPhoneMenu.setVisible(false);
@@ -2854,14 +2865,16 @@ public class QuickContactActivity extends ContactsActivity {
                             + getString(R.string.phoneLabelsGroup));
                     if (TelephonyManager.getDefault().isMultiSimEnabled()) {
                         if (SimContactsConstants.SIM_NAME_1.equals(accoutName)
-                                && simIsReady(PhoneConstants.SUB2)) {
+                                && simIsReady(PhoneConstants.SUB2)
+                                && simTwoLoadComplete) {
                             copyToSim2Menu.setTitle(getString(R.string.menu_copyTo)
                                     + MoreContactUtils.getMultiSimAliasesName(
                                             this, PhoneConstants.SUB2));
                             copyToSim2Menu.setVisible(true);
                         }
                         if (SimContactsConstants.SIM_NAME_2.equals(accoutName)
-                                && simIsReady(PhoneConstants.SUB1)) {
+                                && simIsReady(PhoneConstants.SUB1)
+                                && simOneLoadComplete) {
                             copyToSim1Menu.setTitle(getString(R.string.menu_copyTo)
                                     + MoreContactUtils.getMultiSimAliasesName(
                                                 this, PhoneConstants.SUB1));
@@ -2872,20 +2885,23 @@ public class QuickContactActivity extends ContactsActivity {
                     copyToPhoneMenu.setVisible(false);
                     boolean hasPhoneOrEmail = hasPhoneOrEmailDate(mContactData);
                     if (TelephonyManager.getDefault().isMultiSimEnabled()) {
-                        if (hasPhoneOrEmail && simIsReady(PhoneConstants.SUB1)) {
+                        if (hasPhoneOrEmail && simIsReady(PhoneConstants.SUB1)
+                                && simOneLoadComplete) {
                             copyToSim1Menu.setTitle(getString(R.string.menu_copyTo)
                                     + MoreContactUtils.getMultiSimAliasesName(
                                             this, PhoneConstants.SUB1));
                             copyToSim1Menu.setVisible(true);
                         }
-                        if (hasPhoneOrEmail && simIsReady(PhoneConstants.SUB2)) {
+                        if (hasPhoneOrEmail && simIsReady(PhoneConstants.SUB2)
+                                && simTwoLoadComplete) {
                             copyToSim2Menu.setTitle(getString(R.string.menu_copyTo)
                                     + MoreContactUtils.getMultiSimAliasesName(
                                             this, PhoneConstants.SUB2));
                             copyToSim2Menu.setVisible(true);
                         }
                     } else {
-                        if (hasPhoneOrEmail && simIsReady(PhoneConstants.SUB1)) {
+                        if (hasPhoneOrEmail && simIsReady(PhoneConstants.SUB1)
+                                && simOneLoadComplete) {
                             copyToSim1Menu.setTitle(getString(R.string.menu_copyTo)
                                     + SimContactsConstants.SIM_NAME);
                             copyToSim1Menu.setVisible(true);
@@ -2909,7 +2925,7 @@ public class QuickContactActivity extends ContactsActivity {
             }
 
             final MenuItem uploadOrDownload = menu.findItem(R.id.menu_upload_download);
-            if (ContactsCommonRcsUtil.isRcsSupported()
+            if (RcsUtils.isRcsSupported()
                     && RcsUtils.isLocalProfile(mContactData)) {
                 uploadOrDownload.setVisible(true);
             } else {
@@ -3057,6 +3073,10 @@ public class QuickContactActivity extends ContactsActivity {
             }
             case R.id.menu_insertContactFromQrcod:{
                 mIsScanToInsertBtnClicked = true;
+                return true;
+            }
+            case R.id.menu_fetion:{
+                RcsUtils.startFetionActivity(this);
                 return true;
             }
             case R.id.menu_upload_download: {
@@ -3230,28 +3250,6 @@ public class QuickContactActivity extends ContactsActivity {
                     int anrCountInSimContact = 0;
                     int emailCountInSimContact = 0;
 
-                    Cursor cr = null;
-                    // call query first, otherwise the count queries will fail
-                    try{
-                        int[] subId = SubscriptionManager.getSubId(sub);
-                        if (subId != null
-                            && TelephonyManager.getDefault().isMultiSimEnabled()) {
-                            cr = getContentResolver().query(
-                                Uri.parse(SimContactsConstants.SIM_SUB_URI
-                                    + subId[0]), null, null, null, null);
-                        } else {
-                            cr = getContentResolver().query(
-                                Uri.parse(SimContactsConstants.SIM_URI), null,
-                                null, null, null);
-                        }
-                    } catch (NullPointerException e) {
-                        Log.e(TAG, "Exception:" + e);
-                    } finally {
-                        if (cr != null) {
-                            cr.close();
-                        }
-                    }
-
                     if (MoreContactUtils.canSaveAnr(sub)) {
                         anrCountInSimContact = MoreContactUtils.getOneSimAnrCount(sub);
                     }
@@ -3262,6 +3260,11 @@ public class QuickContactActivity extends ContactsActivity {
                             QuickContactActivity.this, sub);
                     int totalEmptyAnr = MoreContactUtils.getSpareAnrCount(sub);
                     int totalEmptyEmail = MoreContactUtils.getSpareEmailCount(sub);
+
+                    if (stopThread || (mContactData == null)) {
+                        Log.d(TAG, " Activity has been finished , return");
+                        return;
+                    }
 
                     Message msg = Message.obtain();
                     if (totalEmptyAdn <= 0) {

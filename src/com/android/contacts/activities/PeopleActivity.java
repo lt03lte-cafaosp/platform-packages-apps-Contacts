@@ -57,7 +57,6 @@ import android.widget.Toolbar;
 
 import com.android.contacts.ContactsActivity;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.ActionBarAdapter.TabState;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.activity.RequestPermissionsActivity;
@@ -285,7 +284,7 @@ public class PeopleActivity extends ContactsActivity implements
         getWindow().setBackgroundDrawable(null);
         registerReceiver();
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (RcsUtils.isRcsSupported()) {
             RcsUtils.resotreIfTerminalChanged(this, RcsUtils.RESTORE_CONTACTS, null, null);
         }
         /* End add for RCS */
@@ -510,6 +509,22 @@ public class PeopleActivity extends ContactsActivity implements
     }
 
     @Override
+    public void onAttachedToWindow() {
+        if (mActionBarAdapter != null) {
+            mActionBarAdapter.showPopupWindowIfNeed();
+        }
+        super.onAttachedToWindow();
+    }
+
+    @Override
+    protected void onStop() {
+        if (mActionBarAdapter != null) {
+            mActionBarAdapter.onClosePopupWindow();
+        }
+        super.onStop();
+    }
+
+    @Override
     protected void onDestroy() {
         mProviderStatusWatcher.removeListener(this);
 
@@ -677,6 +692,16 @@ public class PeopleActivity extends ContactsActivity implements
     @Override
     public void onUpButtonPressed() {
         onBackPressed();
+    }
+
+    @Override
+    public void onPopupItemClick(boolean selectAll) {
+        if (mActionBarAdapter != null && mActionBarAdapter.isSelectionMode()) {
+            mAllFragment.setSelectAll(selectAll);
+            if (!selectAll) {
+                mActionBarAdapter.setSelectionMode(false);
+            }
+        }
     }
 
     private void updateDebugOptionsVisibility(boolean visible) {
@@ -990,9 +1015,6 @@ public class PeopleActivity extends ContactsActivity implements
         if (mProviderStatus.equals(ProviderStatus.STATUS_NORMAL)) {
             // Ensure that the mTabPager is visible; we may have made it invisible below.
             contactsUnavailableView.setVisibility(View.GONE);
-            if (mTabPager != null) {
-                mTabPager.setVisibility(View.VISIBLE);
-            }
 
             if (mAllFragment != null) {
                 mAllFragment.setEnabled(true);
@@ -1032,9 +1054,6 @@ public class PeopleActivity extends ContactsActivity implements
             // Show the contactsUnavailableView, and hide the mTabPager so that we don't
             // see it sliding in underneath the contactsUnavailableView at the edges.
             contactsUnavailableView.setVisibility(View.VISIBLE);
-            if (mTabPager != null) {
-                mTabPager.setVisibility(View.GONE);
-            }
 
             showEmptyStateForTab(mActionBarAdapter.getCurrentTab());
         }
@@ -1094,7 +1113,17 @@ public class PeopleActivity extends ContactsActivity implements
 
         @Override
         public void onSelectedContactIdsChanged() {
-            mActionBarAdapter.setSelectionCount(mAllFragment.getSelectedContactIds().size());
+            if (mActionBarAdapter != null && mActionBarAdapter.isSelectionMode()) {
+                int selectedCount = mAllFragment.getSelectedContactIds().size();
+                int allContactsCount = mAllFragment.getAdapter().getAllVisibleContactIds().size();
+                mActionBarAdapter.setSelectionCount(selectedCount);
+                // When screen rotate, contacts cursor need reload, before cursor
+                // reload complete, the allContactsCount is 0.
+                if (allContactsCount != 0) {
+                    mActionBarAdapter.updatePopupWindowViewIfNeed(
+                            allContactsCount == selectedCount);
+                }
+            }
             invalidateOptionsMenu();
         }
 
@@ -1272,7 +1301,6 @@ public class PeopleActivity extends ContactsActivity implements
             contactsFilterMenu.setVisible(false);
             clearFrequentsMenu.setVisible(false);
             helpMenu.setVisible(false);
-            makeMenuItemVisible(menu, R.id.menu_delete, false);
             /* Begin add for RCS */
             contactsPhotoUpdateMenu.setVisible(false);
             cloudMenu.setVisible(false);
@@ -1295,7 +1323,7 @@ public class PeopleActivity extends ContactsActivity implements
                     contactsFilterMenu.setVisible(true);
                     clearFrequentsMenu.setVisible(false);
                     /* Begin add for RCS */
-                    boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
+                    boolean isRcsSupport = RcsUtils.isRcsSupported();
                     boolean isRcsPluginInstalled = RcsUtils.isPluginInstalled(this);
                     scanMenu.setVisible(isRcsSupport && isRcsPluginInstalled);
                     cloudMenu.setVisible(isRcsSupport && RcsUtils.isNativeUIInstalled &&
@@ -1334,6 +1362,8 @@ public class PeopleActivity extends ContactsActivity implements
         makeMenuItemVisible(menu, R.id.menu_share, showSelectedContactOptions);
         makeMenuItemVisible(menu, R.id.menu_join, showSelectedContactOptions);
         makeMenuItemEnabled(menu, R.id.menu_join, mAllFragment.getSelectedContactIds().size() > 1);
+        // Disable delete menu
+        makeMenuItemVisible(menu, R.id.menu_delete, showSelectedContactOptions);
 
         // Debug options need to be visible even in search mode.
         makeMenuItemVisible(menu, R.id.export_database, mEnableDebugMenuOptions);
@@ -1427,14 +1457,8 @@ public class PeopleActivity extends ContactsActivity implements
                 return true;
             }
             case R.id.menu_delete: {
-                final Intent intent = new Intent(Intent.ACTION_DELETE, Contacts.CONTENT_URI);
-                intent.putExtra(EDITABLE_KEY, mActionBarAdapter.getQueryString());
-
-                ContactListFilter filter = ContactListFilter.restoreDefaultPreferences(
-                    PreferenceManager.getDefaultSharedPreferences(this));
-                intent.putExtra(AccountFilterActivity.KEY_EXTRA_CONTACT_LIST_FILTER, filter);
-
-                startActivity(intent);
+                // Delete the selected contacts
+                deleteSelectedContacts();
                 return true;
             }
             case R.id.menu_import_export: {

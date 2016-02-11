@@ -115,7 +115,6 @@ import com.android.contacts.group.GroupBrowseListFragment;
 import com.android.contacts.group.GroupListItem;
 import com.android.contacts.quickcontact.MyQrcodeActivity;
 import com.android.contacts.quickcontact.QuickContactActivity;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.R;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closeables;
@@ -142,7 +141,9 @@ import com.suntek.mway.rcs.client.api.exception.ServiceDisconnectedException;
 import com.suntek.mway.rcs.client.api.groupchat.GroupChatApi;
 import com.suntek.mway.rcs.client.api.profile.ProfileApi;
 import com.suntek.mway.rcs.client.api.richscreen.RichScreenApi;
+import com.suntek.mway.rcs.client.api.support.SupportApi;
 import com.suntek.rcs.ui.common.RcsLog;
+import com.suntek.rcs.ui.common.RcsApiManager;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -264,7 +265,11 @@ public class RcsUtils {
 
     private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
 
+    private static final String FETION_PACKAGE = "cn.com.fetion.nfa";
+    private static final String FETION_CLASS_NAME = "cn.com.fetion.nfa.ui.PluginsListActivity";
     public static boolean isNativeUIInstalled;
+
+    private static SupportApi sSupportApi = SupportApi.getInstance();
 
     // add firewall menu
     private static final Uri WHITELIST_CONTENT_URI = Uri
@@ -287,6 +292,10 @@ public class RcsUtils {
 
     public static boolean isNativeUiInstalled(Context context) {
         return isPackageInstalled(context, NATIVE_UI_PACKAGE);
+    }
+
+    public static boolean isFetionInstalled(Context context) {
+        return isPackageInstalled(context, FETION_PACKAGE);
     }
 
     public static boolean isPluginInstalled(Context context) {
@@ -341,7 +350,7 @@ public class RcsUtils {
                 } else {
                     return;
                 }
-                String latestTerminal = prefs.getString(RcsUtils.PREF_MY_TEMINAL, "");
+                final String latestTerminal = prefs.getString(RcsUtils.PREF_MY_TEMINAL, "");
                 if (!TextUtils.isEmpty(myAccountNumber)
                         && !TextUtils.equals(myAccountNumber, latestTerminal)) {
                     handler.post(new Runnable() {
@@ -356,6 +365,16 @@ public class RcsUtils {
                                                 @Override
                                                 public void onClick(DialogInterface dialog,
                                                         int whichButton) {
+                                                    if (!TextUtils.isEmpty(latestTerminal)) {
+                                                        String where = Phone.NUMBER + " like " +
+                                                                "'" + latestTerminal + "'";
+                                                        try {
+                                                            context.getContentResolver().delete(
+                                                                    PROFILE_DATA_URI, where, null);
+                                                        }  catch(Exception e) {
+                                                            RcsLog.w(e);
+                                                        }
+                                                    }
                                                     if (mode == RESTORE_CONTACTS) {
                                                         try {
                                                              context.startActivity(
@@ -391,7 +410,7 @@ public class RcsUtils {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            if (!RcsApiManager.getSupportApi().isRcsSupported())
+            if (!isRcsSupported())
                 return;
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
             if (!prefs.getBoolean(
@@ -746,7 +765,7 @@ public class RcsUtils {
     public static void newAndEditContactsUpdateEnhanceScreen(Context context,
             ContentResolver resolver, long rawContactId) {
         RcsLog.d("new and edit contact rawContactId: " + rawContactId);
-        if (RcsApiManager.getSupportApi().isRcsSupported() && isEnhanceScreenInstalled(context)) {
+        if (isRcsSupported() && isEnhanceScreenInstalled(context)) {
             Cursor phone = null;
             try {
                 phone = resolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
@@ -1325,8 +1344,9 @@ public class RcsUtils {
         boolean insertNameInfo = true;
         boolean updateBirthday = true;
         boolean insertBirthday = true;
+        boolean insertMyRcsNumber = true;
         String middleName = "";
-
+        String myRcsNumber = getMyPhoneNumber();
         ArrayList<TelephoneModel> otherTeleList = new ArrayList<TelephoneModel>(
                 profile.getOtherTels());
         try {
@@ -1337,6 +1357,10 @@ public class RcsUtils {
                     if (TextUtils.equals(Phone.CONTENT_ITEM_TYPE, mimeType)) {
                         int phoneType = c.getInt(2);
                         String phoneNumber = c.getString(1);
+                        if (phoneType == Phone.TYPE_MOBILE
+                                && TextUtils.equals(phoneNumber, myRcsNumber)) {
+                            insertMyRcsNumber = false;
+                        }
                         if (phoneType == Phone.TYPE_WORK
                                 && TextUtils.equals(phoneNumber, profile.getCompanyTel())) {
                             insertCompanyTel = false;
@@ -1400,7 +1424,13 @@ public class RcsUtils {
                             middleName = "";
                         }
                         String lastName = c.getString(3);
-                        if (TextUtils.equals(firstName, profile.getFirstName())
+                        if (TextUtils.isEmpty(profile.getFirstName())
+                                && TextUtils.isEmpty(profile.getLastName())) {
+                            if (TextUtils.equals(firstName, myRcsNumber)
+                                    && TextUtils.equals(lastName, myRcsNumber)) {
+                                updateNameInfo = false;
+                            }
+                        } else if (TextUtils.equals(firstName, profile.getFirstName())
                                 && TextUtils.equals(lastName, profile.getLastName())) {
                             updateNameInfo = false;
                         }
@@ -1420,6 +1450,15 @@ public class RcsUtils {
             if (c != null) {
                 c.close();
             }
+        }
+        if (insertMyRcsNumber && !TextUtils.isEmpty(myRcsNumber)) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(Data.RAW_CONTACT_ID, rawContactId);
+            contentValues.put(Data.MIMETYPE, Phone.CONTENT_ITEM_TYPE);
+            contentValues.put(Phone.TYPE, Phone.TYPE_MOBILE);
+            contentValues.put(Phone.NUMBER, myRcsNumber);
+            ops.add(ContentProviderOperation.newInsert(PROFILE_DATA_URI).withValues(contentValues)
+                    .build());
         }
         if (insertCompanyTel && !TextUtils.isEmpty(profile.getCompanyTel())) {
             ContentValues contentValues = new ContentValues();
@@ -1523,8 +1562,13 @@ public class RcsUtils {
                     .build());
         } else if (updateNameInfo) {
             ContentValues contentValues = new ContentValues();
-            contentValues.put(StructuredName.GIVEN_NAME, profile.getFirstName());
-            contentValues.put(StructuredName.FAMILY_NAME, profile.getLastName());
+            if (TextUtils.isEmpty(profile.getFirstName())
+                    && TextUtils.isEmpty(profile.getLastName())) {
+                contentValues.put(StructuredName.GIVEN_NAME, myRcsNumber);
+            } else {
+                contentValues.put(StructuredName.GIVEN_NAME, profile.getFirstName());
+                contentValues.put(StructuredName.FAMILY_NAME, profile.getLastName());
+            }
             StringBuilder displayName = new StringBuilder();
             displayName.append(profile.getFirstName());
             displayName.append(" ");
@@ -2179,7 +2223,7 @@ public class RcsUtils {
     }
 
     public static void initRcsMenu(Context context, Menu menu, Contact contactData) {
-        boolean isRcsSupport = RcsApiManager.getSupportApi().isRcsSupported();
+        boolean isRcsSupport = isRcsSupported();
         boolean isUserProfile = contactData != null && contactData.isUserProfile();
 
         final MenuItem optionsQrcode = menu.findItem(R.id.menu_qrcode);
@@ -2187,6 +2231,11 @@ public class RcsUtils {
             optionsQrcode.setVisible(isRcsSupport && isUserProfile);
         }
 
+        final MenuItem optionsFetion = menu.findItem(R.id.menu_fetion);
+        if (optionsFetion != null) {
+            optionsFetion.setVisible(isRcsSupport && isFetionInstalled(context)
+                    && isUserProfile);
+        }
         final MenuItem optionsPluginCenter = menu.findItem(R.id.menu_plugin_center);
         if (optionsPluginCenter != null) {
             optionsPluginCenter.setVisible(isRcsSupport && isPlunginCenterInstalled(context)
@@ -2216,6 +2265,14 @@ public class RcsUtils {
         RawContact rawContact = contactData.getRawContacts().get(0);
         bundle.putParcelable("raw_contact", rawContact);
         intent.putExtras(bundle);
+        context.startActivity(intent);
+    }
+
+    public static void startFetionActivity(Context context) {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        ComponentName cn = new ComponentName(FETION_PACKAGE, FETION_CLASS_NAME);
+        intent.setComponent(cn);
         context.startActivity(intent);
     }
 
@@ -2701,7 +2758,7 @@ public class RcsUtils {
 
     public static boolean judgeUserNameLength(Context context,
             RawContactDeltaList rawContactDeltaList, boolean isExpand) {
-        if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+        if (!isRcsSupported()) {
             return true;
         }
         RawContactDelta rawContactDelta = rawContactDeltaList.get(0);
@@ -2747,7 +2804,7 @@ public class RcsUtils {
 
     public static boolean isGroupNameValid(Context context,
                String groupName) {
-       if (!RcsApiManager.getSupportApi().isRcsSupported()) {
+       if (!isRcsSupported()) {
            return true;
        }
        if (!TextUtils.isEmpty(groupName)) {
@@ -2793,4 +2850,27 @@ public class RcsUtils {
         }
         return true;
     }
+
+    public static boolean isRcsOnline() {
+        try {
+            return BasicApi.getInstance().isOnline();
+        } catch (Exception e) {
+            RcsLog.w(e);
+            return false;
+        }
+    }
+
+    public static boolean isRcsSupported() {
+        if (sSupportApi == null) {
+            return false;
+        }
+        return sSupportApi.isRcsSupported();
+    }
+
+    public static void init(Context context) {
+        RcsApiManager.init(context);
+        boolean isNativeUIInstalled  = isNativeUiInstalled(context);
+        setNativeUIInstalled(isNativeUIInstalled);
+    }
+
 }

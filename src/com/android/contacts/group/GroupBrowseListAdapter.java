@@ -32,7 +32,6 @@ import android.widget.TextView;
 
 import com.android.contacts.GroupListLoader;
 import com.android.contacts.R;
-import com.android.contacts.RcsApiManager;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.PhoneAccountType;
 import com.android.contacts.common.model.AccountTypeManager;
@@ -72,6 +71,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
     public void setCursor(Cursor cursor) {
         mCursor = cursor;
 
+        mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
         // If there's no selected group already and the cursor is valid, then by default, select the
         // first group
         if (mSelectedGroupUri == null && cursor != null && cursor.getCount() > 0) {
@@ -119,7 +119,6 @@ public class GroupBrowseListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
         return (mCursor == null || mCursor.isClosed()) ? 0 : mCursor.getCount();
     }
 
@@ -143,7 +142,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
         int memberCount = mCursor.getInt(GroupListLoader.MEMBER_COUNT);
 
         /* Begin add for RCS */
-        if (RcsApiManager.getSupportApi().isRcsSupported() && (!TextUtils.isEmpty(sourceId))) {
+        if (RcsUtils.isRcsSupported() && (!TextUtils.isEmpty(sourceId))) {
             if(sourceId.equals("RCS")){
                 accountType = sourceId;
                 String strGroupId = mCursor.getString(GroupListLoader.SYSTEM_ID);
