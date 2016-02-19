@@ -16,6 +16,7 @@
 
 package com.android.contacts.interactions;
 
+import com.android.contacts.activities.PeopleActivity;
 import com.google.common.collect.Sets;
 
 import com.android.contacts.ContactSaveService;
@@ -91,6 +92,8 @@ public class ContactMultiDeletionInteraction extends Fragment
     private ProgressDialog mProgressDialog;
     private SimContactsOperation mSimContactsOperation;
 
+    private DeleteContactsThread mDeleteContactsThread;
+
     /**
      * Starts the interaction.
      *
@@ -123,6 +126,13 @@ public class ContactMultiDeletionInteraction extends Fragment
         super.onAttach(activity);
         mContext = activity;
         mSimContactsOperation = new SimContactsOperation(mContext);
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Retain this fragment
+        setRetainInstance(true);
     }
 
     @Override
@@ -309,7 +319,7 @@ public class ContactMultiDeletionInteraction extends Fragment
     /**
      * Delete contacts thread
      */
-    private class DeleteContactsThread extends Thread
+    public class DeleteContactsThread extends Thread
             implements DialogInterface.OnCancelListener, DialogInterface.OnClickListener {
 
         // Use to judge whether is cancel delete contacts.
@@ -323,7 +333,6 @@ public class ContactMultiDeletionInteraction extends Fragment
 
         @Override
         public void run() {
-
             TreeSet<Long> contactsIdSet = (TreeSet<Long>) mContactIds.clone();
             Iterator<Long> iterator = contactsIdSet.iterator();
 
@@ -339,6 +348,8 @@ public class ContactMultiDeletionInteraction extends Fragment
             mOpsContacts = new ArrayList<ContentProviderOperation>();
 
             while (!mCanceled & iterator.hasNext()) {
+                // Set the progress of progress dialog.
+                mProgressDialog.setProgress(count);
                 String id = String.valueOf(iterator.next());
                 long longId = Long.parseLong(id);
                 // Get contacts Uri
@@ -376,6 +387,8 @@ public class ContactMultiDeletionInteraction extends Fragment
             batchDelete();
             mOpsContacts = null;
             mProgressDialog.dismiss();
+            // Set thread to null when complete delete.
+            setDeleteContactsThread(null);
         }
 
         /**
@@ -405,7 +418,59 @@ public class ContactMultiDeletionInteraction extends Fragment
                 mProgressDialog.dismiss();
             }
         }
+
+        /**
+         * Rebuild delete contact's progress dialog when DeleteContactsThread was
+         * running.
+         * @param activity
+         */
+        public void setActivity(PeopleActivity activity) {
+
+            if (activity == null) {
+                mProgressDialog.dismiss();
+                return;
+            }
+
+            mContext = activity;
+            if (mContext != null) {
+                CharSequence title = getString(R.string.delete_contacts_title);
+                CharSequence message = getString(R.string.delete_contacts_message);
+
+                mProgressDialog = new ProgressDialog(mContext);
+                mProgressDialog.setTitle(title);
+                mProgressDialog.setMessage(message);
+                mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                mProgressDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
+                        getString(R.string.btn_cancel), getDeleteContactsThread());
+                mProgressDialog.setOnCancelListener(getDeleteContactsThread());
+
+                mProgressDialog.setMax(mContactIds.size());
+
+                // set dialog can not be canceled by touching outside area of
+                // dialog.
+                mProgressDialog.setCanceledOnTouchOutside(false);
+                mProgressDialog.show();
+            }
+        }
+
     }
+
+    /**
+     * Set thread data.
+     * @param thread
+     */
+    private void setDeleteContactsThread(DeleteContactsThread thread) {
+        mDeleteContactsThread = thread;
+    }
+
+    /**
+     * Use to provide thread data.
+     * @return
+     */
+    public DeleteContactsThread getDeleteContactsThread() {
+        return mDeleteContactsThread;
+    }
+
 
     /**
      * Monitor delete contacts operate.
@@ -428,7 +493,6 @@ public class ContactMultiDeletionInteraction extends Fragment
             mProgressDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
                     getString(R.string.btn_cancel), (DialogInterface.OnClickListener) mThread);
             mProgressDialog.setOnCancelListener((DialogInterface.OnCancelListener) mThread);
-            mProgressDialog.setProgress(0);
             mProgressDialog.setMax(mContactIds.size());
 
             // set dialog can not be canceled by touching outside area of
@@ -436,6 +500,9 @@ public class ContactMultiDeletionInteraction extends Fragment
             mProgressDialog.setCanceledOnTouchOutside(false);
             mProgressDialog.show();
             notifyListenerActivity();
+            // Set DeleteContactsThread
+            setDeleteContactsThread((DeleteContactsThread)mThread);
+
             // Start delete contacts thread
             mThread.start();
         }
