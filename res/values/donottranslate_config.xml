@@ -43,7 +43,4 @@
          the overlay will fill this in during build time. -->
     <string name="help_url_people_edit"></string>
 
-    <!-- If true , the video calling menu will be shown
-         and the presence service will be enabled -->
-    <bool name="config_regional_presence_enable">false</bool>
 </resources>
