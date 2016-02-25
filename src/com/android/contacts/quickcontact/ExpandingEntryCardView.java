@@ -67,6 +67,7 @@ import android.widget.Toast;
 
 import com.android.contacts.R;
 import com.android.contacts.common.CallUtil;
+import com.android.contacts.common.GeoUtil;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.dialog.CallSubjectDialog;
 import com.android.contacts.detail.ContactDisplayUtils;
@@ -823,9 +824,13 @@ public class ExpandingEntryCardView extends CardView {
         if (entry.getIcon() != null) {
             icon.setImageDrawable(entry.getIcon());
         }
+
+        final TextView home = (TextView) view.findViewById(R.id.home);
         final TextView header = (TextView) view.findViewById(R.id.header);
-        if (!TextUtils.isEmpty(entry.getHeader())) {
-            header.setText(entry.getHeader());
+        String num = entry.getHeader();
+        if (!TextUtils.isEmpty(num)) {
+            header.setText(num);
+            home.setText(GeoUtil.getGeocodedLocationFor(getContext(), num));
         } else {
             header.setVisibility(View.GONE);
         }
