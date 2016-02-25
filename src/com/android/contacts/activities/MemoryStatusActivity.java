@@ -249,8 +249,10 @@ public class MemoryStatusActivity extends ContactsActivity {
             final AccountTypeManager accountTypes = AccountTypeManager.getInstance(accountContext);
             final AccountType accountType =
                     accountTypes.getAccountType(filter.accountType, filter.dataSet);
+            String simLabel = accountType.getDisplayLabel(accountContext,
+                    filter.accountName).toString();
             viewCache.accountName.setText(accountType.getDisplayLabel(accountContext)
-                    + "<" + filter.accountName + ">");
+                    + "<" + simLabel + ">");
             viewCache.totally.setVisibility((filter.total != INVALID_COUNT) ? View.VISIBLE
                             : View.GONE);
             viewCache.count_total.setText(Integer.toString(filter.total));
