@@ -29,6 +29,7 @@ import android.content.SharedPreferences;
 import android.graphics.ColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.net.Uri;
 import android.os.Bundle;
@@ -379,8 +380,7 @@ public class ExpandingEntryCardView extends CardView {
         mTitleTextView = (TextView) expandingEntryCardView.findViewById(R.id.title);
         mContainer = (LinearLayout) expandingEntryCardView.findViewById(R.id.container);
 
-        mEnablePresence = mContext.getResources().getBoolean(
-                R.bool.config_regional_presence_enable);
+        mEnablePresence = SystemProperties.getBoolean("persist.presence.enable", false);
         if (mEnablePresence) {
             mVideoCalling = (Switch) expandingEntryCardView
                     .findViewById(R.id.switch_video_call);
