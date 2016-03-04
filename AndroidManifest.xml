@@ -262,7 +262,7 @@
         <!-- Create a new or edit an existing group -->
         <activity
             android:name=".activities.GroupEditorActivity"
-            android:theme="@style/EditorActivityTheme"
+            android:theme="@style/PeopleTheme"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
