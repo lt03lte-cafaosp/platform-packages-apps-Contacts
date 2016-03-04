@@ -962,7 +962,7 @@ public class ExpandingEntryCardView extends CardView {
             }
         }
         if (entry.getThirdIcon() != null && entry.getThirdAction() != Entry.ACTION_NONE
-                && showVTicon) {
+                && (mEnablePresence ? showVTicon : true/*This true is used for the keep AOSP*/)) {
             thirdIcon.setImageDrawable(entry.getThirdIcon());
             if (entry.getThirdAction() == Entry.ACTION_INTENT) {
                 thirdIcon.setOnClickListener(mOnClickListener);
