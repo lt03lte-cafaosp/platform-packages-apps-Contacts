@@ -178,14 +178,19 @@ public class ContactMultiDeletionInteraction extends Fragment
         final StringBuilder builder = new StringBuilder();
         for (int i = 0; i < contactIds.size(); i++) {
             parameters[i] = String.valueOf(parameterObject[i]);
-            builder.append(RawContacts.CONTACT_ID + " =?");
+            if (builder.length() != 0) {
+                builder.append(",");
+            }
+            builder.append(parameters[i]);
             if (i == contactIds.size() -1) {
                 break;
             }
-            builder.append(" OR ");
         }
-        return new CursorLoader(mContext, RawContacts.CONTENT_URI, RAW_CONTACT_PROJECTION,
-                builder.toString(), parameters, null);
+
+        builder.insert(0, RawContacts.CONTACT_ID + " IN(");
+        builder.append(")");
+        return new CursorLoader(mContext, RawContacts.CONTENT_URI,
+                RAW_CONTACT_PROJECTION, builder.toString(), null, null);
     }
 
     @Override
