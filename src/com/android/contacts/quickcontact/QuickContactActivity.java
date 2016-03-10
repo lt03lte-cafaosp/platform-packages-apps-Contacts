@@ -174,6 +174,7 @@ import com.android.contacts.widget.MultiShrinkScroller;
 import com.android.contacts.widget.MultiShrinkScroller.MultiShrinkScrollerListener;
 import com.android.contacts.widget.QuickContactImageView;
 import com.android.contactsbind.HelpUtils;
+import com.android.internal.telephony.CarrierAppUtils;
 import com.android.phone.common.util.FirewallUtils;
 
 import com.google.common.collect.Lists;
@@ -1790,7 +1791,11 @@ public class QuickContactActivity extends ContactsActivity {
                             phoneLabel);
                 } else if (CallUtil.isVideoEnabled(context)) {
                     // Add video call button if supported
-                    thirdIcon = res.getDrawable(R.drawable.ic_videocam);
+                    if (isCarrierOneSupported()) {
+                        thirdIcon = res.getDrawable(R.drawable.volte_video);
+                    } else {
+                        thirdIcon = res.getDrawable(R.drawable.ic_videocam);
+                    }
                     thirdAction = Entry.ACTION_INTENT;
                     thirdIntent = CallUtil.getVideoCallIntent(phone.getNumber(),
                             CALL_ORIGIN_QUICK_CONTACTS_ACTIVITY);
@@ -3413,5 +3418,11 @@ public class QuickContactActivity extends ContactsActivity {
                 == TelephonyManager.SIM_STATE_READY)
             return true;
         return false;
+    }
+
+    private static boolean isCarrierOneSupported() {
+        CarrierAppUtils.CARRIER carrier = CarrierAppUtils.getCarrierId();
+        return (carrier != null &&
+            (CarrierAppUtils.CARRIER.TELEPHONY_CARRIER_ONE == carrier));
     }
 }
