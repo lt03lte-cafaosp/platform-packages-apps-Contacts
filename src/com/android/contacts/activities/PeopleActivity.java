@@ -209,6 +209,10 @@ public class PeopleActivity extends ContactsActivity implements
     private static final int START_CAPTURE = 109;
     /* End add for RCS */
 
+    private ContactMultiDeletionInteraction mContactMultiDeletionInteraction;
+    private ContactMultiDeletionInteraction.DeleteContactsThread
+            mDeleteContactsThread;
+
     public PeopleActivity() {
         mInstanceId = sNextInstanceId.getAndIncrement();
         mIntentResolver = new ContactsIntentResolver(this);
@@ -260,6 +264,21 @@ public class PeopleActivity extends ContactsActivity implements
             Log.d(Constants.PERFORMANCE_TAG, "PeopleActivity.onCreate start");
         }
         super.onCreate(savedState);
+
+        // Get ContactMultiDeletionInteraction fragment from FragmentManager.
+        FragmentManager fm = getFragmentManager();
+        mContactMultiDeletionInteraction = (ContactMultiDeletionInteraction)fm
+                .findFragmentByTag("deleteMultipleContacts");
+
+        // Get the running delete thread.
+        if (mContactMultiDeletionInteraction != null) {
+            mDeleteContactsThread = mContactMultiDeletionInteraction
+                    .getDeleteContactsThread();
+        }
+
+        if (mDeleteContactsThread != null) {
+            mDeleteContactsThread.setActivity(this);
+        }
 
         if (RequestPermissionsActivity.startPermissionActivity(this)) {
             return;
