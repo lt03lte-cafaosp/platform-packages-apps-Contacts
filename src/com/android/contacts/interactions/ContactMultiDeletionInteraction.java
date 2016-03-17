@@ -391,7 +391,7 @@ public class ContactMultiDeletionInteraction extends Fragment
             }
             batchDelete();
             mOpsContacts = null;
-            mProgressDialog.dismiss();
+            dismissProgressDialog();
             // Set thread to null when complete delete.
             setDeleteContactsThread(null);
         }
@@ -487,6 +487,10 @@ public class ContactMultiDeletionInteraction extends Fragment
             CharSequence title = getString(R.string.delete_contacts_title);
             CharSequence message = getString(R.string.delete_contacts_message);
 
+            if (mProgressDialog != null) {
+                dismissProgressDialog();
+            }
+
             // Build delete contacts thread
             Thread mThread = new DeleteContactsThread();
 
@@ -510,6 +514,14 @@ public class ContactMultiDeletionInteraction extends Fragment
 
             // Start delete contacts thread
             mThread.start();
+        }
+    }
+
+    private void dismissProgressDialog() {
+        if (getActivity() != null && !getActivity().isDestroyed()
+                && mProgressDialog.isShowing() && isAdded()) {
+            mProgressDialog.dismiss();
+            mProgressDialog = null;
         }
     }
 }
