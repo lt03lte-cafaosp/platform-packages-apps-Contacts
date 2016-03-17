@@ -29,6 +29,7 @@ import android.content.SharedPreferences;
 import android.graphics.ColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.net.Uri;
 import android.os.Bundle;
@@ -66,6 +67,7 @@ import android.widget.Toast;
 
 import com.android.contacts.R;
 import com.android.contacts.common.CallUtil;
+import com.android.contacts.common.GeoUtil;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.dialog.CallSubjectDialog;
 import com.android.contacts.detail.ContactDisplayUtils;
@@ -379,8 +381,7 @@ public class ExpandingEntryCardView extends CardView {
         mTitleTextView = (TextView) expandingEntryCardView.findViewById(R.id.title);
         mContainer = (LinearLayout) expandingEntryCardView.findViewById(R.id.container);
 
-        mEnablePresence = mContext.getResources().getBoolean(
-                R.bool.config_regional_presence_enable);
+        mEnablePresence = SystemProperties.getBoolean("persist.presence.enable", false);
         if (mEnablePresence) {
             mVideoCalling = (Switch) expandingEntryCardView
                     .findViewById(R.id.switch_video_call);
@@ -823,9 +824,13 @@ public class ExpandingEntryCardView extends CardView {
         if (entry.getIcon() != null) {
             icon.setImageDrawable(entry.getIcon());
         }
+
+        final TextView home = (TextView) view.findViewById(R.id.home);
         final TextView header = (TextView) view.findViewById(R.id.header);
-        if (!TextUtils.isEmpty(entry.getHeader())) {
-            header.setText(entry.getHeader());
+        String num = entry.getHeader();
+        if (!TextUtils.isEmpty(num)) {
+            header.setText(num);
+            home.setText(GeoUtil.getGeocodedLocationFor(getContext(), num));
         } else {
             header.setVisibility(View.GONE);
         }
@@ -962,7 +967,7 @@ public class ExpandingEntryCardView extends CardView {
             }
         }
         if (entry.getThirdIcon() != null && entry.getThirdAction() != Entry.ACTION_NONE
-                && showVTicon) {
+                && (mEnablePresence ? showVTicon : true/*This true is used for the keep AOSP*/)) {
             thirdIcon.setImageDrawable(entry.getThirdIcon());
             if (entry.getThirdAction() == Entry.ACTION_INTENT) {
                 thirdIcon.setOnClickListener(mOnClickListener);

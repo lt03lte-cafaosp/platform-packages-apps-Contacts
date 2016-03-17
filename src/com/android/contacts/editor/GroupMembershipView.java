@@ -319,6 +319,8 @@ public class GroupMembershipView extends LinearLayout
         mPopup.setAdapter(mAdapter);
         mPopup.setModal(true);
         mPopup.setInputMethodMode(ListPopupWindow.INPUT_METHOD_NOT_NEEDED);
+        mPopup.setVerticalOffset(-getResources().getDimensionPixelSize(
+                com.android.internal.R.dimen.status_bar_height));
         mPopup.show();
 
         ListView listView = mPopup.getListView();

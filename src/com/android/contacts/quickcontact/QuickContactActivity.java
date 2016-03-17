@@ -48,6 +48,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.CalendarContract;
 import android.os.Handler;
@@ -277,6 +278,7 @@ public class QuickContactActivity extends ContactsActivity {
      * being launched.
      */
     private boolean mHasIntentLaunched;
+    private boolean mAllowIpCall;
 
     private Contact mContactData;
     private ContactLoader mContactLoader;
@@ -555,7 +557,7 @@ public class QuickContactActivity extends ContactsActivity {
                 }
 
                 // add limit length to show IP call item
-                if (info.getData().length() > MAX_NUM_LENGTH) {
+                if ((info.getData().length() > MAX_NUM_LENGTH) && mAllowIpCall) {
                     if (MoreContactUtils.isMultiSimEnable(QuickContactActivity.this,
                             PhoneConstants.SUB1)) {
                         String sub1Name = MoreContactUtils.getMultiSimAliasesName(
@@ -889,6 +891,7 @@ public class QuickContactActivity extends ContactsActivity {
 
         setContentView(R.layout.quickcontact_activity);
 
+        mAllowIpCall = getResources().getBoolean(R.bool.config_enable_ipcall);
         mMaterialColorMapUtils = new MaterialColorMapUtils(getResources());
 
         mScroller = (MultiShrinkScroller) findViewById(R.id.multiscroller);
@@ -903,8 +906,7 @@ public class QuickContactActivity extends ContactsActivity {
         mContactCard.setExpandButtonText(
         getResources().getString(R.string.expanding_entry_card_view_see_all));
         mContactCard.setOnCreateContextMenuListener(mEntryContextMenuListener);
-        mEnablePresence = mContext.getResources().getBoolean(
-                R.bool.config_regional_presence_enable);
+        mEnablePresence = SystemProperties.getBoolean("persist.presence.enable", false);
         if (mEnablePresence) {
             mContactCard.disPlayVideoCallSwitch(mEnablePresence);
             if (!ContactDisplayUtils.mIsBound) {

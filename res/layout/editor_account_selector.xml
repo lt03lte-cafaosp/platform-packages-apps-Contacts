@@ -21,7 +21,7 @@
     android:id="@+id/account_selector_container"
     android:layout_height="wrap_content"
     android:layout_width="match_parent"
-    android:minHeight="48dip"
+    android:minHeight="58dip"
     android:layout_marginBottom="@dimen/editor_padding_between_editor_views"
     android:orientation="horizontal"
     android:paddingTop="16dp"
