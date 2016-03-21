@@ -493,6 +493,7 @@ public class PeopleActivity extends ContactsActivity implements
              */
             configureFragments(!mIsRecreatedInstance);
         }
+        restoreExportToSimProgressBar();
         super.onStart();
     }
 
@@ -503,9 +504,6 @@ public class PeopleActivity extends ContactsActivity implements
         super.onPause();
         dismissDialog(ImportExportDialogFragment.TAG);
         dismissDialog(SelectAccountDialogFragment.TAG);
-        if (mExportThread != null && mExportThread.getProgressDialog() != null) {
-            mExportThread.getProgressDialog().dismiss();
-        }
     }
 
     @Override
@@ -525,6 +523,25 @@ public class PeopleActivity extends ContactsActivity implements
         // Current tab may have changed since the last onSaveInstanceState().  Make sure
         // the actual contents match the tab.
         updateFragmentsVisibility();
+    }
+
+    /**
+     * Use to restore export contacts to sim card's progressbar if exist.
+     */
+    private void restoreExportToSimProgressBar() {
+
+        // Judge whether contacts is exporting to sim card.
+        if (ImportExportDialogFragment.isExportingToSIM()) {
+            // Get export thread
+            mExportThread = ImportExportDialogFragment.getExportingToSimThread();
+            if(mExportThread != null) {
+                // Restore ProgressDialog
+                if (mExportThread.getProgressDialog() != null) {
+                    mExportThread.getProgressDialog().dismiss();
+                }
+                new ImportExportDialogFragment().showExportToSIMProgressDialog(PeopleActivity.this);
+            }
+        }
     }
 
     @Override
