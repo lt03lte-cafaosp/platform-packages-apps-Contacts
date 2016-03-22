@@ -265,8 +265,8 @@ public class RcsUtils {
 
     private static final String PLUNGIN_CENTER = "com.cmri.rcs.plugincenter";
 
-    private static final String FETION_PACKAGE = "cn.com.fetion.nfa";
-    private static final String FETION_CLASS_NAME = "cn.com.fetion.nfa.ui.PluginsListActivity";
+    private static final String FETION_PACKAGE = "cn.com.fetion.assistant";
+    private static final String FETION_CLASS_NAME = "cn.com.fetion.assistant.ui.LoginActivity";
     public static boolean isNativeUIInstalled;
 
     private static SupportApi sSupportApi = SupportApi.getInstance();
@@ -321,21 +321,7 @@ public class RcsUtils {
             @Override
             public void run() {
                 RcsUtils.sleep(500);
-                String myAccountNumber = "";
-                try {
-                    RcsLog.d("Calling  BasicApi.getInstance().getAccount()");
-                    myAccountNumber = BasicApi.getInstance().getAccount();
-                } catch (ServiceDisconnectedException e) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            makeToast(context, R.string.rcs_service_is_not_available);
-                        }
-                    });
-                    RcsLog.w(e);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                String myAccountNumber = getMyPhoneNumber();
                 RcsLog.d("The account is " + myAccountNumber);
                 final int message;
                 SharedPreferences prefs;
@@ -353,6 +339,33 @@ public class RcsUtils {
                 final String latestTerminal = prefs.getString(RcsUtils.PREF_MY_TEMINAL, "");
                 if (!TextUtils.isEmpty(myAccountNumber)
                         && !TextUtils.equals(myAccountNumber, latestTerminal)) {
+                    if (mode == DOWNLOAD_PROFILE) {
+                        Cursor c = context.getContentResolver().query(PROFILE_DATA_URI,
+                                new String[] {
+                                    Phone.NUMBER
+                                }, " mimetype = ? AND data13 = ? ", new String[] {
+                                        Phone.CONTENT_ITEM_TYPE, "1"
+                                }, null);
+                        try {
+                            if (c != null && c.getCount() > 0) {
+                                c.moveToFirst();
+                                String latestNumber = c.getString(0);
+                                if (!TextUtils.equals(myAccountNumber, latestNumber)) {
+                                    ContentValues contentValues = new ContentValues();
+                                    contentValues.put(Phone.NUMBER, myAccountNumber);
+                                    context.getContentResolver().update(PROFILE_DATA_URI,
+                                            contentValues, " mimetype = ? AND data13 = ? ",
+                                            new String[] {
+                                                    Phone.CONTENT_ITEM_TYPE, "1"
+                                            });
+                                }
+                            }
+                        } finally {
+                            if (c != null) {
+                                c.close();
+                            }
+                        }
+                    }
                     handler.post(new Runnable() {
 
                         @Override
@@ -2269,11 +2282,15 @@ public class RcsUtils {
     }
 
     public static void startFetionActivity(Context context) {
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        ComponentName cn = new ComponentName(FETION_PACKAGE, FETION_CLASS_NAME);
-        intent.setComponent(cn);
-        context.startActivity(intent);
+        try {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            ComponentName cn = new ComponentName(FETION_PACKAGE, FETION_CLASS_NAME);
+            intent.setComponent(cn);
+            context.startActivity(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private static ArrayList<String> getcontactPhoneList(Contact contactData) {
@@ -2454,7 +2471,7 @@ public class RcsUtils {
     }
 
     public static void startChatGroupManagementActivity(Context context, GroupListItem entry) {
-        long groupId = entry.getGroupId();
+        final long groupId = entry.getGroupId();
         long threadId = RcsUtils.getThreadIdByGroupId(context, groupId);
         Uri uri = ContentUris.withAppendedId(Threads.CONTENT_URI, threadId);
         Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -2466,6 +2483,23 @@ public class RcsUtils {
         String address = RcsUtils.getAddressesStringByGroupId(groupId);
         if (!TextUtils.isEmpty(address)) {
             intent.putExtra("address", address);
+        }
+        try {
+            GroupChat mGroupChat = GroupChatApi.getInstance().getGroupChatByThreadId(threadId);
+            if (mGroupChat.isGroupChatValid()) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            GroupChatApi.getInstance().rejoin(groupId);
+                        } catch (Exception e) {
+                            RcsLog.w(e);
+                        }
+                    }
+                }).start();
+            }
+        } catch (Exception e) {
+            RcsLog.w("RCS_UI", e);
         }
         intent.setComponent(new ComponentName("com.android.mms",
                 "com.android.mms.ui.ComposeMessageActivity"));
