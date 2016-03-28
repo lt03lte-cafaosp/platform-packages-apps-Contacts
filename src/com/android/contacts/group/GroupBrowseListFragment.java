@@ -370,12 +370,9 @@ public class GroupBrowseListFragment extends Fragment
             try {
                 RcsUtils.sleep(SLEEP_DURATION);
                 rcsChatGroups.addAll(GroupChatApi.getInstance().getAllGroupChat());
-            } catch (ServiceDisconnectedException e) {
-                e.printStackTrace();
-            } catch (RemoteException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
-
             initGroupChatToMap(rcsChatGroups);
             return rcsChatGroups;
         }
