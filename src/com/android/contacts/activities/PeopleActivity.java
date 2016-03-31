@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -210,6 +211,8 @@ public class PeopleActivity extends ContactsActivity implements
     /* Begin add for RCS */
     private static final int START_CAPTURE = 109;
     /* End add for RCS */
+
+    private static final int MAX_COUNT_ALLOW_SHARE_CONTACT = 1000;
 
     private ContactMultiDeletionInteraction mContactMultiDeletionInteraction;
     private ContactMultiDeletionInteraction.DeleteContactsThread
@@ -1551,25 +1554,61 @@ public class PeopleActivity extends ContactsActivity implements
      * inefficient for handling large numbers of contacts. I don't expect this to be a problem.
      */
     private void shareSelectedContacts() {
-        final StringBuilder uriListBuilder = new StringBuilder();
-        boolean firstIteration = true;
-        for (Long contactId : mAllFragment.getSelectedContactIds()) {
-            if (!firstIteration)
-                uriListBuilder.append(':');
-            final Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId);
-            final Uri lookupUri = Contacts.getLookupUri(getContentResolver(), contactUri);
-            List<String> pathSegments = lookupUri.getPathSegments();
-            uriListBuilder.append(Uri.encode(pathSegments.get(pathSegments.size() - 2)));
-            firstIteration = false;
+        Set<Long> mSelectedIds = mAllFragment.getSelectedContactIds();
+        // Limit the selected contacts number because too long arguments
+        // will cause TransactionTooLargeException in binder.
+        if (mSelectedIds.size() > MAX_COUNT_ALLOW_SHARE_CONTACT) {
+            Toast.makeText(
+                    this,
+                    getString(R.string.too_many_contacts_add_to_group,
+                            MAX_COUNT_ALLOW_SHARE_CONTACT), Toast.LENGTH_SHORT)
+                    .show();
+            return;
         }
+
         final Uri uri = Uri.withAppendedPath(
                 Contacts.CONTENT_MULTI_VCARD_URI,
-                Uri.encode(uriListBuilder.toString()));
+                Uri.encode(getLookupKey(mSelectedIds)));
         final Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType(Contacts.CONTENT_VCARD_TYPE);
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         ImplicitIntentsUtil.startActivityOutsideApp(this, intent);
     }
+
+    // Query contact lookupKey instead of {@link Contacts#getLookupUri()} which is pretty
+    // inefficient
+    private String getLookupKey(Set<Long> mSelectedIds) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(Contacts._ID);
+        sb.append(" IN ( ");
+        for (Long contactId : mSelectedIds) {
+            sb.append(contactId);
+            sb.append(",");
+        }
+        sb.deleteCharAt(sb.length()-1);
+        sb.append(" )");
+
+        final Cursor c = getContentResolver().query(Contacts.CONTENT_URI, new String[]{
+                Contacts.LOOKUP_KEY}, sb.toString(), null, null);
+        if (c == null) {
+            return null;
+        }
+
+        sb = new StringBuilder();
+        try {
+            c.moveToPosition(-1);
+            while (c.moveToNext()) {
+                final String lookupKey = c.getString(0);
+                sb.append(lookupKey);
+                sb.append(":");
+            }
+        } finally {
+            c.close();
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        return sb.toString();
+    }
+
     private void joinSelectedContacts() {
         /*limit the maximum number of the selected contacts to merge*/
         if(mAllFragment.getSelectedContactIds().size() > MAX_CONTACTS_NUM_TO_MERGE_ONCE) {
