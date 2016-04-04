@@ -385,6 +385,7 @@ public class ExpandingEntryCardView extends CardView {
         if (mEnablePresence) {
             mVideoCalling = (Switch) expandingEntryCardView
                     .findViewById(R.id.switch_video_call);
+            mVideoCalling.setVisibility(View.VISIBLE);
             mDefaultEnable = Settings.System.getInt(mContext.getContentResolver(),
                     CallUtil.CONFIG_VIDEO_CALLING,CallUtil.DISABLE_VIDEO_CALLING);
             mEnable = mDefaultEnable;

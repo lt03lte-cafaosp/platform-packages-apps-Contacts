@@ -403,6 +403,7 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
     public boolean mEditorsIsExpand;
     /* End add for RCS */
 
+    private boolean isSimAccount = false;
     /**
      * The contact data loader listener.
      */
@@ -785,7 +786,10 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
         // Discard menu is only available if at least one raw contact is editable
         discardMenu.setVisible(mState != null &&
                 mState.getFirstWritableRawContact(mContext) != null);
-
+        if (mState != null && mState.size() > 0 && mState.get(0).getAccountType() !=null) {
+            isSimAccount = mState.get(0).getAccountType()
+                    .equals(SimAccountType.ACCOUNT_TYPE);
+        }
         // help menu depending on whether this is inserting or editing
         if (isInsert(mAction)) {
             HelpUtils.prepareHelpMenuItem(mContext, helpMenu, R.string.help_url_people_add);
@@ -802,14 +806,11 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
             // even if they have never added their own information and splitting will create a
             // name only contact.
             final boolean isSingleReadOnlyContact = mHasNewContact && mState.size() == 2;
-            String accountType = null;
-            if (mState.size() > 0) {
-                accountType = mState.get(0).getAccountType();
-            }
+
             splitMenu.setVisible(mState.size() > 1 && !isEditingUserProfile()
                     && !isSingleReadOnlyContact);
             // Cannot join a user profile
-            if (accountType != null && SimAccountType.ACCOUNT_TYPE.equals(accountType)) {
+            if (isSimAccount) {
                 joinMenu.setVisible(false);
             } else {
                 joinMenu.setVisible(!isEditingUserProfile());
@@ -824,7 +825,7 @@ abstract public class ContactEditorBaseFragment extends Fragment implements
         // if we don't have a telephone or are editing a new contact.
         sendToVoiceMailMenu.setChecked(mSendToVoicemailState);
         sendToVoiceMailMenu.setVisible(mArePhoneOptionsChangable);
-        ringToneMenu.setVisible(mArePhoneOptionsChangable);
+        ringToneMenu.setVisible(mArePhoneOptionsChangable && !isSimAccount);
 
         int size = menu.size();
         for (int i = 0; i < size; i++) {

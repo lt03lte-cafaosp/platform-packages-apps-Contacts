@@ -20,6 +20,8 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.ContactsContract.Groups;
 import android.text.TextUtils;
 import android.util.Log;
@@ -62,6 +64,22 @@ public class GroupBrowseListAdapter extends BaseAdapter {
     private HashMap<String, Integer> mCountMap = new HashMap<String, Integer>();
     /* End add for RCS */
 
+    private static final int MSG_GET_LOCAL_GROUP_COUNT = 0;
+
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch(msg.what) {
+                case MSG_GET_LOCAL_GROUP_COUNT:
+                    mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
+                    notifyDataSetChanged();
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
     public GroupBrowseListAdapter(Context context) {
         mContext = context;
         mLayoutInflater = LayoutInflater.from(context);
@@ -71,7 +89,7 @@ public class GroupBrowseListAdapter extends BaseAdapter {
     public void setCursor(Cursor cursor) {
         mCursor = cursor;
 
-        mLocalGroupsCount = RcsUtils.getLocalGroupsCount(mContext);
+        mHandler.obtainMessage(MSG_GET_LOCAL_GROUP_COUNT).sendToTarget();
         // If there's no selected group already and the cursor is valid, then by default, select the
         // first group
         if (mSelectedGroupUri == null && cursor != null && cursor.getCount() > 0) {
