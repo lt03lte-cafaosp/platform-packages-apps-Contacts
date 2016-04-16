@@ -20,8 +20,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.Nickname;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Contacts;
@@ -36,6 +38,7 @@ import android.widget.TextView;
 
 import com.android.contacts.GroupMetaDataLoader;
 import com.android.contacts.R;
+import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.PhoneAccountType;
 import com.android.contacts.common.model.account.SimAccountType;
@@ -46,6 +49,7 @@ import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.RawContactModifier;
 import com.android.contacts.common.SimContactsConstants;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.google.common.base.Objects;
 
 import java.util.ArrayList;
@@ -299,6 +303,46 @@ public class RawContactEditorView extends BaseRawContactEditorView {
                 continue;
             } else {
                 // Otherwise use generic section-based editors
+                if (Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                    if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(type.accountType)) {
+                        int sub = PhoneConstants.SUB1;
+                        if (SimContactsConstants.SIM_NAME_2.equals(state.getAccountName())) {
+                            sub = PhoneConstants.SUB2;
+                        }
+                        EditType typeHome = new EditType(Phone.TYPE_HOME,
+                                Phone.getTypeLabelResource(Phone.TYPE_HOME));
+                        if (!MoreContactUtils.canSaveAnr(sub)) {
+                            kind.typeOverallMax = 1;
+                            if (null != kind.typeList) {
+                                // When the sim card is not 3g the interface should
+                                // remove the TYPE_HOME number view.
+                                kind.typeList.remove(typeHome);
+                            }
+                        } else {
+                            kind.typeOverallMax = MoreContactUtils.getOneSimAnrCount(sub) + 1;
+                            if (null != kind.typeList && !kind.typeList.contains(
+                                    typeHome)) {
+                                // When the sim card is 3g the interface should
+                                // add the TYPE_HOME number view.
+                                kind.typeList.add(typeHome);
+                            }
+                        }
+                    }
+                } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType)) {
+                    if (SimContactsConstants.ACCOUNT_TYPE_SIM.equals(
+                            type.accountType)) {
+                        int sub = PhoneConstants.SUB1;
+                        if (SimContactsConstants.SIM_NAME_2.equals(state.getAccountName())) {
+                            sub = PhoneConstants.SUB2;
+                        }
+                        if (!MoreContactUtils.canSaveEmail(sub)) {
+                            continue;
+                        } else {
+                            kind.typeOverallMax = MoreContactUtils.getOneSimEmailCount(sub);
+                        }
+                    }
+                }
+
                 if (kind.fieldList == null) continue;
                 final KindSectionView section = (KindSectionView)mInflater.inflate(
                         R.layout.item_kind_section, mFields, false);
