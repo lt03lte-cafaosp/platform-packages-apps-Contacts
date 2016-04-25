@@ -446,6 +446,21 @@ public class ExpandingEntryCardView extends CardView {
         }
         mListener = listener;
         mAnimationViewGroup = animationViewGroup;
+        if (mEnablePresence) {
+            mHandler = new Handler(){
+
+                @Override
+                public void handleMessage(Message msg) {
+                    switch (msg.what) {
+                        case PRESENCE_AVAILABILITY_FETCH:
+                            if (mVideoCallingCallback != null )
+                                mVideoCallingCallback.updateContact();
+                            Log.d(TAG, "AvailabilityFetch result updateContact");
+                            break;
+                    }
+                }
+            };
+        }
 
         if (mIsExpanded) {
             updateExpandCollapseButton(getCollapseButtonText(), /* duration = */ 0);
@@ -651,22 +666,6 @@ public class ExpandingEntryCardView extends CardView {
      * Inflates the initial entries to be shown.
      */
     private void inflateInitialEntries(LayoutInflater layoutInflater) {
-
-        if (mEnablePresence) {
-            mHandler = new Handler(){
-
-                @Override
-                public void handleMessage(Message msg) {
-                    switch (msg.what) {
-                        case PRESENCE_AVAILABILITY_FETCH:
-                            if (mVideoCallingCallback != null )
-                                mVideoCallingCallback.updateContact();
-                            Log.d(TAG, "AvailabilityFetch result updateContact");
-                            break;
-                    }
-                }
-            };
-        }
         // If the number of collapsed entries equals total entries, inflate all
         if (mCollapsedEntriesCount == mNumEntries) {
             inflateAllEntries(layoutInflater);
