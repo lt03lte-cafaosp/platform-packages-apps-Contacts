@@ -853,4 +853,6 @@
     <string name="remove_from_white">Remove from whitelist</string>
     <string name="remove_blacklist_fail">"This number has been removed from blacklist fail."</string>
     <string name="remove_whitelist_fail">"This number has been removed from whitelist fail."</string>
+    <!--Toast msg when user select too many contacts to merge-->
+    <string name="too_many_contacts_to_merge_message">Too many contacts, that should be less than <xliff:g id="count">%d</xliff:g></string>
 </resources>
