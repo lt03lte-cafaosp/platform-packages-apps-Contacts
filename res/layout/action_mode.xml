@@ -35,20 +35,20 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <FrameLayout android:layout_width="wrap_content"
         android:layout_height="match_parent" >
         <ImageView android:layout_gravity="end"
+                   android:id="@+id/expand"
                    android:layout_width="wrap_content"
                    android:layout_height="match_parent"
-                   android:src="@drawable/dropdown_ic_arrow_normal_holo_dark"
-                   android:tint="@android:color/white" />
+                   android:src="@drawable/expand_more"/>
         <Button android:id="@+id/selection_menu"
                 style="?android:attr/actionButtonStyle"
                 android:divider="?android:attr/listDividerAlertDialog"
                 android:textAppearance="?android:attr/textAppearanceLargePopupMenu"
-                android:singleLine="true"
                 android:textColor="#ffffff"
                 android:textSize="20sp"
-                android:gravity="center_vertical|center_horizontal"
-                android:layout_width="80dp"
-                android:layout_height="match_parent"
-                android:background="?android:attr/selectableItemBackground"/>
+                android:singleLine="true"
+                android:gravity="left|center_vertical"
+                android:paddingEnd="25dip"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent" />
     </FrameLayout>
 </LinearLayout>
