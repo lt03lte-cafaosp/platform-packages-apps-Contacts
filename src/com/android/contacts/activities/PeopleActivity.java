@@ -133,6 +133,8 @@ public class PeopleActivity extends ContactsActivity implements
     public static String EDITABLE_KEY = "search_contacts";
     private static final String ENABLE_DEBUG_OPTIONS_HIDDEN_CODE = "debug debug!";
 
+    private static final int MAX_CONTACTS_NUM_TO_MERGE_ONCE = 5;
+
     // These values needs to start at 2. See {@link ContactEntryListFragment}.
     private static final int SUBACTIVITY_ACCOUNT_FILTER = 2;
     private static final int SUBACTIVITY_NEW_GROUP = 4;
@@ -1568,6 +1570,14 @@ public class PeopleActivity extends ContactsActivity implements
         ImplicitIntentsUtil.startActivityOutsideApp(this, intent);
     }
     private void joinSelectedContacts() {
+        /*limit the maximum number of the selected contacts to merge*/
+        if(mAllFragment.getSelectedContactIds().size() > MAX_CONTACTS_NUM_TO_MERGE_ONCE) {
+            Toast.makeText(PeopleActivity.this,
+                    getString(R.string.too_many_contacts_to_merge_message,
+                    MAX_CONTACTS_NUM_TO_MERGE_ONCE),
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
         JoinContactsDialogFragment.start(this, mAllFragment.getSelectedContactIds());
     }
 
