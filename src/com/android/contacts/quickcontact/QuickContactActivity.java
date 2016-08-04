@@ -916,7 +916,9 @@ public class QuickContactActivity extends ContactsActivity {
             mContactCard.setCallBack(new VideoCallingCallback(){
                 @Override
                 public void updateContact(){
-                    reFreshContact();
+                    if(mContactData != null){
+                        reFreshContact();
+                    }
                 }
             });
         }
