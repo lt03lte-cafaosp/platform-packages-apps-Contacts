@@ -16,7 +16,9 @@
 
 package com.android.contacts.group;
 
+import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
@@ -142,7 +144,8 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
     private boolean mCloseActivityAfterDelete;
 
     /* Begin add for RCS */
-    private ArrayList<String> mGroupMembersPhonesList = new ArrayList<String>();
+    private List<String> mGroupMembersPhonesList = Collections.synchronizedList(
+            new ArrayList<String>());
     private ContentResolver mResolver;
     private boolean mOptionsMenuRcsSupported;
     private boolean mOptionsMenuRcsEnhanceScreenSupported;
@@ -580,18 +583,21 @@ public class GroupDetailFragment extends Fragment implements OnScrollListener {
                 if (mGroupMembersPhonesList == null) {
                     return;
                 }
-                mGroupMembersPhonesList.clear();
-                for (long id : contactIds) {
-                    String phoneNumber = RcsUtils.getPhoneforContactId(context, id);
-                    sb.append(phoneNumber).append(";");
-                    String[] groupMemberPhones = RcsUtils.getAllPhoneNumberFromContactId(context,
-                            id).split(";");
-                    for (int i = 0; i < groupMemberPhones.length; i++) {
-                        mGroupMembersPhonesList.add(RcsUtils.getFormatNumber(groupMemberPhones[i]));
+                synchronized (mGroupMembersPhonesList) {
+                    mGroupMembersPhonesList.clear();
+                    for (long id : contactIds) {
+                        String phoneNumber = RcsUtils.getPhoneforContactId(context, id);
+                        sb.append(phoneNumber).append(";");
+                        String[] groupMemberPhones = RcsUtils.getAllPhoneNumberFromContactId(
+                                context, id).split(";");
+                        for (int i = 0; i < groupMemberPhones.length; i++) {
+                            mGroupMembersPhonesList.add(RcsUtils.getFormatNumber(
+                                    groupMemberPhones[i]));
+                        }
                     }
+                    Log.d(TAG, "mGroupMembersPhonesList:" + mGroupMembersPhonesList.toString());
+                    mGroupMembersPhones = sb.toString();
                 }
-                Log.d(TAG, "mGroupMembersPhonesList:" + mGroupMembersPhonesList.toString());
-                mGroupMembersPhones = sb.toString();
             }
         }.start();
     }
