@@ -318,7 +318,8 @@ public class PeopleActivity extends ContactsActivity implements
             finish();
             return;
         }
-        mActionBarAdapter.initialize(null, mRequest);
+        if (mActionBarAdapter!=null)
+            mActionBarAdapter.initialize(null, mRequest);
 
         mContactListFilterController.checkFilterValidity(false);
 
