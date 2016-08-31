@@ -25,6 +25,7 @@ import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.SimContactsOperation;
+import com.android.contacts.common.SimContactsConstants;
 import com.android.internal.telephony.PhoneConstants;
 
 import android.app.Activity;
@@ -348,7 +349,7 @@ public class ContactMultiDeletionInteraction extends Fragment
             int count = 0;
 
             // The contacts we batch delete once.
-            final int BATCH_DELETE_CONTACT_NUMBER = 100;
+            final int BATCH_DELETE_CONTACT_NUMBER = 200;
 
             mOpsContacts = new ArrayList<ContentProviderOperation>();
 
@@ -359,19 +360,23 @@ public class ContactMultiDeletionInteraction extends Fragment
                 long longId = Long.parseLong(id);
                 // Get contacts Uri
                 Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, id);
-                // Get SIM card num.
-                int subscription =
-                        mSimContactsOperation.getSimSubscription(longId);
+
                 // Judge the contacts whether is the SIM card contacts
-                if (subscription == PhoneConstants.SUB1 ||
-                        subscription == PhoneConstants.SUB2) {
+                ContentValues values = mSimContactsOperation
+                        .getSimAccountValues(longId);
+                String accountType = values
+                        .getAsString(SimContactsConstants.ACCOUNT_TYPE);
+                String accountName = values
+                        .getAsString(SimContactsConstants.ACCOUNT_NAME);
+                int subscription = MoreContactUtils.getSubscription(
+                        accountType, accountName);
+                if (subscription == PhoneConstants.SUB1
+                        || subscription == PhoneConstants.SUB2) {
                     if (MoreContactUtils.isAPMOnAndSIMPowerDown(mContext)) {
                         break;
                     }
-                    ContentValues values =
-                            mSimContactsOperation.getSimAccountValues(longId);
-                    int result =
-                            mSimContactsOperation.delete(values, subscription);
+                    int result = mSimContactsOperation.delete(values,
+                            subscription);
                     if (result == 0) {
                         mProgressDialog.incrementProgressBy(1);
                         continue;
