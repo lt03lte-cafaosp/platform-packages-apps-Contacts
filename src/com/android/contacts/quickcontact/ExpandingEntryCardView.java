@@ -91,7 +91,6 @@ public class ExpandingEntryCardView extends CardView {
     public static final int PRESENCE_AVAILABILITY_FETCH = 0;
 
     private static final String SHARE_FILE_NMAE = "video_callling_reminder";
-    private boolean isSupportVideoCall = false;
     private boolean isEnable = false;
     private Switch mVideoCalling;
     private Context mContext;
@@ -384,14 +383,16 @@ public class ExpandingEntryCardView extends CardView {
 
         mEnablePresence = SystemProperties.getBoolean("persist.presence.enable", false);
         if (mEnablePresence) {
-            mVideoCalling = (Switch) expandingEntryCardView
-                    .findViewById(R.id.switch_video_call);
-            mVideoCalling.setVisibility(View.GONE);
             mDefaultEnable = Settings.System.getInt(mContext.getContentResolver(),
                     CallUtil.CONFIG_VIDEO_CALLING,CallUtil.DISABLE_VIDEO_CALLING);
             mEnable = mDefaultEnable;
-            mVideoCalling.setChecked(mDefaultEnable == CallUtil.ENABLE_VIDEO_CALLING);
-            mVideoCalling.setOnCheckedChangeListener(mSwitchVideoCalling);
+            if (CallUtil.isVideoEnabled(mContext)) {
+                mVideoCalling = (Switch) expandingEntryCardView
+                        .findViewById(R.id.switch_video_call);
+                mVideoCalling.setVisibility(View.GONE);
+                mVideoCalling.setOnCheckedChangeListener(mSwitchVideoCalling);
+                mVideoCalling.setChecked(mDefaultEnable == CallUtil.ENABLE_VIDEO_CALLING);
+            }
         }
 
         mExpandCollapseButton = inflater.inflate(
@@ -654,10 +655,6 @@ public class ExpandingEntryCardView extends CardView {
             // Default to "See less".
             return getResources().getText(R.string.expanding_entry_card_view_see_less);
         }
-    }
-
-    public void disPlayVideoCallSwitch(boolean isSupportVideocall) {
-        this.isSupportVideoCall = isSupportVideocall;
     }
 
     /**

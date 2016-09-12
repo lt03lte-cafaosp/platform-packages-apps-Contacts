@@ -909,7 +909,6 @@ public class QuickContactActivity extends ContactsActivity {
         mContactCard.setOnCreateContextMenuListener(mEntryContextMenuListener);
         mEnablePresence = SystemProperties.getBoolean("persist.presence.enable", false);
         if (mEnablePresence) {
-            mContactCard.disPlayVideoCallSwitch(mEnablePresence);
             if (!ContactDisplayUtils.mIsBound) {
                 ContactDisplayUtils.bindService(mContext);
             }
