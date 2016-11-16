@@ -53,6 +53,8 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- For enrich call -->
+    <uses-permission android:name="com.qualcomm.qti.internal.permission.ACCESS_ENRICHED_CALL" />
 
     <application
         android:name="com.android.contacts.ContactsApplication"
@@ -64,6 +66,7 @@
         android:usesCleartextTraffic="false"
     >
         <uses-library android:name="com.suntek.mway.rcs.client.api" android:required="false" />
+        <uses-library android:name="org.codeaurora.rcscommon" android:required="false" />
 
         <!-- The main Contacts activity with the contact list, favorites, and groups. -->
         <activity android:name=".activities.PeopleActivity"

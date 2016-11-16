@@ -70,6 +70,7 @@ import com.android.contacts.common.CallUtil;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.dialog.CallSubjectDialog;
 import com.android.contacts.detail.ContactDisplayUtils;
+import com.android.contacts.detail.EnrichDisplayUtils;
 import com.android.phone.common.util.FirewallUtils;
 
 import java.util.ArrayList;
@@ -88,6 +89,7 @@ public class ExpandingEntryCardView extends CardView {
     public static final int DURATION_EXPAND_ANIMATION_CHANGE_BOUNDS = 300;
     public static final int DURATION_COLLAPSE_ANIMATION_CHANGE_BOUNDS = 300;
     public static final int PRESENCE_AVAILABILITY_FETCH = 0;
+    public static final int UPDATE_ENRICHED_CALL_ICON = 2;
 
     private static final String SHARE_FILE_NMAE = "video_callling_reminder";
     private boolean isSupportVideoCall = false;
@@ -150,6 +152,8 @@ public class ExpandingEntryCardView extends CardView {
         private final String mAccountId;
         private final int mThirdAction;
         private final Bundle mThirdExtras;
+        private final Drawable mEnrichIcon;
+        private final String mEnrichContentDescription;
 
         public Entry(int id, Drawable mainIcon, String header, String subHeader,
                 Drawable subHeaderIcon, String text, Drawable textIcon,
@@ -162,7 +166,26 @@ public class ExpandingEntryCardView extends CardView {
                     primaryContentDescription, intent, alternateIcon, alternateIntent,
                     alternateContentDescription, shouldApplyColor, isEditable,
                     entryContextMenuInfo, thirdIcon, thirdIntent, thirdContentDescription,
-                    thirdAction,thirdExtras,iconResourceId, null);
+                    thirdAction,thirdExtras,iconResourceId, null, null, null);
+        }
+
+        public Entry(int id, Drawable mainIcon, String header, String subHeader,
+                Drawable subHeaderIcon, String text, Drawable textIcon,
+                Spannable primaryContentDescription, Intent intent,
+                Drawable alternateIcon, Intent alternateIntent,
+                String alternateContentDescription,
+                boolean shouldApplyColor, boolean isEditable,
+                EntryContextMenuInfo entryContextMenuInfo,
+                Drawable thirdIcon, Intent thirdIntent,
+                String thirdContentDescription, int thirdAction,
+                Bundle thirdExtras, int iconResourceId,
+                Drawable enrichIcon, String enrichContentDescription) {
+            this(id, mainIcon, header, subHeader, subHeaderIcon, text, textIcon,
+                    primaryContentDescription, intent, alternateIcon, alternateIntent,
+                    alternateContentDescription, shouldApplyColor, isEditable,
+                    entryContextMenuInfo, thirdIcon, thirdIntent, thirdContentDescription,
+                    thirdAction,thirdExtras,iconResourceId, null, enrichIcon,
+                    enrichContentDescription);
         }
 
         public Entry(int id, Drawable mainIcon, String header, String subHeader,
@@ -172,7 +195,7 @@ public class ExpandingEntryCardView extends CardView {
                 boolean shouldApplyColor, boolean isEditable,
                 EntryContextMenuInfo entryContextMenuInfo, Drawable thirdIcon, Intent thirdIntent,
                 String thirdContentDescription, int thirdAction, Bundle thirdExtras, int iconResourceId,
-                String accountId) {
+                String accountId, Drawable enrichIcon, String enrichContentDescription) {
 
             mId = id;
             mIcon = mainIcon;
@@ -196,6 +219,8 @@ public class ExpandingEntryCardView extends CardView {
             mThirdExtras = thirdExtras;
             mIconResourceId = iconResourceId;
             mAccountId = accountId;
+            mEnrichIcon = enrichIcon;
+            mEnrichContentDescription = enrichContentDescription;
         }
 
         Drawable getIcon() {
@@ -284,6 +309,14 @@ public class ExpandingEntryCardView extends CardView {
 
         public Bundle getThirdExtras() {
             return mThirdExtras;
+        }
+
+        Drawable getEnrichIcon() {
+            return mEnrichIcon;
+        }
+
+        String getEnrichDescription() {
+            return mEnrichContentDescription;
         }
     }
 
@@ -794,6 +827,11 @@ public class ExpandingEntryCardView extends CardView {
                             thirdIcon.mutate();
                             thirdIcon.setColorFilter(mThemeColorFilter);
                         }
+                        Drawable enrichIcon = entry.getEnrichIcon();
+                        if (enrichIcon != null) {
+                            enrichIcon.mutate();
+                            enrichIcon.setColorFilter(mThemeColorFilter);
+                        }
                     }
                 }
             }
@@ -932,6 +970,7 @@ public class ExpandingEntryCardView extends CardView {
 
         final ImageView alternateIcon = (ImageView) view.findViewById(R.id.icon_alternate);
         final ImageView thirdIcon = (ImageView) view.findViewById(R.id.third_icon);
+        final ImageView enrichIcon = (ImageView) view.findViewById(R.id.enrich_icon);
 
         if (entry.getAlternateIcon() != null && entry.getAlternateIntent() != null) {
             alternateIcon.setImageDrawable(entry.getAlternateIcon());
@@ -988,8 +1027,24 @@ public class ExpandingEntryCardView extends CardView {
             thirdIcon.setContentDescription(entry.getThirdContentDescription());
         }
 
+        if (entry.getEnrichIcon() != null) {
+            final String number = entry.getHeader();
+            if (number != null && EnrichDisplayUtils.isEnrichCallCapable(number)) {
+                enrichIcon.setImageDrawable(entry.getEnrichIcon());
+                enrichIcon.setContentDescription(entry.getEnrichDescription());
+                enrichIcon.setVisibility(View.VISIBLE);
+                enrichIcon.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        EnrichDisplayUtils.makeEnrichCall(entry.getId(), number);
+
+                    }
+                });
+            }
+        }
+
         // Set a custom touch listener for expanding the extra icon touch areas
-        view.setOnTouchListener(new EntryTouchListener(view, alternateIcon, thirdIcon));
+        view.setOnTouchListener(new EntryTouchListener(view, alternateIcon, thirdIcon, enrichIcon));
         view.setOnCreateContextMenuListener(mOnCreateContextMenuListener);
 
         return view;
@@ -1329,16 +1384,19 @@ public class ExpandingEntryCardView extends CardView {
         private final View mEntry;
         private final ImageView mAlternateIcon;
         private final ImageView mThirdIcon;
+        private final ImageView mEnrichIcon;
         /** mTouchedView locks in a view on touch down */
         private View mTouchedView;
         /** mSlop adds some space to account for touches that are just outside the hit area */
         private int mSlop;
 
-        public EntryTouchListener(View entry, ImageView alternateIcon, ImageView thirdIcon) {
+        public EntryTouchListener(View entry, ImageView alternateIcon, ImageView thirdIcon,
+                ImageView enrichIcon) {
             mEntry = entry;
             mAlternateIcon = alternateIcon;
             mThirdIcon = thirdIcon;
             mSlop = ViewConfiguration.get(entry.getContext()).getScaledTouchSlop();
+            mEnrichIcon = enrichIcon;
         }
 
         @Override
@@ -1350,7 +1408,10 @@ public class ExpandingEntryCardView extends CardView {
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    if (hitThirdIcon(event)) {
+                    if (hitEnrichCallIcon(event)) {
+                        mTouchedView = mEnrichIcon;
+                        sendToTouched = true;
+                    } else if (hitThirdIcon(event)) {
                         mTouchedView = mThirdIcon;
                         sendToTouched = true;
                     } else if (hitAlternateIcon(event)) {
@@ -1392,6 +1453,9 @@ public class ExpandingEntryCardView extends CardView {
             return handled;
         }
 
+        /**
+         * Should be used after checking if enrich icon was hit
+         */
         private boolean hitThirdIcon(MotionEvent event) {
             if (mEntry.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) {
                 return mThirdIcon.getVisibility() == View.VISIBLE &&
@@ -1415,6 +1479,16 @@ public class ExpandingEntryCardView extends CardView {
             } else {
                 return mAlternateIcon.getVisibility() == View.VISIBLE &&
                         event.getX() > mAlternateIcon.getLeft() - alternateIconParams.leftMargin;
+            }
+        }
+
+        private boolean hitEnrichCallIcon(MotionEvent event) {
+            if (mEntry.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) {
+                return mEnrichIcon.getVisibility() == View.VISIBLE &&
+                        event.getX() < mEnrichIcon.getRight();
+            } else {
+                return mThirdIcon.getVisibility() == View.VISIBLE &&
+                        event.getX() > mEnrichIcon.getLeft();
             }
         }
     }
