@@ -70,6 +70,7 @@ import com.android.contacts.common.CallUtil;
 import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.dialog.CallSubjectDialog;
 import com.android.contacts.detail.ContactDisplayUtils;
+import com.android.internal.telephony.CarrierAppUtils;
 import com.android.phone.common.util.FirewallUtils;
 
 import java.util.ArrayList;
@@ -988,6 +989,23 @@ public class ExpandingEntryCardView extends CardView {
             thirdIcon.setVisibility(View.VISIBLE);
             thirdIcon.setContentDescription(entry.getThirdContentDescription());
         }
+        if (isCarrierOneSupported()) {
+            RelativeLayout.LayoutParams alternateIconLayoutParams =
+                    (RelativeLayout.LayoutParams)alternateIcon.getLayoutParams();
+            RelativeLayout.LayoutParams thirdIconLayoutParams =
+                    (RelativeLayout.LayoutParams)thirdIcon.getLayoutParams();
+            RelativeLayout.LayoutParams textLayoutParams =
+                    (RelativeLayout.LayoutParams)text.getLayoutParams();
+            RelativeLayout.LayoutParams subHeaderLayoutParams =
+                    (RelativeLayout.LayoutParams)subHeader.getLayoutParams();
+            alternateIconLayoutParams.removeRule(RelativeLayout.START_OF);
+            thirdIconLayoutParams.removeRule(RelativeLayout.ALIGN_PARENT_END);
+            alternateIconLayoutParams.addRule(RelativeLayout.ALIGN_PARENT_END);
+            thirdIconLayoutParams.addRule(RelativeLayout.START_OF, R.id.icon_alternate);
+            thirdIconLayoutParams.alignWithParent = true;
+            textLayoutParams.addRule(RelativeLayout.START_OF, R.id.third_icon);
+            subHeaderLayoutParams.addRule(RelativeLayout.START_OF, R.id.third_icon);
+        }
 
         // Set a custom touch listener for expanding the extra icon touch areas
         view.setOnTouchListener(new EntryTouchListener(view, alternateIcon, thirdIcon));
@@ -1418,5 +1436,11 @@ public class ExpandingEntryCardView extends CardView {
                         event.getX() > mAlternateIcon.getLeft() - alternateIconParams.leftMargin;
             }
         }
+    }
+
+    private static boolean isCarrierOneSupported() {
+        CarrierAppUtils.CARRIER carrier = CarrierAppUtils.getCarrierId();
+        return (carrier != null &&
+            (CarrierAppUtils.CARRIER.TELEPHONY_CARRIER_ONE == carrier));
     }
 }
