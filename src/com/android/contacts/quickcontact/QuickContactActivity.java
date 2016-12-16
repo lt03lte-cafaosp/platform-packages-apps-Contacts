@@ -462,7 +462,7 @@ public class QuickContactActivity extends Activity {
                         }
                     }
 
-                    if ((isVTSupported() || isIMSSupported())
+                    if ((MoreContactUtils.isCSVTSupported() || MoreContactUtils.isImsRegistered())
                             && Phone.CONTENT_ITEM_TYPE.equals(mimeType)) {
                         dataItem.setMimeType(VTCALL_ITEM_TYPE);
                         mimeType = VTCALL_ITEM_TYPE;
@@ -548,19 +548,6 @@ public class QuickContactActivity extends Activity {
         mSelectedTabRectangle.setVisibility(hasData ? View.VISIBLE : View.GONE);
         mLineAfterTrack.setVisibility(hasData ? View.VISIBLE : View.GONE);
         mListPager.setVisibility(hasData ? View.VISIBLE : View.GONE);
-    }
-
-    private boolean isVTSupported() {
-        boolean CSVTSupported = SystemProperties.getBoolean("persist.radio.csvt.enabled", false);
-        return CSVTSupported && MoreContactUtils.isAnySimAviable();
-    }
-
-    public boolean isIMSSupported(){
-        boolean IMSSupported = this.getResources().getBoolean(R.bool.ims_enabled)
-                && SystemProperties.getBoolean("persist.radio.calls.on.ims", false);
-        boolean IMSRegisrered = SystemProperties.get(
-                "persist.radio.ims.registered", "0").equals("1");
-        return IMSSupported && IMSRegisrered && MoreContactUtils.isAnySimAviable();
     }
 
     /**

@@ -620,7 +620,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
                     //add for csvt
                     final Intent vtIntent = null;
-                    if(isVTSupported()){
+                    if(MoreContactUtils.isCSVTSupported()){
                         getVTCallIntent(phone.getNumber());
                     } else {
                         getIMSVTCallIntent(phone.getNumber());
@@ -1948,7 +1948,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
 
             final View thirdActionViewContainer = views.thirdActionViewContainer;
             if (!HIDE_VTCALL_BTN && entry.thirdIntent != null && thirdActionIcon != null
-                    && (isVTSupported() || isIMSSupported())) {
+                    && (MoreContactUtils.isCSVTSupported() || MoreContactUtils.isImsRegistered())) {
                 thirdActionView.setImageDrawable(thirdActionIcon);
                 thirdActionView.setContentDescription(thirdActionDescription);
                 thirdActionViewContainer.setTag(entry);
@@ -2180,7 +2180,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         }
 
         if (Phone.CONTENT_ITEM_TYPE.equals(selectedEntry.mimetype)) {
-            if (isVTSupported() || isIMSSupported()){
+            if (MoreContactUtils.isCSVTSupported() || MoreContactUtils.isImsRegistered()) {
                 menu.add(ContextMenu.NONE, ContextMenuIds.VIDEOCALL,
                     ContextMenu.NONE, getString(R.string.videocall));
             }
@@ -2347,16 +2347,11 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
     //add for csvt
     private void videocall(int viewEntryPosition) {
         DetailViewEntry detailViewEntry = (DetailViewEntry) mAllEntries.get(viewEntryPosition);
-        if (isVTSupported()){
+        if (MoreContactUtils.isCSVTSupported()){
             mContext.startActivity(getVTCallIntent(detailViewEntry.data));
         } else {
             mContext.startActivity(getIMSVTCallIntent(detailViewEntry.data));
         }
-    }
-
-    private boolean isVTSupported() {
-        boolean CSVTSupported = SystemProperties.getBoolean("persist.radio.csvt.enabled", false);
-        return CSVTSupported && MoreContactUtils.isAnySimAviable();
     }
 
     private Intent getVTCallIntent(String number) {
@@ -2390,16 +2385,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         intent.putExtra("ims_videocall", true);
         return intent;
     }
-
-    public boolean isIMSSupported(){
-        boolean IMSSupported = this.getResources().getBoolean(R.bool.ims_enabled)
-                && SystemProperties.getBoolean("persist.radio.calls.on.ims", false);
-        boolean IMSRegisrered = SystemProperties.get(
-                "persist.radio.ims.registered", "0").equals("1");
-        return IMSSupported && IMSRegisrered && MoreContactUtils.isAnySimAviable();
-    }
     //add for ims vt entry end
-
 
     @Override
     public boolean handleKeyDown(int keyCode) {

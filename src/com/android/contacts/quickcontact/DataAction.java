@@ -130,7 +130,7 @@ public class DataAction implements Action {
                         smsIntent.setComponent(smsComponent);
                     }
                     final Intent videocallIntent;
-                    if(isVTSupported()){
+                    if (MoreContactUtils.isCSVTSupported()) {
                         videocallIntent = getVTCallIntent(number);
                     } else {
                         videocallIntent = getIMSVTCallIntent(number);
@@ -400,11 +400,6 @@ public class DataAction implements Action {
         return intent;
     }
 
-    private boolean isVTSupported() {
-        boolean CSVTSupported = SystemProperties.getBoolean("persist.radio.csvt.enabled", false);
-        return CSVTSupported && MoreContactUtils.isAnySimAviable();
-    }
-
     private Intent getIMSVTCallIntent(String number) {
         Intent intent = CallUtil.getCallIntent(
                 Uri.fromParts(CallUtil.SCHEME_TEL, number, null));
@@ -416,13 +411,4 @@ public class DataAction implements Action {
         intent.putExtra("ims_videocall", true);
         return intent;
     }
-
-    public boolean isIMSSupported(){
-        boolean IMSSupported = mContext.getResources().getBoolean(R.bool.ims_enabled)
-                && SystemProperties.getBoolean("persist.radio.calls.on.ims", false);
-        boolean IMSRegisrered = SystemProperties.get(
-                "persist.radio.ims.registered", "0").equals("1");
-        return IMSSupported && IMSRegisrered && MoreContactUtils.isAnySimAviable();
-    }
-
 }
