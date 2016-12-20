@@ -1294,6 +1294,7 @@ public class ContactEditorFragment extends Fragment implements
                                 && RCSUtil.isNativeUiInstalled(mContext)
                                 && RCSUtil.isPluginInstalled(mContext)
                                 && !isEditingUserProfile()) {
+                        }
                     } else {
                         Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)
                                 .show();
@@ -1419,7 +1420,6 @@ public class ContactEditorFragment extends Fragment implements
                     Log.d(TAG, "No listener registered, can not call onSplitFinished");
                 }
                 break;
-            }
         }
     }
 
