@@ -15,7 +15,24 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+<!--
+  BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+  Copyright (c) 2016 All rights reserved.
 
+  The source code contained or described herein and all documents
+  related to the source code ("Material") are owned by BORQS Software
+  Solutions Pvt Ltd. No part of the Material may be used,copied,
+  reproduced, modified, published, uploaded,posted, transmitted,
+  distributed, or disclosed in any way without BORQS Software
+  Solutions Pvt Ltd. prior written permission.
+
+  No license under any patent, copyright, trade secret or other
+  intellectual property right is granted to or conferred upon you
+  by disclosure or delivery of the Materials, either expressly, by
+  implication, inducement, estoppel or otherwise. Any license
+  under such intellectual property rights must be express and
+  approved by BORQS Software Solutions Pvt Ltd. in writing.
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.contacts"
     android:sharedUserId="android.uid.shared">
@@ -492,7 +509,7 @@
             android:name=".editor.MultiPickContactActivity"
             android:windowSoftInputMode="stateHidden|adjustResize"
             android:screenOrientation="nosensor"
-            android:theme="@android:style/Theme.Holo.Light"
+            android:theme="@android:style/Theme.Holo.Light.NoActionBar"
             android:configChanges="orientation|keyboardHidden|layoutDirection">
             <intent-filter>
                 <action android:name="com.android.contacts.action.MULTI_PICK" />
@@ -503,6 +520,13 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.DELETE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/person"/>
+                <data android:mimeType="vnd.android.cursor.dir/contact"/>
+                <data android:mimeType="vnd.android.cursor.dir/raw_contact"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.contacts.action.SELECT" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.dir/person"/>
                 <data android:mimeType="vnd.android.cursor.dir/contact"/>

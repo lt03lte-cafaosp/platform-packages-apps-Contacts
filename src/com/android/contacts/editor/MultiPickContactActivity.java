@@ -26,7 +26,25 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.contacts.editor;
 
 import android.app.AlertDialog;
@@ -80,6 +98,8 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
@@ -91,6 +111,7 @@ import android.widget.CheckBox;
 import android.widget.CursorAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
@@ -233,7 +254,9 @@ public class MultiPickContactActivity extends ListActivity implements
     private static final int MODE_DEFAULT_EMAIL = 1 << 1;
     private static final int MODE_DEFAULT_CALL = 1 << 1 << 1;
     private static final int MODE_DEFAULT_SIM = 1 << 1 << 1 << 1;
-    private static final int MODE_SEARCH_CONTACT = MODE_DEFAULT_CONTACT | MODE_MASK_SEARCH;
+    private static final int MODE_DEFAULT_CONTACT_SELECT = 1 << 1 << 1 << 1 << 1;
+    private static final int MODE_SEARCH_CONTACT = MODE_DEFAULT_CONTACT | MODE_MASK_SEARCH
+                                            | MODE_DEFAULT_CONTACT_SELECT;
     private static final int MODE_SEARCH_PHONE = MODE_DEFAULT_PHONE | MODE_MASK_SEARCH;
     private static final int MODE_SEARCH_EMAIL = MODE_DEFAULT_EMAIL | MODE_MASK_SEARCH;
     private static final int MODE_SEARCH_CALL = MODE_DEFAULT_CALL | MODE_MASK_SEARCH;
@@ -243,6 +266,7 @@ public class MultiPickContactActivity extends ListActivity implements
     static final String ACTION_MULTI_PICK_EMAIL = "com.android.contacts.action.MULTI_PICK_EMAIL";
     static final String ACTION_MULTI_PICK_CALL = "com.android.contacts.action.MULTI_PICK_CALL";
     static final String ACTION_MULTI_PICK_SIM = "com.android.contacts.action.MULTI_PICK_SIM";
+    public static final String ACTION_SELECT = "com.android.contacts.action.SELECT";
 
     public static final String IS_CONTACT ="is_contact";
     private static final String IS_EXPORT_CONTACT = "is_export_contact";
@@ -325,7 +349,9 @@ public class MultiPickContactActivity extends ListActivity implements
         if (Intent.ACTION_DELETE.equals(action)) {
             mMode = MODE_DEFAULT_CONTACT;
             setTitle(R.string.menu_deleteContact);
-        } else if (Intent.ACTION_GET_CONTENT.equals(action)) {
+        } else if (ACTION_SELECT.equals(action)) {
+                mMode = MODE_DEFAULT_CONTACT_SELECT;
+        }else if (Intent.ACTION_GET_CONTENT.equals(action)) {
             mMode = MODE_DEFAULT_CONTACT;
         } else if (ACTION_MULTI_PICK.equals(action)) {
             if (!isContact) {
@@ -371,8 +397,24 @@ public class MultiPickContactActivity extends ListActivity implements
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Let the system ignore the menu key when the activity is foreground.
-        return false;
+        MenuInflater inflater = getMenuInflater();
+            if (mMode == MODE_DEFAULT_CONTACT_SELECT) {
+            inflater.inflate(R.menu.default_contacts_list_multi_select, menu);
+        }
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case R.id.delete:
+            if (mChoiceSet.size() > 0) {
+                showDialog(R.id.dialog_delete_contact_confirmation);
+            }
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
+        }
     }
 
     private boolean isSearchMode() {
@@ -391,6 +433,11 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private void initResource() {
+        if (mMode == MODE_DEFAULT_CONTACT_SELECT) {
+            LinearLayout buttonLinearLayout =
+            (LinearLayout)this.findViewById(R.id.button_linearlayout);
+            buttonLinearLayout.setVisibility(View.GONE);
+        }
         mOKButton = (Button) findViewById(R.id.btn_ok);
         mOKButton.setOnClickListener(this);
         mOKButton.setText(getOKString());
@@ -838,6 +885,7 @@ public class MultiPickContactActivity extends ListActivity implements
         switch (mMode) {
             case MODE_DEFAULT_CONTACT:
             case MODE_SEARCH_CONTACT:
+            case MODE_DEFAULT_CONTACT_SELECT:
                 uri = Contacts.CONTENT_URI;
                 break;
             case MODE_DEFAULT_EMAIL:
@@ -918,6 +966,7 @@ public class MultiPickContactActivity extends ListActivity implements
         switch (mMode) {
             case MODE_DEFAULT_CONTACT:
             case MODE_SEARCH_CONTACT:
+            case MODE_DEFAULT_CONTACT_SELECT:
                 return CONTACTS_SUMMARY_PROJECTION;
             case MODE_DEFAULT_PHONE:
             case MODE_SEARCH_PHONE:
@@ -958,6 +1007,7 @@ public class MultiPickContactActivity extends ListActivity implements
                     return PHONES_SELECTION;
                 }
             case MODE_DEFAULT_CONTACT:
+            case MODE_DEFAULT_CONTACT_SELECT:
                 return getSelectionForAccount();
             case MODE_DEFAULT_SIM:
             case MODE_SEARCH_SIM:
@@ -1100,7 +1150,8 @@ public class MultiPickContactActivity extends ListActivity implements
     }
 
     private boolean isPickContact() {
-        return mMode == MODE_DEFAULT_CONTACT || mMode == MODE_SEARCH_CONTACT;
+        return mMode == MODE_DEFAULT_CONTACT || mMode == MODE_SEARCH_CONTACT
+                || mMode == MODE_DEFAULT_CONTACT_SELECT;
     }
 
     private boolean isPickPhone() {
@@ -1515,6 +1566,7 @@ public class MultiPickContactActivity extends ListActivity implements
             switch (mMode) {
                 case MODE_DEFAULT_CONTACT:
                 case MODE_SEARCH_CONTACT:
+                case MODE_DEFAULT_CONTACT_SELECT:
                     index = SUMMARY_DISPLAY_NAME_PRIMARY_COLUMN_INDEX;
                     break;
                 case MODE_DEFAULT_PHONE:
