@@ -365,6 +365,7 @@ public class PeopleActivity extends ContactsActivity
         if (RcsApiManager.getSupportApi().isRcsSupported()) {
             RCSUtil.resotreContactIfTerminalChanged(this);
         }
+        isLocalGroupsShown = true;
     }
 
     @Override
@@ -1630,6 +1631,7 @@ public class PeopleActivity extends ContactsActivity
         makeMenuItemVisible(menu, R.id.menu_memory_status, false);
         makeMenuItemVisible(menu, R.id.menu_contacts_filter, false);
         makeMenuItemVisible(menu, R.id.menu_delete, false);
+        makeMenuItemVisible(menu, R.id.menu_switch_group,false);
         return true;
     }
 
