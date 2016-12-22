@@ -499,7 +499,7 @@ public class PeopleActivity extends ContactsActivity
                 mFrequentFragment = getFragment(R.id.frequent_fragment);
                 mFrequentFragment.setListener(mFavoritesFragmentListener);
                 mFrequentFragment.setDisplayType(DisplayType.FREQUENT_ONLY);
-                mFrequentFragment.enableQuickContact(true);
+                mFrequentFragment.enableQuickContact(false);
             }
 
             mContactDetailLoaderFragment = getFragment(R.id.contact_detail_loader_fragment);
@@ -525,13 +525,13 @@ public class PeopleActivity extends ContactsActivity
 
         // Setting Properties after fragment is created
         if (PhoneCapabilityTester.isUsingTwoPanesInFavorites(this)) {
-            mFavoritesFragment.enableQuickContact(true);
+            mFavoritesFragment.enableQuickContact(false);
             mFavoritesFragment.setDisplayType(DisplayType.STARRED_ONLY);
         } else {
             // For 2-pane in All and Groups but not in Favorites fragment, show the chevron
             // for quick contact popup
-            mFavoritesFragment.enableQuickContact(isUsingTwoPanes);
-            mFavoritesFragment.setDisplayType(DisplayType.STREQUENT);
+            mFavoritesFragment.enableQuickContact(false);
+            mFavoritesFragment.setDisplayType(DisplayType.FAV_LIST);
         }
 
         // Configure action bar
@@ -1121,7 +1121,7 @@ public class PeopleActivity extends ContactsActivity
 
         mAllFragment.setVerticalScrollbarPosition(getScrollBarPosition(useTwoPane));
         mAllFragment.setSelectionVisible(useTwoPane);
-        mAllFragment.setQuickContactEnabled(!useTwoPane);
+        mAllFragment.setQuickContactEnabled(false);
     }
 
     private int getScrollBarPosition(boolean useTwoPane) {
