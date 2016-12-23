@@ -95,7 +95,7 @@ public class JoinContactListFragment extends ContactEntryListFragment<JoinContac
 
     public JoinContactListFragment() {
         setPhotoLoaderEnabled(true);
-        setSectionHeaderDisplayEnabled(true);
+        setSectionHeaderDisplayEnabled(false);
         setVisibleScrollbarEnabled(false);
         setQuickContactEnabled(false);
     }
@@ -119,7 +119,7 @@ public class JoinContactListFragment extends ContactEntryListFragment<JoinContac
     private void onContactListLoaded(Cursor suggestionsCursor, Cursor allContactsCursor) {
         JoinContactListAdapter adapter = getAdapter();
         adapter.setSuggestionsCursor(suggestionsCursor);
-        setVisibleScrollbarEnabled(true);
+        setVisibleScrollbarEnabled(false);
         onPartitionLoaded(JoinContactListAdapter.PARTITION_ALL_CONTACTS, allContactsCursor);
     }
 

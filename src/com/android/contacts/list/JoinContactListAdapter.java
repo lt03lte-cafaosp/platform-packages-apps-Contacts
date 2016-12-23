@@ -51,7 +51,7 @@ public class JoinContactListAdapter extends ContactListAdapter {
     public JoinContactListAdapter(Context context) {
         super(context);
         setPinnedPartitionHeadersEnabled(true);
-        setSectionHeaderDisplayEnabled(true);
+        setSectionHeaderDisplayEnabled(false);
         setIndexedPartition(PARTITION_ALL_CONTACTS);
         setDirectorySearchMode(DirectoryListLoader.SEARCH_MODE_NONE);
     }

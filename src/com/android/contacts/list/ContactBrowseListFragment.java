@@ -399,7 +399,7 @@ public abstract class ContactBrowseListFragment extends
         }
 
         // Display the user's profile if not in search mode
-        adapter.setIncludeProfile(!searchMode);
+        adapter.setIncludeProfile(false);
     }
 
     @Override

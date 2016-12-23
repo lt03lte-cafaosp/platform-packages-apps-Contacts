@@ -53,8 +53,8 @@ public class ContactPickerFragment extends ContactEntryListFragment<ContactEntry
 
     public ContactPickerFragment() {
         setPhotoLoaderEnabled(true);
-        setSectionHeaderDisplayEnabled(true);
-        setVisibleScrollbarEnabled(true);
+        setSectionHeaderDisplayEnabled(false);
+        setVisibleScrollbarEnabled(false);
         setQuickContactEnabled(false);
         setDirectorySearchMode(DirectoryListLoader.SEARCH_MODE_CONTACT_SHORTCUT);
     }
@@ -162,7 +162,7 @@ public class ContactPickerFragment extends ContactEntryListFragment<ContactEntry
                 adapter.setFilter(ContactListFilter.createFilterWithType(
                         ContactListFilter.FILTER_TYPE_ALL_ACCOUNTS));
             }
-            adapter.setSectionHeaderDisplayEnabled(true);
+            adapter.setSectionHeaderDisplayEnabled(false);
             adapter.setDisplayPhotos(true);
             adapter.setQuickContactEnabled(false);
             return adapter;

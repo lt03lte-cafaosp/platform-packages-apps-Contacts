@@ -1088,7 +1088,7 @@ public class PeopleActivity extends ContactsActivity
 
     private void setQueryTextToFragment(String query) {
         mAllFragment.setQueryString(query, true);
-        mAllFragment.setVisibleScrollbarEnabled(!mAllFragment.isSearchMode());
+        mAllFragment.setVisibleScrollbarEnabled(false);
     }
 
     private void configureContactListFragmentForRequest() {

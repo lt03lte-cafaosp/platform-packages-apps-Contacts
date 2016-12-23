@@ -34,7 +34,7 @@ public class EmailAddressPickerFragment extends ContactEntryListFragment<Contact
     public EmailAddressPickerFragment() {
         setQuickContactEnabled(false);
         setPhotoLoaderEnabled(true);
-        setSectionHeaderDisplayEnabled(true);
+        setSectionHeaderDisplayEnabled(false);
         setDirectorySearchMode(DirectoryListLoader.SEARCH_MODE_DATA_SHORTCUT);
     }
 
@@ -51,7 +51,7 @@ public class EmailAddressPickerFragment extends ContactEntryListFragment<Contact
     @Override
     protected ContactEntryListAdapter createListAdapter() {
         EmailAddressListAdapter adapter = new EmailAddressListAdapter(getActivity());
-        adapter.setSectionHeaderDisplayEnabled(true);
+        adapter.setSectionHeaderDisplayEnabled(false);
         adapter.setDisplayPhotos(true);
         return adapter;
     }
@@ -65,7 +65,7 @@ public class EmailAddressPickerFragment extends ContactEntryListFragment<Contact
     protected void onCreateView(LayoutInflater inflater, ViewGroup container) {
         super.onCreateView(inflater, container);
 
-        setVisibleScrollbarEnabled(!isLegacyCompatibilityMode());
+        setVisibleScrollbarEnabled(false);
     }
 
     private void pickEmailAddress(Uri uri) {

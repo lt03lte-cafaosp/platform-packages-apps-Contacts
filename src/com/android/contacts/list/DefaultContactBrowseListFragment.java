@@ -29,6 +29,7 @@ import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -65,6 +66,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     private View mSearchProgress;
     private TextView mSearchProgressText;
     private ContactListItemView mPulicAccountView;
+    private LinearLayout topactionbar;
 
     private class FilterHeaderClickListener implements OnClickListener {
         @Override
@@ -79,8 +81,8 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
     public DefaultContactBrowseListFragment() {
         setPhotoLoaderEnabled(true);
-        setSectionHeaderDisplayEnabled(true);
-        setVisibleScrollbarEnabled(true);
+        setSectionHeaderDisplayEnabled(false);
+        setVisibleScrollbarEnabled(false);
     }
 
     @Override
@@ -96,7 +98,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     @Override
     protected ContactListAdapter createListAdapter() {
         DefaultContactListAdapter adapter = new DefaultContactListAdapter(getContext());
-        adapter.setSectionHeaderDisplayEnabled(isSectionHeaderDisplayEnabled());
+        adapter.setSectionHeaderDisplayEnabled(false);
         boolean showPhoto = getResources().getBoolean(R.bool.config_browse_list_show_images);
         adapter.setDisplayPhotos(showPhoto);
         if (showPhoto) {
@@ -124,7 +126,9 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
         mAccountFilterHeader = getView().findViewById(R.id.account_filter_header_container);
         mAccountFilterHeader.setOnClickListener(mFilterHeaderClickListener);
-        mCounterHeaderView = (TextView) getView().findViewById(R.id.contacts_count);
+        topactionbar = (LinearLayout) getView().findViewById(R.id.topListBar);
+        mCounterHeaderView = (TextView) getView().findViewById(R.id.count);
+        topactionbar.setVisibility(View.VISIBLE);
 
         // Create an empty user profile header and hide it for now (it will be visible if the
         // contacts list will have no user profile).
@@ -205,6 +209,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
                     getAdapter().setContactsCount(String.format(format, count));
                 } else {
                     mCounterHeaderView.setText(String.format(format, count));
+                    mCounterHeaderView.setVisibility(View.VISIBLE);
                 }
             } else {
                 ContactListFilter filter = getFilter();
@@ -302,16 +307,16 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         // view in a ListView without having a parent view.
         mProfileHeaderContainer = new FrameLayout(inflater.getContext());
         mProfileHeader = inflater.inflate(R.layout.user_profile_header, null, false);
-        mCounterHeaderView = (TextView) mProfileHeader.findViewById(R.id.contacts_count);
+        mProfileHeader.setVisibility(View.GONE);
         mProfileTitle = (TextView) mProfileHeader.findViewById(R.id.profile_title);
-        mProfileHeaderContainer.addView(mProfileHeader);
-        list.addHeaderView(mProfileHeaderContainer, null, false);
+        //mProfileHeaderContainer.addView(mProfileHeader);
+        //list.addHeaderView(mProfileHeaderContainer, null, false);
 
         // Add a selectable view with a message inviting the user to create a local profile
         mMessageContainer = new FrameLayout(inflater.getContext());
         mProfileMessage = (Button)inflater.inflate(R.layout.user_profile_button, null, false);
-        mMessageContainer.addView(mProfileMessage);
-        list.addHeaderView(mMessageContainer, null, true);
+        //mMessageContainer.addView(mProfileMessage);
+        //list.addHeaderView(mMessageContainer, null, true);
 
         mProfileMessage.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {

@@ -35,7 +35,7 @@ public class PostalAddressPickerFragment
     public PostalAddressPickerFragment() {
         setQuickContactEnabled(false);
         setPhotoLoaderEnabled(true);
-        setSectionHeaderDisplayEnabled(true);
+        setSectionHeaderDisplayEnabled(false);
         setDirectorySearchMode(DirectoryListLoader.SEARCH_MODE_DATA_SHORTCUT);
     }
 
@@ -59,7 +59,7 @@ public class PostalAddressPickerFragment
     protected ContactEntryListAdapter createListAdapter() {
         if (!isLegacyCompatibilityMode()) {
             PostalAddressListAdapter adapter = new PostalAddressListAdapter(getActivity());
-            adapter.setSectionHeaderDisplayEnabled(true);
+            adapter.setSectionHeaderDisplayEnabled(false);
             adapter.setDisplayPhotos(true);
             return adapter;
         } else {
@@ -80,7 +80,7 @@ public class PostalAddressPickerFragment
     protected void onCreateView(LayoutInflater inflater, ViewGroup container) {
         super.onCreateView(inflater, container);
 
-        setVisibleScrollbarEnabled(!isLegacyCompatibilityMode());
+        setVisibleScrollbarEnabled(false);
     }
 
     private void pickPostalAddress(Uri uri) {
