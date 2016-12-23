@@ -13,10 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  */
-
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.contacts.detail;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.app.Dialog;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.app.LoaderManager.LoaderCallbacks;
@@ -25,6 +46,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
@@ -59,6 +81,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.android.contacts.ContactSaveService;
+import com.android.contacts.common.CallUtil;
 import com.android.contacts.R;
 import com.android.contacts.RcsApiManager;
 import com.android.contacts.activities.ContactDetailActivity.FragmentKeyListener;
@@ -80,6 +103,7 @@ import com.google.common.collect.ImmutableList;
 import com.suntek.mway.rcs.client.api.util.ServiceDisconnectedException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * This is an invisible worker {@link Fragment} that loads the contact details for the contact card.
@@ -590,8 +614,142 @@ public class ContactLoaderFragment extends Fragment implements FragmentKeyListen
                 }
                 return true;
             }
+            case R.id.menu_message : {
+                sendMessage();
+                return true;
+            }
         }
         return false;
+    }
+
+    int mWhichSelected = -1;
+    private void sendMessage(){
+
+        String name = mContactData.getDisplayName();
+        String phone = null;
+        String email = null;
+
+        AlertDialog mDialog;
+        ArrayList<String> mMessageEntries = new ArrayList<String>();
+
+        int mPhoneCount = 0;
+        int mEmailCount = 0;
+        mWhichSelected = -1;
+
+        StringBuilder mContactsDetails = new StringBuilder();
+        StringBuilder mPhoneDetails = new StringBuilder();
+        StringBuilder mEmailDetails = new StringBuilder();
+
+        Log.d(TAG, "Contact name: " + name);
+
+        for (RawContact raw: mContactData.getRawContacts()) {
+            final ContentValues entValues = raw.getValues();
+            Log.d(TAG, "  entValues:" + entValues);
+
+            for (RawContact.NamedDataItem namedDataItem : raw.getNamedDataItems()) {
+                final ContentValues entryValues = namedDataItem.mContentValues;
+                final String mimeType = entryValues.getAsString(Data.MIMETYPE);
+
+                if (mimeType == null) continue;
+
+                if (Phone.CONTENT_ITEM_TYPE.equals(mimeType)) { // Get phone string
+                    if (phone == null) {
+                        phone = entryValues.getAsString(Phone.NUMBER);
+                    } else {
+                        phone = phone + ", " + entryValues.getAsString(Phone.NUMBER);
+                    }
+                    int type = entryValues.getAsInteger(Phone.TYPE);
+                    CharSequence label = Phone.getTypeLabel(getActivity()
+                            .getResources(), type, null);
+                    mContactsDetails.append(label.toString() + " " + phone + "\n");
+                    if(mPhoneDetails.length() > 0){
+                        mPhoneDetails.append("&"+phone);
+                        mPhoneCount++ ;
+                    }else {
+                        mPhoneDetails.append(phone);
+                        mPhoneCount++ ;
+                    }
+
+                } else if (Email.CONTENT_ITEM_TYPE.equals(mimeType)) { // Get email string
+                    if (email == null) {
+                        email = entryValues.getAsString(Email.ADDRESS);
+                    } else {
+                        email = email + ", " + entryValues.getAsString(Email.ADDRESS);
+                    }
+                    int type = entryValues.getAsInteger(Email.TYPE);
+                    CharSequence label = Phone.getTypeLabel(getActivity()
+                            .getResources(), type, null);
+                    mContactsDetails.append(getString(R.string.label_email)
+                            + " " + label + " " + email + "\n");
+                    if(mEmailDetails.length() > 0 ){
+                        mEmailDetails.append("&"+email);
+                        mEmailCount++ ;
+                    }else {
+                        mEmailDetails.append(email);
+                        mEmailCount++ ;
+                    }
+                }
+
+            }
+        }
+        if(mContactsDetails.length() == 0){
+            Toast.makeText(mContext, mContext.getResources().getString(R.string.no_data_message),
+                    Toast.LENGTH_SHORT).show();
+        }else{
+
+            if(mEmailCount > 0)
+                mMessageEntries.addAll(Arrays.asList(mEmailDetails.toString().split("&")));
+            if(mPhoneCount > 0)
+                mMessageEntries.addAll(Arrays.asList(mPhoneDetails.toString().split("&")));
+
+            final String[] finalValue = mMessageEntries
+                    .toArray(new String[mMessageEntries.size()]);
+
+            if(mMessageEntries.size()>1){
+                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                builder.setTitle(R.string.select_email_phone);
+                final String[] finalValuesString = mMessageEntries
+                        .toArray(new String[mMessageEntries.size()]);
+                builder.setSingleChoiceItems(finalValuesString, 0, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mWhichSelected = which;
+                    }
+                })
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        Intent intent;
+                        if(mWhichSelected == -1){
+                            intent = new Intent(Intent.ACTION_SENDTO,
+                                    Uri.fromParts(CallUtil.SCHEME_SMSTO, finalValuesString[0], null));
+                        }else{
+                            intent = new Intent(Intent.ACTION_SENDTO,
+                                    Uri.fromParts(CallUtil.SCHEME_SMSTO, finalValuesString[mWhichSelected], null));
+                        }
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        boolean composeMode = true;
+                        boolean exitOnSent = true;
+                        startActivity(intent);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                    }
+                });
+
+                Dialog dialog =builder.create();
+                dialog.show();
+            }else {
+                Intent intent = new Intent(Intent.ACTION_SENDTO,
+                        Uri.fromParts(CallUtil.SCHEME_SMSTO, mMessageEntries.get(0), null));
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                boolean composeMode = true;
+                boolean exitOnSent = true;
+                startActivity(intent);
+            }
+        }
     }
 
     private void copyToPhone() {

@@ -13,7 +13,24 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+<!--
+  BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+  Copyright (c) 2016 All rights reserved.
 
+  The source code contained or described herein and all documents
+  related to the source code ("Material") are owned by BORQS Software
+  Solutions Pvt Ltd. No part of the Material may be used,copied,
+  reproduced, modified, published, uploaded,posted, transmitted,
+  distributed, or disclosed in any way without BORQS Software
+  Solutions Pvt Ltd. prior written permission.
+
+  No license under any patent, copyright, trade secret or other
+  intellectual property right is granted to or conferred upon you
+  by disclosure or delivery of the Materials, either expressly, by
+  implication, inducement, estoppel or otherwise. Any license
+  under such intellectual property rights must be express and
+  approved by BORQS Software Solutions Pvt Ltd. in writing.
+-->
 <!--
   This is a header entry in the contact details list for when the contact does not have social
   updates, which means that the contact's photo will scroll with the list of details.
@@ -23,20 +40,48 @@
     xmlns:ex="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="horizontal">
 
-    <!-- Contact photo -->
-    <view
-        class="com.android.contacts.common.widget.ProportionalLayout"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        ex:ratio="0.5"
-        ex:direction="widthToHeight">
+        android:layout_height="48dp"
+        android:orientation="horizontal">
 
-        <include layout="@layout/photo_selector_view" />
+        <ImageView
+            android:id="@+id/photo"
+            android:layout_width="48dp"
+            android:paddingLeft="1dp"
+            android:paddingTop="3dp"
+            android:layout_height="match_parent"
+            android:background="?android:attr/selectableItemBackground"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="2"
+                android:paddingLeft="5dp"
+                android:textSize="18dp" />
 
-    </view>
+            <TextView
+                android:id="@+id/company"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingLeft="10dp"
+                android:textSize="18dp"
+                android:visibility="gone" />
 
+        </LinearLayout>
+
+    </LinearLayout>
     <!-- Shadow -->
     <View
         android:layout_width="match_parent"

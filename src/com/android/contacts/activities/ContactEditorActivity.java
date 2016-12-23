@@ -13,7 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  */
-
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.contacts.activities;
 
 import android.app.ActionBar;
@@ -30,6 +48,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.TextView;
 
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
@@ -98,13 +117,16 @@ public class ContactEditorActivity extends ContactsActivity
             LayoutInflater inflater = (LayoutInflater) getSystemService
                     (Context.LAYOUT_INFLATER_SERVICE);
             View customActionBarView = inflater.inflate(R.layout.editor_custom_action_bar, null);
-            View saveMenuItem = customActionBarView.findViewById(R.id.save_menu_item);
+            /* to disable DONE option on action bar */
+            /*View saveMenuItem = customActionBarView.findViewById(R.id.save_menu_item);
             saveMenuItem.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mFragment.doSaveAction();
                 }
-            });
+            });*/
+            TextView mContactEditText = (TextView) customActionBarView.findViewById(R.id.page_editor_text);
+            mContactEditText.setText(R.string.edit_contact);
             // Show the custom action bar but hide the home icon and title
             actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
                     ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_SHOW_HOME |

@@ -892,4 +892,10 @@
     <string name="menu_option_remove">Remove</string>
     <string name="menu_option_move">Move</string>
     <string name="menu_option_cancel">Cancel</string>
+    <string name="menu_contact_detail">Contact detail</string>
+    <string name="menu_save">Save</string>
+    <string name="label_email">Email</string>
+    <string name="no_data_message">Cannot send message! No valid contact(s). </string>
+    <string name="select_email_phone"> Select email(s)/phone(s) </string>
+    <string name="description_add_contact">Add contact</string>
 </resources>

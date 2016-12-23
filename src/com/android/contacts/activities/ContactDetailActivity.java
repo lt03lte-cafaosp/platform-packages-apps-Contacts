@@ -13,7 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  */
-
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.contacts.activities;
 
 import android.app.ActionBar;
@@ -100,12 +118,13 @@ public class ContactDetailActivity extends ContactsActivity {
 
         // We want the UP affordance but no app icon.
         // Setting HOME_AS_UP, SHOW_TITLE and clearing SHOW_HOME does the trick.
+        /* for adding Contacat detail title on action bar */
         ActionBar actionBar = getActionBar();
         if (actionBar != null) {
             actionBar.setDisplayOptions(ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_TITLE,
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_TITLE
                     | ActionBar.DISPLAY_SHOW_HOME);
-            actionBar.setTitle("");
+            actionBar.setTitle(R.string.menu_contact_detail);
         }
     }
 
@@ -211,7 +230,8 @@ public class ContactDetailActivity extends ContactsActivity {
                     mContactData = result;
                     mLookupUri = result.getLookupUri();
                     invalidateOptionsMenu();
-                    setupTitle();
+                    //Removing the action bar name and company details shown in the action bar.
+                    //setupTitle();
                     mContactDetailLayoutController.setContactData(mContactData);
                 }
             });
@@ -241,9 +261,10 @@ public class ContactDetailActivity extends ContactsActivity {
         CharSequence displayName = ContactDetailDisplayUtils.getDisplayName(this, mContactData);
         String company =  ContactDetailDisplayUtils.getCompany(this, mContactData);
 
-        ActionBar actionBar = getActionBar();
+        /* for disabling the contact name and company name on Action bar */
+        /*ActionBar actionBar = getActionBar();
         actionBar.setTitle(displayName);
-        actionBar.setSubtitle(company);
+        actionBar.setSubtitle(company);*/
 
         final StringBuilder talkback = new StringBuilder();
         if (!TextUtils.isEmpty(displayName)) {

@@ -13,7 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  */
-
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.contacts.detail;
 
 import android.app.Activity;
@@ -1929,8 +1947,9 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 secondaryActionView.setImageDrawable(secondaryActionIcon);
                 secondaryActionView.setContentDescription(secondaryActionDescription);
                 secondaryActionViewContainer.setTag(entry);
-                secondaryActionViewContainer.setVisibility(View.VISIBLE);
-                views.secondaryActionDivider.setVisibility(View.VISIBLE);
+                /* for messaging secondary action disabling*/
+                secondaryActionViewContainer.setVisibility(View.GONE);
+                views.secondaryActionDivider.setVisibility(View.GONE);
             } else {
                 secondaryActionViewContainer.setVisibility(View.GONE);
                 views.secondaryActionDivider.setVisibility(View.GONE);
@@ -1952,14 +1971,16 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 thirdActionView.setImageDrawable(thirdActionIcon);
                 thirdActionView.setContentDescription(thirdActionDescription);
                 thirdActionViewContainer.setTag(entry);
-                thirdActionViewContainer.setVisibility(View.VISIBLE);
-                views.thirdActionDivider.setVisibility(View.VISIBLE);
+                /* for calling secondary action disabling*/
+                thirdActionViewContainer.setVisibility(View.GONE);
+                views.thirdActionDivider.setVisibility(View.GONE);
             } else {
                 thirdActionViewContainer.setVisibility(View.GONE);
                 views.thirdActionDivider.setVisibility(View.GONE);
             }
 
-            if (entry.mSlot1Intent != null && entry.mSlot2Intent != null) {
+            /* for messaging and calling secondary action disabling*/
+           /* if (entry.mSlot1Intent != null && entry.mSlot2Intent != null) {
                 views.callButtonSub1.setImageResource(
                         com.android.contacts.common.R.drawable.ic_ab_dialer_holo_light);
                 views.callButtonSub1.setTag(entry);
@@ -1983,7 +2004,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
                 views.callIconSub2.setVisibility(View.GONE);
                 views.fourthActionDivider.setVisibility(View.GONE);
                 views.fifthActionDivider.setVisibility(View.GONE);
-            }
+            }*/
 
             // Right and left padding should not have "pressed" effect.
             view.setPadding(

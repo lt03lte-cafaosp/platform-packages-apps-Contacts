@@ -13,7 +13,24 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+<!--
+  BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+  Copyright (c) 2016 All rights reserved.
 
+  The source code contained or described herein and all documents
+  related to the source code ("Material") are owned by BORQS Software
+  Solutions Pvt Ltd. No part of the Material may be used,copied,
+  reproduced, modified, published, uploaded,posted, transmitted,
+  distributed, or disclosed in any way without BORQS Software
+  Solutions Pvt Ltd. prior written permission.
+
+  No license under any patent, copyright, trade secret or other
+  intellectual property right is granted to or conferred upon you
+  by disclosure or delivery of the Materials, either expressly, by
+  implication, inducement, estoppel or otherwise. Any license
+  under such intellectual property rights must be express and
+  approved by BORQS Software Solutions Pvt Ltd. in writing.
+-->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -45,10 +62,11 @@
                 android:layout_marginRight="8dip"
                 android:layout_marginEnd="8dip"
                 android:src="@drawable/ic_menu_done_holo_light"
-                android:description="@string/menu_done" />
+                android:description="@string/menu_done"
+                android:visibility="gone"/>
 
             <TextView
-                android:id="@+id/title"
+                android:id="@+id/page_editor_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
@@ -56,7 +74,6 @@
                 android:layout_marginEnd="20dip"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/people_app_theme_color"
-                android:text="@string/menu_done"
                 style="@android:style/Widget.Holo.ActionBar.TabText" />
 
         </LinearLayout>

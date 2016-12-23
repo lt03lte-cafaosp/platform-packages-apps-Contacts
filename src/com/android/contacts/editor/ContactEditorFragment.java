@@ -13,11 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  */
-
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.contacts.editor;
 
 import android.accounts.Account;
 import android.app.Activity;
+import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -57,12 +76,14 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListPopupWindow;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.contacts.activities.ContactEditorAccountsChangedActivity;
@@ -438,6 +459,28 @@ public class ContactEditorFragment extends Fragment implements
                     // Load Accounts async so that we can present them
                     selectAccountAndCreateContact();
                 }
+            }
+
+            /*for changing Action bar title to Add contact or Edit Contact*/
+            ActionBar actionBar = getActivity().getActionBar();
+            if (actionBar != null) {
+                // Inflate a custom action bar that contains the "done" button for saving changes
+                // to the contact
+                LayoutInflater inflater = (LayoutInflater) mContext.getSystemService
+                        (Context.LAYOUT_INFLATER_SERVICE);
+                View customActionBarView = inflater.inflate(R.layout.editor_custom_action_bar, null);
+                TextView mContactEditText = (TextView) customActionBarView
+                  .findViewById(R.id.page_editor_text);
+                if(!mHasNewContact){
+                    mContactEditText.setText(R.string.edit_contact);
+                }else{
+                    mContactEditText.setText(R.string.description_add_contact);
+                }
+                // Show the custom action bar but hide the home icon and title
+                actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
+                        ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_SHOW_HOME |
+                                ActionBar.DISPLAY_SHOW_TITLE);
+                actionBar.setCustomView(customActionBarView);
             }
         }
     }
@@ -1083,17 +1126,17 @@ public class ContactEditorFragment extends Fragment implements
         final MenuItem discardMenu = menu.findItem(R.id.menu_discard);
 
         // Set visibility of menus
-        doneMenu.setVisible(false);
+        doneMenu.setVisible(true);
 
         // Split only if more than one raw profile and not a user profile
         splitMenu.setVisible(mState.size() > 1 && !isEditingUserProfile());
 
         // Cannot join a user profile
-        if (SimAccountType.ACCOUNT_TYPE.equals(currentAccountTpye)) {
+       /* if (SimAccountType.ACCOUNT_TYPE.equals(currentAccountTpye)) {
             joinMenu.setVisible(false);
-        } else {
+        } else {*/
             joinMenu.setVisible(!isEditingUserProfile());
-        }
+       /* }*/
 
         // Discard menu is only available if at least one raw contact is editable
         discardMenu.setVisible(mState != null &&
@@ -1290,76 +1333,70 @@ public class ContactEditorFragment extends Fragment implements
                     if (null != contactLookupUri) {
                         Toast.makeText(mContext, R.string.contactSavedToast, Toast.LENGTH_SHORT)
                                 .show();
-                        if (RcsApiManager.getSupportApi().isRcsSupported()
-                                && RCSUtil.isNativeUiInstalled(mContext)
-                                && RCSUtil.isPluginInstalled(mContext)
-                                && !isEditingUserProfile()) {
+                    }
+                } else {
+                    if (result == ContactSaveService.RESULT_AIR_PLANE_MODE) {
+                        // Access SIM card in the "AirPlane"
+                        // mode prompt a toast to alert user.
+                        Toast.makeText(mContext, R.string.airplane_mode_on, Toast.LENGTH_LONG).show();
+                    } else if (result == ContactSaveService.RESULT_SIM_FAILURE) {
+                        Toast.makeText(mContext, R.string.contactSavedToSimCardError,
+                                Toast.LENGTH_LONG).show();
+                    } else if (result == ContactSaveService.RESULT_NUMBER_ANR_FAILURE) {
+                        Toast.makeText(mContext, R.string.number_anr_too_long, Toast.LENGTH_LONG)
+                                .show();
+                        mStatus = Status.EDITING;
+                        setEnabled(true);
+                        bindEditors();
+                        return;
+                    } else if (result == ContactSaveService.RESULT_EMAIL_FAILURE) {
+                        Toast.makeText(mContext, R.string.email_address_too_long, Toast.LENGTH_LONG)
+                                .show();
+                        mStatus = Status.EDITING;
+                        setEnabled(true);
+                        bindEditors();
+                        return;
+                    } else if (result == ContactSaveService.RESULT_SIM_FULL_FAILURE) {
+                        Toast.makeText(mContext, R.string.sim_card_full, Toast.LENGTH_LONG).show();
+                    } else if (result == ContactSaveService.RESULT_TAG_FAILURE) {
+                        Toast.makeText(mContext, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
+                        mStatus = Status.EDITING;
+                        setEnabled(true);
+                        bindEditors();
+                        return;
+                    } else if (result == ContactSaveService.RESULT_NO_NUMBER_AND_EMAIL) {
+                        Toast.makeText(mContext, R.string.no_phone_number_or_email, Toast.LENGTH_SHORT)
+                                .show();
+                        mStatus = Status.EDITING;
+                        setEnabled(true);
+                        bindEditors();
+                        return;
+                    } else if (result == ContactSaveService.RESULT_NUMBER_INVALID) {
+                        Toast.makeText(mContext, R.string.invalid_phone_number, Toast.LENGTH_SHORT)
+                                .show();
+                        mStatus = Status.EDITING;
+                        setEnabled(true);
+                        return;
+                    } else if (result == ContactSaveService.RESULT_NAME_IS_TOO_LONG_FAILURE) {
+                        Toast.makeText(mContext, R.string.rcs_name_is_too_long, Toast.LENGTH_SHORT)
+                                .show();
+                        mStatus = Status.EDITING;
+                        setEnabled(true);
+                        return;
+                    } else if (result == ContactSaveService.RESULT_MEMORY_FULL_FAILURE) {
+                        Toast.makeText(mContext, R.string.memory_card_full, Toast.LENGTH_SHORT)
+                                .show();
+                    } else if (result == ContactSaveService.RESULT_NUMBER_TYPE_FAILURE) {
+                        Toast.makeText(mContext, R.string.invalid_number_type, Toast.LENGTH_SHORT)
+                                .show();
                     } else {
-                        Toast.makeText(mContext, R.string.contactDeletedToast, Toast.LENGTH_SHORT)
+                        Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
                                 .show();
                     }
                 }
-            } else {
-                if (result == ContactSaveService.RESULT_AIR_PLANE_MODE) {
-                    // Access SIM card in the "AirPlane"
-                    // mode prompt a toast to alert user.
-                    Toast.makeText(mContext, R.string.airplane_mode_on, Toast.LENGTH_LONG).show();
-                } else if (result == ContactSaveService.RESULT_SIM_FAILURE) {
-                    Toast.makeText(mContext, R.string.contactSavedToSimCardError,
-                            Toast.LENGTH_LONG).show();
-                } else if (result == ContactSaveService.RESULT_NUMBER_ANR_FAILURE) {
-                    Toast.makeText(mContext, R.string.number_anr_too_long, Toast.LENGTH_LONG)
-                            .show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    bindEditors();
-                    return;
-                } else if (result == ContactSaveService.RESULT_EMAIL_FAILURE) {
-                    Toast.makeText(mContext, R.string.email_address_too_long, Toast.LENGTH_LONG)
-                            .show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    bindEditors();
-                    return;
-                } else if (result == ContactSaveService.RESULT_SIM_FULL_FAILURE) {
-                    Toast.makeText(mContext, R.string.sim_card_full, Toast.LENGTH_LONG).show();
-                } else if (result == ContactSaveService.RESULT_TAG_FAILURE) {
-                    Toast.makeText(mContext, R.string.tag_too_long, Toast.LENGTH_SHORT).show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    bindEditors();
-                    return;
-                } else if (result == ContactSaveService.RESULT_NO_NUMBER_AND_EMAIL) {
-                    Toast.makeText(mContext, R.string.no_phone_number_or_email, Toast.LENGTH_SHORT)
-                            .show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    bindEditors();
-                    return;
-                } else if (result == ContactSaveService.RESULT_NUMBER_INVALID) {
-                    Toast.makeText(mContext, R.string.invalid_phone_number, Toast.LENGTH_SHORT)
-                            .show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    return;
-                } else if (result == ContactSaveService.RESULT_NAME_IS_TOO_LONG_FAILURE) {
-                    Toast.makeText(mContext, R.string.rcs_name_is_too_long, Toast.LENGTH_SHORT)
-                            .show();
-                    mStatus = Status.EDITING;
-                    setEnabled(true);
-                    return;
-                } else if (result == ContactSaveService.RESULT_MEMORY_FULL_FAILURE) {
-                    Toast.makeText(mContext, R.string.memory_card_full, Toast.LENGTH_SHORT)
-                            .show();
-                } else if(result == ContactSaveService.RESULT_NUMBER_TYPE_FAILURE) {
-                    Toast.makeText(mContext, R.string.invalid_number_type, Toast.LENGTH_SHORT)
-                    .show();
-                }
-                else {
-                    Toast.makeText(mContext, R.string.contactSavedErrorToast, Toast.LENGTH_LONG)
-                            .show();
-                }
             }
+             /* for saving contact on back pressed or on save button we have closed this
+             if condition here */
         }
         switch (saveMode) {
             case SaveMode.CLOSE:
@@ -1420,7 +1457,6 @@ public class ContactEditorFragment extends Fragment implements
                 }
                 break;
             }
-        }
     }
 
     /**
