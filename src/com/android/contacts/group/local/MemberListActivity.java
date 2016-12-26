@@ -26,17 +26,39 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 
 package com.android.contacts.group.local;
 
 import android.app.AlertDialog;
-import android.app.TabActivity;
+import android.app.ProgressDialog;
+import android.app.Activity;
 import android.content.AsyncQueryHandler;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnDismissListener;
+import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.database.ContentObserver;
@@ -48,15 +70,19 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Message;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.LocalGroup;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Contacts.Photo;
 import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.RawContacts;
 import android.provider.LocalGroups;
+import android.provider.LocalGroups.Group;
 import android.provider.LocalGroups.GroupColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -75,29 +101,50 @@ import android.widget.ListView;
 import android.widget.QuickContactBadge;
 import android.widget.TabHost;
 import android.widget.TextView;
-import com.android.contacts.R;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.Toast;
 
+import com.android.contacts.R;
+import com.android.contacts.common.model.account.PhoneAccountType;
+import com.android.contacts.common.list.AccountFilterActivity;
+import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
+import com.android.contacts.editor.MultiPickContactActivity;
+import com.android.contacts.common.list.ContactListFilter;
+import com.android.contacts.group.local.GroupNameChangeDialog;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 
-public class MemberListActivity extends TabActivity implements OnItemClickListener,
+public class MemberListActivity extends Activity implements OnItemClickListener,
         OnClickListener, OnItemLongClickListener {
+
+    private static final String TAG = MemberListActivity.class.getSimpleName();
 
     private static final String TAB_TAG = "groups";
 
     private TabHost mTabHost;
 
-    private Uri uri;
+    private Uri mUri;
 
     static final String[] CONTACTS_SUMMARY_PROJECTION = new String[] {
             Contacts._ID, Contacts.DISPLAY_NAME, Contacts.PHOTO_ID, Contacts.LOOKUP_KEY,
             Data.RAW_CONTACT_ID, Contacts.PHOTO_THUMBNAIL_URI, Contacts.DISPLAY_NAME_PRIMARY
     };
+
+    private static final int CODE_PICK_MEMBER = 1;
+    private static final int CODE_CHANGE_GROUP_NAME = 2;
+
+    private static final int MENU_GROUP_NAME = 0;
+    private static final int MENU_ADD_MEMBER = 1;
+    private static final int MENU_DELETE = 2;
+
+    private static final String DATA = "data";
+    private static final String RESULT = "result";
 
     static final int SUMMARY_ID_COLUMN_INDEX = 0;
 
@@ -138,6 +185,20 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
     private ContactPhotoManager mContactPhotoManager;
 
     private boolean mPaused = false;
+
+    private Group mGroup;
+
+    private AddMembersTask mAddMembersTask;
+
+    // indicate whether the task is canceled.
+    private boolean mIsAddMembersTaskCanceled;
+
+    /**
+     * the max length of applyBatch is 500
+     */
+    private static final int BUFFER_LENGTH = 499;
+
+    private static final int MSG_CANCEL = 1;
 
     private Handler mUpdateUiHandler = new Handler() {
         @Override
@@ -251,6 +312,16 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
             mDeleteMembersTask.setStatus(DeleteMembersThread.TASK_CANCEL);
             mDeleteMembersTask = null;
         }
+        // dismiss dialog and cancel the task in order to avoid a case that
+        // GroupEditActivity does
+        // not exist,but task is going on in background, then onPostExecute()
+        // will cause Exception.
+        if (mAddMembersTask != null && mAddMembersTask.mProgressDialog != null) {
+            if (mAddMembersTask.mProgressDialog.isShowing()) {
+                mAddMembersTask.mProgressDialog.dismiss();
+                mIsAddMembersTaskCanceled = true;
+            }
+        }
         super.onStop();
     }
 
@@ -276,12 +347,12 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
         listView.setOnItemClickListener(this);
         listView.setOnItemLongClickListener(this);
         listView.setAdapter(mAdapter);
-        mTabHost = getTabHost();
-        uri = getIntent().getParcelableExtra("data");
-        addEditView();
+        listView.setItemsCanFocus(true);
+        listView.requestFocus();
+        mUri = getIntent().getParcelableExtra(DATA);
         getContentResolver().registerContentObserver(
                 Uri.withAppendedPath(LocalGroup.CONTENT_FILTER_URI,
-                        Uri.encode(uri.getLastPathSegment())), true, observer);
+                        Uri.encode(mUri.getLastPathSegment())), true, observer);
     }
 
     private ContentObserver observer = new ContentObserver(new Handler()) {
@@ -338,12 +409,272 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
     protected void onResume() {
         super.onResume();
         mPaused = false;
+        mGroup = Group.restoreGroupById(getContentResolver(),
+                Long.parseLong(mUri.getLastPathSegment()));
         startQuery();
+        initView();
+    }
+
+    private void initView() {
+        // avoid group is null, only for Monkey test.
+        if (mGroup != null) {
+            // If the length of group name is more than GROUP_NAME_MAX_LENGTH,
+            // the
+            // name will be limited here.
+            String groupName = mGroup.getTitle();
+            if (groupName.length() > GroupNameChangeDialog.GROUP_NAME_MAX_LENGTH) {
+                groupName = groupName.substring(0, GroupNameChangeDialog.GROUP_NAME_MAX_LENGTH);
+            }
+            setTitle(groupName);
+        }
+    }
+
+    private void showGroupNameChangeDialog() {
+        new GroupNameChangeDialog(this,
+                mGroup.getTitle(),
+                new GroupNameChangeDialog.GroupNameChangeListener() {
+            @Override
+            public void onGroupNameChange(String name) {
+                mGroup.setTitle((String) name);
+                if (mGroup.update(getContentResolver()))
+                    initView();
+            }
+        }).show();
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add(0, MENU_GROUP_NAME, 0, R.string.group_edit_field_hint_text);
+        menu.add(0, MENU_ADD_MEMBER, 0, R.string.title_add_members);
+        menu.add(0, MENU_DELETE, 0, R.string.menu_option_delete);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case MENU_GROUP_NAME:
+                showGroupNameChangeDialog();
+                break;
+            case MENU_ADD_MEMBER:
+                Intent intent = new Intent(MultiPickContactActivity.ACTION_MULTI_PICK);
+                intent.putExtra(MultiPickContactActivity.IS_CONTACT,true);
+                intent.setClass(this, MultiPickContactActivity.class);
+                ContactListFilter filter = new ContactListFilter(ContactListFilter.FILTER_TYPE_ACCOUNT,
+                        PhoneAccountType.ACCOUNT_TYPE, SimContactsConstants.PHONE_NAME, null, null);
+                intent.putExtra(AccountFilterActivity.KEY_EXTRA_CONTACT_LIST_FILTER, filter);
+                startActivityForResult(intent, CODE_PICK_MEMBER);
+                break;
+            case MENU_DELETE:
+                new AlertDialog.Builder(this)
+                        .setMessage(R.string.delete_locale_group_dialog_message)
+                        .setTitle(R.string.delete_group_dialog_title)
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (mGroup.delete(getContentResolver())) {
+                                    finish();
+                                }
+                            }
+                        }).setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                    }
+                }).show();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK)
+            switch (requestCode) {
+                case CODE_PICK_MEMBER:
+                    Bundle result = data.getExtras().getBundle(RESULT);
+                    // define member object mAddMembersTask to use later.
+                    mAddMembersTask = new AddMembersTask(result);
+                    mAddMembersTask.execute();
+            }
+    }
+
+    class AddMembersTask extends AsyncTask<Object, Object, Object> {
+        private ProgressDialog mProgressDialog;
+        private Bundle mResult;
+        private int mSize;
+        private Handler alertHandler = new Handler() {
+            @Override
+            public void dispatchMessage(Message message) {
+                if (message.what == MSG_CANCEL) {
+                    Toast.makeText(MemberListActivity.this, R.string.add_member_task_canceled,
+                            Toast.LENGTH_LONG).show();
+                } else if (message.what == 0) {
+                    Toast.makeText(MemberListActivity.this, R.string.toast_not_add,
+                            Toast.LENGTH_LONG)
+                            .show();
+                }
+            }
+        };
+
+        AddMembersTask(Bundle result) {
+            mSize = result.size();
+            mResult = result;
+            HandlerThread thread = new HandlerThread("DownloadTask");
+            thread.start();
+        }
+
+        protected void onPostExecute(Object result) {
+            if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                mProgressDialog.dismiss();
+            }
+            new LocalGroupCountTask(MemberListActivity.this).execute();
+        }
+
+        @Override
+        protected void onPreExecute() {
+            mIsAddMembersTaskCanceled = false;
+            mProgressDialog = new ProgressDialog(MemberListActivity.this);
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mProgressDialog.setProgress(0);
+            mProgressDialog.setMax(mSize);
+            mProgressDialog.show();
+            mProgressDialog.setOnCancelListener(new OnCancelListener() {
+                public void onCancel(DialogInterface dialog) {
+
+                    // if dialog is canceled, cancel the task also.
+                    mIsAddMembersTaskCanceled = true;
+                }
+            });
+        }
+
+        @Override
+        protected Bundle doInBackground(Object... params) {
+            proccess();
+            return null;
+        }
+
+        public void proccess() {
+            boolean hasInvalide = false;
+            int progressIncrement = 0;
+            ContentValues values = new ContentValues();
+            // add Non-null protection of group for monkey test
+            if (null != mGroup) {
+                values.put(LocalGroup.DATA1, mGroup.getId());
+            }
+
+            Set<String> keySet = mResult.keySet();
+            Iterator<String> iterator = keySet.iterator();
+
+            // add a ContentProviderOperation update list.
+            final ArrayList<ContentProviderOperation> updateList =
+                    new ArrayList<ContentProviderOperation>();
+            ContentProviderOperation.Builder builder = null;
+            mIsAddMembersTaskCanceled = false;
+            while (iterator.hasNext()) {
+                if (mIsAddMembersTaskCanceled) {
+                    alertHandler.sendEmptyMessage(MSG_CANCEL);
+                    break;
+                }
+                if (progressIncrement++ % 2 == 0) {
+                    if (mProgressDialog != null) {
+                        mProgressDialog.incrementProgressBy(2);
+                    } else if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                        mProgressDialog.dismiss();
+                        mProgressDialog = null;
+                    }
+                }
+                String id = iterator.next();
+                Cursor cursor = null;
+                try {
+                    cursor = getContentResolver().query(RawContacts.CONTENT_URI, new String[] {
+                            RawContacts._ID, RawContacts.ACCOUNT_TYPE
+                    }, RawContacts.CONTACT_ID + "=?", new String[] {
+                            id
+                    }, null);
+                    if (cursor.moveToNext()) {
+                        String rawId = String.valueOf(cursor.getLong(0));
+
+                        if (!PhoneAccountType.ACCOUNT_TYPE.equals(cursor.getString(1))) {
+                            hasInvalide = true;
+                            continue;
+                        }
+
+                        builder = ContentProviderOperation.newDelete(Data.CONTENT_URI);
+                        builder.withSelection(Data.RAW_CONTACT_ID + "=? and " + Data.MIMETYPE
+                                + "=?", new String[] {
+                                rawId, LocalGroup.CONTENT_ITEM_TYPE
+                        });
+
+                        // add the delete operation to the update list.
+                        updateList.add(builder.build());
+
+                        builder = ContentProviderOperation.newInsert(Data.CONTENT_URI);
+                        // add Non-null protection of group for monkey test
+                        if (null != mGroup) {
+                            builder.withValue(LocalGroup.DATA1, mGroup.getId());
+                        }
+                        builder.withValue(Data.RAW_CONTACT_ID, rawId);
+                        builder.withValue(Data.MIMETYPE, LocalGroup.CONTENT_ITEM_TYPE);
+
+                        // add the insert operation to the update list.
+                        updateList.add(builder.build());
+                    }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                }
+            }
+
+            // if task is canceled ,still update the database with the data in
+            // updateList.
+
+            // apply batch to execute the delete and insert operation.
+            if (updateList.size() > 0) {
+                addMembersApplyBatchByBuffer(updateList, getContentResolver());
+            }
+            if (hasInvalide) {
+                alertHandler.sendEmptyMessage(0);
+            }
+        }
+
+        private void addMembersApplyBatchByBuffer(ArrayList<ContentProviderOperation> list,
+                                                  ContentResolver contentResolver) {
+            final ArrayList<ContentProviderOperation> temp =
+                    new ArrayList<ContentProviderOperation>(BUFFER_LENGTH);
+            int bufferSize = list.size() / BUFFER_LENGTH;
+            for (int index = 0; index <= bufferSize; index++) {
+                temp.clear();
+                if (index == bufferSize) {
+                    for (int i = index * BUFFER_LENGTH; i < list.size(); i++) {
+                        temp.add(list.get(i));
+                    }
+                } else {
+                    for (int i = index * BUFFER_LENGTH; i < index * BUFFER_LENGTH + BUFFER_LENGTH;
+                         i++) {
+                        temp.add(list.get(i));
+                    }
+                }
+                if (!temp.isEmpty()) {
+                    try {
+                        contentResolver.applyBatch(ContactsContract.AUTHORITY, temp);
+                        if (mProgressDialog != null) {
+                            mProgressDialog.incrementProgressBy(temp.size() / 4);
+                        } else if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                            mProgressDialog.dismiss();
+                            mProgressDialog = null;
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "apply batch by buffer error:" + e);
+                    }
+                }
+            }
+        }
     }
 
     private void addEditView() {
         Intent intent = new Intent(this, GroupEditActivity.class);
-        intent.setData(uri);
+        intent.setData(mUri);
 
         mTabHost.addTab(mTabHost.newTabSpec(TAB_TAG)
                 .setIndicator(TAB_TAG, getResources().getDrawable(R.drawable.ic_launcher_contacts))
@@ -357,7 +688,7 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
                 QUERY_TOKEN,
                 null,
                 Uri.withAppendedPath(LocalGroup.CONTENT_FILTER_URI,
-                        Uri.encode(uri.getLastPathSegment())), CONTACTS_SUMMARY_PROJECTION, null,
+                        Uri.encode(mUri.getLastPathSegment())), CONTACTS_SUMMARY_PROJECTION, null,
                 null, null);
     }
 
@@ -575,7 +906,7 @@ public class MemberListActivity extends TabActivity implements OnItemClickListen
         if (cursor != null && cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
                 count++;
-                if (uri.getLastPathSegment().equals(cursor.getString(0))) {
+                if (mUri.getLastPathSegment().equals(cursor.getString(0))) {
                     index = count;
                     break;
                 }
