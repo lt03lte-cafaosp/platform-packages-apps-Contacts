@@ -898,4 +898,5 @@
     <string name="no_data_message">Cannot send message! No valid contact(s). </string>
     <string name="select_email_phone"> Select email(s)/phone(s) </string>
     <string name="description_add_contact">Add contact</string>
+    <string name="user_profile_contacts_list_header" msgid="9154761216179882405">Me</string>
 </resources>

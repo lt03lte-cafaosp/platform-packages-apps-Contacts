@@ -95,6 +95,7 @@ import com.android.contacts.detail.ContactDetailLayoutController;
 import com.android.contacts.detail.ContactDetailUpdatesFragment;
 import com.android.contacts.detail.ContactLoaderFragment;
 import com.android.contacts.detail.ContactLoaderFragment.ContactLoaderFragmentListener;
+import com.android.contacts.editor.ContactEditorFragment;
 import com.android.contacts.editor.MultiPickContactActivity;
 import com.android.contacts.common.ContactsUtils;
 import com.android.contacts.common.dialog.ClearFrequentsDialog;
@@ -1587,6 +1588,7 @@ public class PeopleActivity extends ContactsActivity
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
                     scanMenu.setVisible(false);
+                    makeMenuItemVisible(menu, R.id.menu_me_profile, false);
                     break;
                 case TabState.ALL:
                     addContactMenu.setVisible(true);
@@ -1601,6 +1603,7 @@ public class PeopleActivity extends ContactsActivity
                             && isRcsPluginInstalled);
                     scanMenu.setVisible(isRcsSupported && isRcsPluginInstalled);
                     contactsPhotoUpdateMenu.setVisible(isRcsSupported);
+                    makeMenuItemVisible(menu, R.id.menu_me_profile, true);
                     break;
                 case TabState.GROUPS:
                     addContactMenu.setVisible(false);
@@ -1613,6 +1616,7 @@ public class PeopleActivity extends ContactsActivity
                     contactsPhotoUpdateMenu.setVisible(false);
                     cloudMenu.setVisible(false);
                     scanMenu.setVisible(false);
+                    makeMenuItemVisible(menu, R.id.menu_me_profile,false);
                     break;
             }
             HelpUtils.prepareHelpMenuItem(this, helpMenu, R.string.help_url_people_main);
@@ -1685,6 +1689,23 @@ public class PeopleActivity extends ContactsActivity
                 }
                 return true;
             }
+            case R.id.menu_me_profile : {
+                //Check whether ME Profile is configured or not
+                if(mAllFragment != null && mAllFragment.mProfilePresent){
+                    Log.i(TAG,"Me profile already present");
+                    mAllFragment.viewContact(mAllFragment.mProfileUrl);
+                }else {
+                    Log.i(TAG,"Creating a new me profile");
+                    Intent intent = new Intent(Intent.ACTION_INSERT,
+                            Contacts.CONTENT_URI);
+                    intent.putExtra(
+                            ContactEditorFragment.INTENT_EXTRA_NEW_LOCAL_PROFILE,
+                            true);
+                    startActivity(intent);
+                }
+                return true;
+            }
+
             case R.id.menu_settings: {
                 final Intent intent = new Intent(this, ContactsPreferenceActivity.class);
                 // as there is only one section right now, make sure it is selected

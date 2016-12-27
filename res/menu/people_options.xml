@@ -33,6 +33,10 @@
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
+        android:id="@+id/menu_me_profile"
+        android:title="@string/user_profile_contacts_list_header"/>
+
+    <item
         android:id="@+id/menu_search"
         android:icon="@drawable/ic_search_dk"
         android:title="@string/menu_search"

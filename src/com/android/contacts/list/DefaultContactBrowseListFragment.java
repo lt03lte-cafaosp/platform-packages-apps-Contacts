@@ -32,6 +32,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.LinearLayout;
 
 import com.android.contacts.R;
 import com.android.contacts.RcsApiManager;
@@ -45,6 +46,12 @@ import com.android.contacts.editor.ContactEditorFragment;
 import com.android.contacts.util.RCSUtil;
 import com.android.contacts.common.util.AccountFilterUtil;
 import com.android.contacts.common.util.ContactsCommonRcsUtil;
+import android.net.Uri;
+import android.provider.ContactsContract.Profile;
+import android.provider.ContactsContract;
+import android.os.Message;
+import android.content.ContentResolver;
+import android.os.Handler;
 
 /**
  * Fragment containing a contact list used for browsing (as compared to
@@ -55,6 +62,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
 
     private static final int REQUEST_CODE_ACCOUNT_FILTER = 1;
 
+    private static final int QUERY_PROFILE_FINISHED = 1;
     private TextView mCounterHeaderView;
     private View mSearchHeaderView;
     private View mAccountFilterHeader;
@@ -67,6 +75,8 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     private TextView mSearchProgressText;
     private ContactListItemView mPulicAccountView;
     private LinearLayout topactionbar;
+    public Uri mProfileUrl;
+    public Boolean mProfilePresent = false;
 
     private class FilterHeaderClickListener implements OnClickListener {
         @Override
@@ -101,9 +111,12 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
         adapter.setSectionHeaderDisplayEnabled(false);
         boolean showPhoto = getResources().getBoolean(R.bool.config_browse_list_show_images);
         adapter.setDisplayPhotos(showPhoto);
+        //disbale ME profile
+        adapter.setIncludeProfile(false);
         if (showPhoto) {
             boolean reverse = getResources().getBoolean(R.bool.config_browse_list_reverse_images);
             adapter.setPhotoPosition(ContactListItemView.getDefaultPhotoPosition(reverse));
+            adapter.setIncludeProfile(false);
             if (RcsApiManager.getSupportApi().isRcsSupported()) {
                 if (ContactsCommonRcsUtil.RcsCapabilityMap != null
                         && ContactsCommonRcsUtil.RcsCapabilityMap.isEmpty()) {
@@ -163,6 +176,58 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
     private void showSearchProgress(boolean show) {
         mSearchProgress.setVisibility(show ? View.VISIBLE : View.GONE);
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        checkProfile();
+    }
+
+    private class CheckLocalProfileThread implements Runnable {
+
+        @Override
+        public void run() {
+            int present = 0;
+            ContentResolver contentResolver = getContext().getContentResolver();
+            final Uri uri = ContactsContract.Profile.CONTENT_URI;
+            Cursor cursor = contentResolver.query(uri, null, null, null, null);
+            if (cursor == null || cursor.getCount() == 0) {
+                present = 0;
+            } else {
+                present = 1;
+                cursor.moveToFirst();
+                String lookupkey = cursor.getString(cursor
+                        .getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
+                Long profileId = cursor.getLong(cursor
+                        .getColumnIndex(ContactsContract.Contacts._ID));
+                lookupkey = lookupkey + "/" + profileId;
+
+                mProfileUrl = Uri.withAppendedPath(Contacts.CONTENT_LOOKUP_URI,
+                        lookupkey);
+            }
+            if (cursor != null) {
+                cursor.close();
+            }
+            Message message = new Message();
+            message.what = QUERY_PROFILE_FINISHED;
+            message.arg1 = present;
+            messageHandler.sendMessage(message);
+        }
+
+    }
+
+    /*
+     * To check whether the local profile or profile for any particular account
+     * has been created.
+     */
+    private void checkProfile() {
+        // TODO Auto-generated method stub
+        CheckLocalProfileThread checkLocalProfileThread = new CheckLocalProfileThread();
+        Thread profileThread = new Thread(checkLocalProfileThread);
+        profileThread.start();
+    }
+
+
 
     private void checkHeaderViewVisibility() {
         if (mCounterHeaderView != null) {
@@ -351,4 +416,24 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment 
             mPulicAccountView.setVisibility(show ? View.VISIBLE : View.GONE);
         }
     }
+
+    private Handler messageHandler = new Handler() {
+
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case QUERY_PROFILE_FINISHED:
+                    if (msg != null) {
+                        int present = msg.arg1;
+                        if (present == 1) {
+                            mProfilePresent = true;
+                        } else {
+                            mProfilePresent = false;
+                        }
+                    }
+                    break;
+                default:
+                     break;
+                }
+            }
+    };
 }
