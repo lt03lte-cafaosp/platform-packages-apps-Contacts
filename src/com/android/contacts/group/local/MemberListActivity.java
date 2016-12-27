@@ -142,6 +142,9 @@ public class MemberListActivity extends Activity implements OnItemClickListener,
     private static final int MENU_GROUP_NAME = 0;
     private static final int MENU_ADD_MEMBER = 1;
     private static final int MENU_DELETE = 2;
+    private static final int MENU_REMOVE = 3;
+    private static final int MENU_MOVE = 4;
+    private static final int MENU_CANCEL = 5;
 
     private static final String DATA = "data";
     private static final String RESULT = "result";
@@ -443,9 +446,15 @@ public class MemberListActivity extends Activity implements OnItemClickListener,
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, MENU_GROUP_NAME, 0, R.string.group_edit_field_hint_text);
-        menu.add(0, MENU_ADD_MEMBER, 0, R.string.title_add_members);
-        menu.add(0, MENU_DELETE, 0, R.string.menu_option_delete);
+        if(!removeSet.isEmpty()) {
+            menu.add(0, MENU_REMOVE, 0, R.string.menu_option_remove);
+            menu.add(0, MENU_MOVE, 0, R.string.menu_option_move);
+            menu.add(0, MENU_CANCEL, 0, R.string.menu_option_cancel);
+        } else {
+            menu.add(0, MENU_GROUP_NAME, 0, R.string.group_edit_field_hint_text);
+            menu.add(0, MENU_ADD_MEMBER, 0, R.string.title_add_members);
+            menu.add(0, MENU_DELETE, 0, R.string.menu_option_delete);
+        }
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -481,6 +490,17 @@ public class MemberListActivity extends Activity implements OnItemClickListener,
                     public void onClick(DialogInterface dialog, int which) {
                     }
                 }).show();
+                break;
+            case MENU_REMOVE:
+                removeContactsFromGroup();
+                mAdapter.refresh();
+                break;
+            case MENU_MOVE:
+                chooseGroup();
+                break;
+            case MENU_CANCEL:
+                removeSet.clear();
+                mAdapter.refresh();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -768,7 +788,7 @@ public class MemberListActivity extends Activity implements OnItemClickListener,
                     removeSet = newRemoveSet;
                 }
             }
-            updateToolsBar();
+            invalidateOptionsMenu();
             updateDisplay(this.getCount() == 0);
         }
 
@@ -857,7 +877,7 @@ public class MemberListActivity extends Activity implements OnItemClickListener,
             removeSet.putString(contactId, contactId);
         }
         setCheckStatus(contactId, checkBox);
-        updateToolsBar();
+        invalidateOptionsMenu();
     }
 
     private void updateToolsBar() {
