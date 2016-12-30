@@ -260,8 +260,7 @@ public class TextFieldsEditorView extends LabeledEditorView {
                 }
 
                 // Show the "next" button in IME to navigate between text fields
-                // TODO: Still need to properly navigate to/from sections without text fields,
-                // See Bug: 5713510
+                // TODO: Still need to properly navigate to/from sections without text fields
                 fieldView.setImeOptions(EditorInfo.IME_ACTION_NEXT);
 
                 // Read current value from state

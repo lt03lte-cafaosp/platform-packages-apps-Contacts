@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (c) 2016, The Linux Foundation. All rights reserved. Not a Contribution.
+-->
 <!-- Copyright (C) 2006 The Android Open Source Project
      Copyright (C) 2013 The Linux Foundation. All Rights Reserved.
      Not a Contribution.
@@ -607,6 +610,15 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <activity android:name=".group.GroupPickerActivity"
+           android:label=""
+           android:launchMode="singleTop"
+           android:clearTaskOnLaunch="true"
+           android:theme="@style/ContactPickerTheme"
+           android:configChanges="orientation|screenSize"
+           android:uiOptions="splitActionBarWhenNarrow"
+           android:screenOrientation="portrait"/>
 
         <!-- receiver -->
         <receiver

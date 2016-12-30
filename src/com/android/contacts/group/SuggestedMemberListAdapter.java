@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Not a Contribution
+ */
+/*
  * Copyright (C) 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +17,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
+ */
 package com.android.contacts.group;
 
 import android.content.ContentResolver;
@@ -20,6 +43,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.Photo;
@@ -37,13 +61,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.contacts.R;
-import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.group.SuggestedMemberListAdapter.SuggestedMember;
+import com.android.contacts.editor.AggregationSuggestionEngine.RawContact;
+import com.android.contacts.util.Constants;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+import android.util.Log;
 
 /**
  * This adapter provides suggested contacts that can be added to a group for an
@@ -52,9 +79,9 @@ import java.util.List;
 public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
 
     private static final String[] PROJECTION_FILTERED_MEMBERS = new String[] {
-        RawContacts._ID,                        // 0
-        RawContacts.CONTACT_ID,                 // 1
-        RawContacts.DISPLAY_NAME_PRIMARY        // 2
+            RawContacts._ID, // 0
+            RawContacts.CONTACT_ID, // 1
+            RawContacts.DISPLAY_NAME_PRIMARY // 2
     };
 
     private static final int RAW_CONTACT_ID_COLUMN_INDEX = 0;
@@ -62,11 +89,18 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
     private static final int DISPLAY_NAME_PRIMARY_COLUMN_INDEX = 2;
 
     private static final String[] PROJECTION_MEMBER_DATA = new String[] {
-        RawContacts._ID,                        // 0
-        RawContacts.CONTACT_ID,                 // 1
-        Data.MIMETYPE,                          // 2
-        Data.DATA1,                             // 3
-        Photo.PHOTO,                            // 4
+            RawContacts._ID, // 0
+            RawContacts.CONTACT_ID, // 1
+            Data.MIMETYPE, // 2
+            Data.DATA1, // 3
+            Photo.PHOTO, // 4
+    };
+
+    private static final String[] PROJECTION_MEMBER_PHONE = new String[] {
+            RawContacts._ID, // 0
+            RawContacts.CONTACT_ID, // 1
+            Data.MIMETYPE, // 2
+            Data.DATA1 // 3
     };
 
     private static final int MIMETYPE_COLUMN_INDEX = 2;
@@ -81,7 +115,11 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
     private String mAccountName;
     private String mDataSet;
 
-    // TODO: Make this a Map for better performance when we check if a new contact is in the list
+    private long mGroupId = 0;
+    private String mGroupTitle;
+
+    // TODO: Make this a Map for better performance when we check if a new
+    // contact is in the list
     // or not
     private final List<Long> mExistingMemberContactIds = new ArrayList<Long>();
 
@@ -89,7 +127,9 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
 
     public SuggestedMemberListAdapter(Context context, int textViewResourceId) {
         super(context, textViewResourceId);
-        mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mInflater = (LayoutInflater) context
+                .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
     }
 
     public void setAccountType(String accountType) {
@@ -108,6 +148,10 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
         mContentResolver = resolver;
     }
 
+    public void setGroupId(long groupId) {
+        mGroupId = groupId;
+    }
+
     public void updateExistingMembersList(List<GroupEditorFragment.Member> list) {
         mExistingMemberContactIds.clear();
         for (GroupEditorFragment.Member member : list) {
@@ -117,6 +161,13 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
 
     public void addNewMember(long contactId) {
         mExistingMemberContactIds.add(contactId);
+    }
+
+    public List<Long> getExistingMemberList() {
+        if (mExistingMemberContactIds != null)
+            return mExistingMemberContactIds;
+
+        return null;
     }
 
     public void removeMember(long contactId) {
@@ -129,7 +180,8 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
     public View getView(int position, View convertView, ViewGroup parent) {
         View result = convertView;
         if (result == null) {
-            result = mInflater.inflate(R.layout.group_member_suggestion, parent, false);
+            result = mInflater.inflate(R.layout.group_member_suggestion,
+                    parent, false);
         }
         // TODO: Use a viewholder
         SuggestedMember member = getItem(position);
@@ -144,10 +196,10 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
         }
         byte[] byteArray = member.getPhotoByteArray();
         if (byteArray == null) {
-            icon.setImageDrawable(ContactPhotoManager.getDefaultAvatarDrawableForContact(
-                    icon.getContext(), false, null, null));
+            icon.setImageResource(R.drawable.ic_contact_picture_holo_light);
         } else {
-            Bitmap bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(byteArray, 0,
+                    byteArray.length);
             icon.setImageBitmap(bitmap);
         }
         result.setTag(member);
@@ -163,8 +215,8 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
     }
 
     /**
-     * This filter queries for raw contacts that match the given account name and account type,
-     * as well as the search query.
+     * This filter queries for raw contacts that match the given account name
+     * and account type, as well as the search query.
      */
     public class SuggestedMemberFilter extends Filter {
 
@@ -175,56 +227,97 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
                 return results;
             }
 
-            // Create a list to store the suggested contacts (which will be alphabetically ordered),
-            // but also keep a map of raw contact IDs to {@link SuggestedMember}s to make it easier
-            // to add supplementary data to the contact (photo, phone, email) to the members based
+            // get the group name from the group id
+            Cursor gNamecursor = null;
+            try {
+
+                gNamecursor = mContentResolver.query(
+                        ContactsContract.Groups.CONTENT_URI, new String[] {
+                                ContactsContract.Groups._ID,
+                                ContactsContract.Groups.TITLE },
+                        ContactsContract.Groups._ID + "=" + mGroupId, null,
+                        null);
+
+                if (gNamecursor != null) {
+                    gNamecursor.moveToPosition(-1);
+                    while (gNamecursor.moveToNext()) {
+                        mGroupTitle = gNamecursor.getString(gNamecursor
+                                .getColumnIndex(ContactsContract.Groups.TITLE));
+                    }
+                }
+            } finally {
+                gNamecursor.close();
+            }
+
+            // Create a list to store the suggested contacts (which will be
+            // alphabetically ordered),
+            // but also keep a map of raw contact IDs to {@link
+            // SuggestedMember}s to make it easier
+            // to add supplementary data to the contact (photo, phone, email) to
+            // the members based
             // on raw contact IDs after the second query is completed.
             List<SuggestedMember> suggestionsList = new ArrayList<SuggestedMember>();
             HashMap<Long, SuggestedMember> suggestionsMap = new HashMap<Long, SuggestedMember>();
 
-            // First query for all the raw contacts that match the given search query
-            // and have the same account name and type as specified in this adapter
+            // First query for all the raw contacts that match the given search
+            // query
+            // and have the same account name and type as specified in this
+            // adapter
             String searchQuery = prefix.toString() + "%";
-            String accountClause = RawContacts.ACCOUNT_NAME + "=? AND " +
-                    RawContacts.ACCOUNT_TYPE + "=?";
+            String accountClause = RawContacts.ACCOUNT_NAME + "=? AND "
+                    + RawContacts.ACCOUNT_TYPE + "=?";
             String[] args;
             if (mDataSet == null) {
                 accountClause += " AND " + RawContacts.DATA_SET + " IS NULL";
-                args = new String[] {mAccountName, mAccountType, searchQuery, searchQuery};
+                args = new String[] { mAccountName, mAccountType, searchQuery,
+                        searchQuery };
             } else {
                 accountClause += " AND " + RawContacts.DATA_SET + "=?";
-                args = new String[] {
-                        mAccountName, mAccountType, mDataSet, searchQuery, searchQuery
-                };
+                args = new String[] { mAccountName, mAccountType, mDataSet,
+                        searchQuery, searchQuery };
             }
 
-            Cursor cursor = mContentResolver.query(
-                    RawContacts.CONTENT_URI, PROJECTION_FILTERED_MEMBERS,
-                    accountClause + " AND (" +
-                    RawContacts.DISPLAY_NAME_PRIMARY + " LIKE ? OR " +
-                    RawContacts.DISPLAY_NAME_ALTERNATIVE + " LIKE ? )",
-                    args, RawContacts.DISPLAY_NAME_PRIMARY + " COLLATE LOCALIZED ASC");
+            Cursor cursor = mContentResolver
+                    .query(RawContacts.CONTENT_URI,
+                            PROJECTION_FILTERED_MEMBERS, accountClause
+                                    + " AND ("
+                                    + RawContacts.DISPLAY_NAME_PRIMARY
+                                    + " LIKE ? OR "
+                                    + RawContacts.DISPLAY_NAME_ALTERNATIVE
+                                    + " LIKE ? )"
+                                    + " AND "+ RawContacts.DELETED + " = 0 ", args,
+                            RawContacts.DISPLAY_NAME_PRIMARY
+                                    + " COLLATE LOCALIZED ASC");
 
             if (cursor == null) {
                 return results;
             }
 
-            // Read back the results from the cursor and filter out existing group members.
-            // For valid suggestions, add them to the hash map of suggested members.
+            // Read back the results from the cursor and filter out existing
+            // group members.
+            // For valid suggestions, add them to the hash map of suggested
+            // members.
             try {
                 cursor.moveToPosition(-1);
-                while (cursor.moveToNext() && suggestionsMap.keySet().size() < SUGGESTIONS_LIMIT) {
-                    long rawContactId = cursor.getLong(RAW_CONTACT_ID_COLUMN_INDEX);
+                while (cursor.moveToNext()
+                        && suggestionsMap.keySet().size() < SUGGESTIONS_LIMIT) {
+                    long rawContactId = cursor
+                            .getLong(RAW_CONTACT_ID_COLUMN_INDEX);
                     long contactId = cursor.getLong(CONTACT_ID_COLUMN_INDEX);
-                    // Filter out contacts that have already been added to this group
+                    // Filter out contacts that have already been added to this
+                    // group
                     if (mExistingMemberContactIds.contains(contactId)) {
                         continue;
                     }
-                    // Otherwise, add the contact as a suggested new group member
-                    String displayName = cursor.getString(DISPLAY_NAME_PRIMARY_COLUMN_INDEX);
-                    SuggestedMember member = new SuggestedMember(rawContactId, displayName,
-                            contactId);
-                    // Store the member in the list of suggestions and add it to the hash map too.
+
+                    // Otherwise, add the contact as a suggested new group
+                    // member
+                    String displayName = cursor
+                            .getString(DISPLAY_NAME_PRIMARY_COLUMN_INDEX);
+                    SuggestedMember member = new SuggestedMember(rawContactId,
+                            displayName, contactId);
+                    // Store the member in the list of suggestions and add it to
+                    // the hash map too.
                     suggestionsList.add(member);
                     suggestionsMap.put(rawContactId, member);
                 }
@@ -237,17 +330,20 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
                 return results;
             }
 
-            // Create a part of the selection string for the next query with the pattern (?, ?, ?)
-            // where the number of comma-separated question marks represent the number of raw
-            // contact IDs found in the previous query (while respective the SUGGESTION_LIMIT)
+            // Create a part of the selection string for the next query with the
+            // pattern (?, ?, ?)
+            // where the number of comma-separated question marks represent the
+            // number of raw
+            // contact IDs found in the previous query (while respective the
+            // SUGGESTION_LIMIT)
             final StringBuilder rawContactIdSelectionBuilder = new StringBuilder();
             final String[] questionMarks = new String[numSuggestions];
             Arrays.fill(questionMarks, "?");
             rawContactIdSelectionBuilder.append(RawContacts._ID + " IN (")
-                    .append(TextUtils.join(",", questionMarks))
-                    .append(")");
+                    .append(TextUtils.join(",", questionMarks)).append(")");
 
-            // Construct the selection args based on the raw contact IDs we're interested in
+            // Construct the selection args based on the raw contact IDs we're
+            // interested in
             // (as well as the photo, email, and phone mimetypes)
             List<String> selectionArgs = new ArrayList<String>();
             selectionArgs.add(Photo.CONTENT_ITEM_TYPE);
@@ -257,48 +353,54 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
                 selectionArgs.add(String.valueOf(rawContactId));
             }
 
-            // Perform a second query to retrieve a photo and possibly a phone number or email
+            // Perform a second query to retrieve a photo and possibly a phone
+            // number or email
             // address for the suggested contact
             Cursor memberDataCursor = mContentResolver.query(
-                    RawContactsEntity.CONTENT_URI, PROJECTION_MEMBER_DATA,
-                    "(" + Data.MIMETYPE + "=? OR " + Data.MIMETYPE + "=? OR " + Data.MIMETYPE +
-                    "=?) AND " + rawContactIdSelectionBuilder.toString(),
+                    RawContactsEntity.CONTENT_URI, PROJECTION_MEMBER_DATA, "("
+                            + Data.MIMETYPE + "=? OR " + Data.MIMETYPE
+                            + "=? OR " + Data.MIMETYPE + "=?) AND "
+                            + rawContactIdSelectionBuilder.toString(),
                     selectionArgs.toArray(new String[0]), null);
 
-            if (memberDataCursor != null) {
-                try {
-                    memberDataCursor.moveToPosition(-1);
-                    while (memberDataCursor.moveToNext()) {
-                        long rawContactId = memberDataCursor.getLong(RAW_CONTACT_ID_COLUMN_INDEX);
-                        SuggestedMember member = suggestionsMap.get(rawContactId);
-                        if (member == null) {
-                            continue;
-                        }
-                        String mimetype = memberDataCursor.getString(MIMETYPE_COLUMN_INDEX);
-                        if (Photo.CONTENT_ITEM_TYPE.equals(mimetype)) {
-                            // Set photo
-                            byte[] bitmapArray = memberDataCursor.getBlob(PHOTO_COLUMN_INDEX);
-                            member.setPhotoByteArray(bitmapArray);
-                        } else if (Email.CONTENT_ITEM_TYPE.equals(mimetype) ||
-                                Phone.CONTENT_ITEM_TYPE.equals(mimetype)) {
-                            // Set at most 1 extra piece of contact info that can be a phone number or
-                            // email
-                            if (!member.hasExtraInfo()) {
-                                String info = memberDataCursor.getString(DATA_COLUMN_INDEX);
-                                member.setExtraInfo(info);
-                            }
+            try {
+                memberDataCursor.moveToPosition(-1);
+                while (memberDataCursor.moveToNext()) {
+                    long rawContactId = memberDataCursor
+                            .getLong(RAW_CONTACT_ID_COLUMN_INDEX);
+                    SuggestedMember member = suggestionsMap.get(rawContactId);
+                    if (member == null) {
+                        continue;
+                    }
+                    String mimetype = memberDataCursor
+                            .getString(MIMETYPE_COLUMN_INDEX);
+                    if (Photo.CONTENT_ITEM_TYPE.equals(mimetype)) {
+                        // Set photo
+                        byte[] bitmapArray = memberDataCursor
+                                .getBlob(PHOTO_COLUMN_INDEX);
+                        member.setPhotoByteArray(bitmapArray);
+                    } else if (Email.CONTENT_ITEM_TYPE.equals(mimetype)
+                            || Phone.CONTENT_ITEM_TYPE.equals(mimetype)) {
+                        // Set at most 1 extra piece of contact info that can be
+                        // a phone number or
+                        // email
+                        if (!member.hasExtraInfo()) {
+                            String info = memberDataCursor
+                                    .getString(DATA_COLUMN_INDEX);
+                            member.setExtraInfo(info);
                         }
                     }
-                } finally {
-                    memberDataCursor.close();
                 }
+            } finally {
+                memberDataCursor.close();
             }
             results.values = suggestionsList;
             return results;
         }
 
         @Override
-        protected void publishResults(CharSequence constraint, FilterResults results) {
+        protected void publishResults(CharSequence constraint,
+                FilterResults results) {
             @SuppressWarnings("unchecked")
             List<SuggestedMember> suggestionsList = (List<SuggestedMember>) results.values;
             if (suggestionsList == null) {
@@ -317,10 +419,35 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
         }
     }
 
+    public boolean hasPhoneNumber(long rawContactId) {
+
+        ArrayList<String> argsData = new ArrayList<String>();
+        argsData.add(Phone.CONTENT_ITEM_TYPE);
+        Cursor memberPhoneCursor = null;
+        try {
+            memberPhoneCursor = mContentResolver.query(
+                    RawContactsEntity.CONTENT_URI, PROJECTION_MEMBER_PHONE, "("
+                            + Data.MIMETYPE + "=?  ) AND ( " + RawContacts._ID
+                            + " = " + rawContactId + " ) ",
+                    argsData.toArray(new String[0]), null);
+
+            memberPhoneCursor.move(-1);
+            while (memberPhoneCursor.moveToNext()) {
+                return true;
+            }
+        } finally {
+            memberPhoneCursor.close();
+        }
+
+        return false;
+    }
+
     /**
-     * This represents a single contact that is a suggestion for the user to add to a group.
+     * This represents a single contact that is a suggestion for the user to add
+     * to a group.
      */
-    // TODO: Merge this with the {@link GroupEditorFragment} Member class once we can find the
+    // TODO: Merge this with the {@link GroupEditorFragment} Member class once
+    // we can find the
     // lookup URI for this contact using the autocomplete filter queries
     public class SuggestedMember {
 
@@ -330,7 +457,8 @@ public class SuggestedMemberListAdapter extends ArrayAdapter<SuggestedMember> {
         private String mExtraInfo;
         private byte[] mPhoto;
 
-        public SuggestedMember(long rawContactId, String displayName, long contactId) {
+        public SuggestedMember(long rawContactId, String displayName,
+                long contactId) {
             mRawContactId = rawContactId;
             mDisplayName = displayName;
             mContactId = contactId;

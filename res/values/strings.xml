@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (c) 2016, The Linux Foundation. All rights reserved. Not a Contribution.
+-->
 <!-- Copyright (C) 2006 The Android Open Source Project
      copyright (C) 2013-2014 The Linux Foundation. All Rights Reserved.
      Not a Contribution.
@@ -899,4 +902,75 @@
     <string name="select_email_phone"> Select email(s)/phone(s) </string>
     <string name="description_add_contact">Add contact</string>
     <string name="user_profile_contacts_list_header" msgid="9154761216179882405">Me</string>
+    <plurals name="group_list_num_group_in_main_group">
+        <item quantity="one"><xliff:g id="count">%1$d</xliff:g> group</item>
+        <item quantity="other"><xliff:g id="count">%1$d</xliff:g> groups</item>
+    </plurals>
+    <plurals name="num_group_in_main_group">
+        <item quantity="one"><xliff:g id="count">%1$d</xliff:g> group from <xliff:g id="account_type">%2$s</xliff:g></item>
+        <item quantity="other"><xliff:g id="count">%1$d</xliff:g> groups from <xliff:g id="account_type">%2$s</xliff:g></item>
+    </plurals>
+    <string name="no_groups_share">No groups to share!</string>
+    <string name="no_groups_delete">No groups to delete!</string>
+    <string name="share_contacts_via">Share contact(s) via</string>
+    <string name="label_phone">Phone</string>
+    <string name="menu_add">Add</string>
+    <string name="menu_deselect_all">Deselect all</string>
+    <string name="label_phone">Phone</string>
+    <string name="menu_add">Add</string>
+    <string name="menu_deselect_all">Deselect all</string>
+    <string name="menu_messageGroups">Message group</string>
+    <string name="menu_shareGroups">Share group</string>
+    <string name="menu_emailGroups">Send email</string>
+    <string name="no_data_share">Cannot share! No valid contact(s). </string>
+    <string name="no_members_to_add"> No members to add</string>
+    <string name="no_data_email">Cannot send email! No valid contact(s). </string>
+    <string name="selected">"Selected"</string>
+    <string name="loading_contacts">Loading contacts ...</string>
+    <string name="max_limit_reached">Max limit reached</string>
+    <string name="members"> MEMBERS </string>
+    <string name="sync_prof_menu_save">Save</string>
+    <string name="add_member_to_group">Select and Add contacts</string>
+    <string name="removeMember"> Remove member from the group ?</string>
+    <string name="menu_delete_all">Remove all members</string>
+    <!-- used to show delete option for groups -->
+    <string name="menu_deleteGroups">Delete</string>
+    <string name="menu_sendMessage">Message group</string>
+    <string name="menu_shareGroup">Share group</string>
+    <string name="device_busy">Contacts is busy now,please try later</string>
+    <string name="no_address_present">No valid address found.</string>
+    <string name="no_group_name">Group Name Not Entered</string>
+    <string name="set_group_ring_tone">Ringtone sucessfully set for %s group</string>
+    <string name="duplicate_group_name">Group name already exists</string>
+    <string name="system_group_name">Name of a group cannot be same as that of a System group</string>
+    <!-- message on groups deletion dialog -->
+    <string name="groups_delete_title">Delete group</string>
+    <!-- OK confirmation message dialog -->
+    <string name="common_btn_ok">OK</string>
+    <!-- Cancel message for groups deletion dialog -->
+    <string name="common_btn_cancel">Cancel</string>
+    <!-- message when user try to delete read only groups -->
+    <string name="read_only_group_deletion_message">Read only group(s) cannot be deleted.</string>
+    <string name="groups_delete_confirmation">Delete %1$d group?\n(Contacts themselves will not be deleted)</string>
+    <!-- Show it on toast if provider not enabled . -->
+    <string name="activity_not_found">Activity Not Found</string>
+    <string name="saving_group"> Saving group....</string>
+    <string name="group_cancel">Group Creation Cancelled</string>
+    <string name="adding_contacts"> Adding selected contacts....</string>
+    <string name="removeAllMembers"> Are you sure you want to delete all members of the group?</string>
+    <string name="removeAllMembersTitle"> Delete all members </string>
+    <string name="removeMemberTitle"> Remove member </string>
+    <plurals name="numberOfGroups">
+        <item quantity="one">1 group</item>
+        <item quantity="other">%d groups</item>
+    </plurals>
+    <plurals name="numberOfMembers">
+        <item quantity="one">1 Member</item>
+        <item quantity="other">%d Members</item>
+    </plurals>
+
+    <string name="group_max_recipient_limit_reached"> Cannot add this group!
+        You will exceed the maximum size limit: <xliff:g id="count">%d</xliff:g> . </string>
+    <string name="description_add_contact">Add contact</string>
+    <string name="no_data_message">Cannot send message! No valid contact(s).</string>
 </resources>

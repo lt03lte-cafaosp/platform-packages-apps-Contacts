@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Not a Contribution
+ */
+/*
  * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,6 +88,7 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListPopupWindow;
 import android.widget.Toast;
+import android.accounts.Account;
 
 import com.android.contacts.ContactSaveService;
 import com.android.contacts.ContactsActivity;
@@ -650,7 +655,6 @@ public class PeopleActivity extends ContactsActivity
                 Group group = new Group();
                 group.setTitle(name);
                 group.save(getContentResolver());
-                mGroupsFragment.updateGroupData();
             };
         }).show();
     }
@@ -1749,11 +1753,7 @@ public class PeopleActivity extends ContactsActivity
                 return true;
             }
             case R.id.menu_add_group: {
-                if (isLocalGroupsShown) {
-                    showAddLocalGroupDialog();
-                } else {
-                    createNewGroupWithAccountDisambiguation();
-                }
+                createNewGroup();
                 return true;
             }
             // QRD enhancement: multi contact delete
@@ -1816,7 +1816,6 @@ public class PeopleActivity extends ContactsActivity
             case R.id.menu_switch_group: {
                 isLocalGroupsShown = !isLocalGroupsShown;
                 updateGroupsMenu();
-                mGroupsFragment.updateGroupData();
                 return true;
             }
             case R.id.menu_cloud: {
@@ -2029,13 +2028,6 @@ public class PeopleActivity extends ContactsActivity
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         // TODO move to the fragment
         switch (keyCode) {
-//            case KeyEvent.KEYCODE_CALL: {
-//                if (callSelection()) {
-//                    return true;
-//                }
-//                break;
-//            }
-
             case KeyEvent.KEYCODE_DEL: {
                 if (deleteSelection()) {
                     return true;
@@ -2072,17 +2064,6 @@ public class PeopleActivity extends ContactsActivity
     }
 
     private boolean deleteSelection() {
-        // TODO move to the fragment
-//        if (mActionCode == ContactsRequest.ACTION_DEFAULT) {
-//            final int position = mListView.getSelectedItemPosition();
-//            if (position != ListView.INVALID_POSITION) {
-//                Uri contactUri = getContactUri(position);
-//                if (contactUri != null) {
-//                    doContactDelete(contactUri);
-//                    return true;
-//                }
-//            }
-//        }
         return false;
     }
 

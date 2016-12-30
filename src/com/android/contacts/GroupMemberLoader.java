@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Not a Contribution
+ */
+/*
  * Copyright (C) 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +16,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ */
+/*
+ * BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+ * Copyright (c) 2016 All rights reserved.
+ *
+ * The source code contained or described herein and all documents
+ * related to the source code ("Material") are owned by BORQS Software
+ * Solutions Pvt Ltd. No part of the Material may be used,copied,
+ * reproduced, modified, published, uploaded,posted, transmitted,
+ * distributed, or disclosed in any way without BORQS Software
+ * Solutions Pvt Ltd. prior written permission.
+ *
+ * No license under any patent, copyright, trade secret or other
+ * intellectual property right is granted to or conferred upon you
+ * by disclosure or delivery of the Materials, either expressly, by
+ * implication, inducement, estoppel or otherwise. Any license
+ * under such intellectual property rights must be express and
+ * approved by BORQS Software Solutions Pvt Ltd. in writing.
+ *
  */
 package com.android.contacts;
 
@@ -41,6 +64,7 @@ public final class GroupMemberLoader extends CursorLoader {
             Data.DISPLAY_NAME_PRIMARY,              // 2
             Data.PHOTO_URI,                         // 3
             Data.LOOKUP_KEY,                        // 4
+            Data.PHOTO_ID,                          // 5
         };
 
         public static final int CONTACT_ID                   = 0;
@@ -48,6 +72,7 @@ public final class GroupMemberLoader extends CursorLoader {
         public static final int CONTACT_DISPLAY_NAME_PRIMARY = 2;
         public static final int CONTACT_PHOTO_URI            = 3;
         public static final int CONTACT_LOOKUP_KEY           = 4;
+        public static final int CONTACT_PHOTO_ID             = 5;
     }
 
     public static class GroupDetailQuery {

@@ -42,6 +42,7 @@ import android.content.Context;
 import android.content.CursorLoader;
 import android.net.Uri;
 import android.provider.ContactsContract.Groups;
+import com.android.contacts.util.Constants;
 
 /**
  * Group loader for the group list that includes details such as the number of contacts per group
@@ -49,31 +50,32 @@ import android.provider.ContactsContract.Groups;
  * group names are in alphabetical order. Note that the list excludes default, favorite, and deleted
  * groups.
  */
-public final class GroupListLoader extends CursorLoader {
+public final class GroupListLoaderPicker extends CursorLoader {
 
-    private final static String[] COLUMNS = new String[] {
-        Groups.ACCOUNT_NAME,
-        Groups.ACCOUNT_TYPE,
-        Groups.DATA_SET,
-        Groups._ID,
-        Groups.TITLE,
-        Groups.SUMMARY_COUNT,
-    };
+    // The Content URI returns data in this ORDER. So be sure before you change
+    // this.
+    // This is a custom CONTETN URI used to increase performance for pickers
+    private final static String[] COLUMNS = new String[] { Groups.ACCOUNT_NAME,
+            Groups.ACCOUNT_TYPE, Groups.DATA_SET, Groups._ID, Groups.TITLE,
+            Groups.SUMMARY_COUNT, Constants.EMAIL_COUNT,Constants.PHONE_EMAIL_COUNT };
 
+    // Caution: These constants have been defined but the values returned by the
+    // query.
+    // Do not change them if the query does not change.
     public final static int ACCOUNT_NAME = 0;
     public final static int ACCOUNT_TYPE = 1;
     public final static int DATA_SET = 2;
     public final static int GROUP_ID = 3;
     public final static int TITLE = 4;
-    public final static int MEMBER_COUNT = 5;
+    public final static int FILLER_COUNT = 5;
+    public final static int EMAIL_COUNT = 6;
+    public final static int EMAIL_PHONE_COUNT = 7;
 
-    private static final Uri GROUP_LIST_URI = Groups.CONTENT_SUMMARY_URI;
+    private static final Uri GROUP_LIST_URI_SUMMARY = Uri
+            .parse(Constants.GROUP_SUMMARY_PICKER_URI);
 
-    public GroupListLoader(Context context) {
-        super(context, GROUP_LIST_URI, COLUMNS, Groups.ACCOUNT_TYPE + " NOT NULL AND "
-                + Groups.ACCOUNT_NAME + " NOT NULL AND " + Groups.AUTO_ADD + "=0 AND " +
-                Groups.FAVORITES + "=0 AND " + Groups.DELETED + "=0", null,
-                Groups.ACCOUNT_TYPE + ", " + Groups.ACCOUNT_NAME + ", " + Groups.DATA_SET + ", " +
-                Groups.TITLE + " COLLATE LOCALIZED ASC");
+    public GroupListLoaderPicker(Context context) {
+        super(context, GROUP_LIST_URI_SUMMARY, null, null, null, null);
     }
+
 }

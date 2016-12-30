@@ -2384,7 +2384,7 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         Intent intent = new Intent("com.borqs.videocall.action.LaunchVideoCallScreen");
         intent.addCategory(Intent.CATEGORY_DEFAULT);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                                | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
         intent.putExtra("IsCallOrAnswer", true); // true as a
         // call,
         // while
@@ -2397,7 +2397,6 @@ public class ContactDetailFragment extends Fragment implements FragmentKeyListen
         intent.putExtra("call_number_key", number);
         return intent;
     }
-    //add for csvt end
 
     //add for ims vt entry
     private Intent getIMSVTCallIntent(String number) {

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (c) 2016, The Linux Foundation. All rights reserved. Not a Contribution.
+-->
 <!-- Copyright (C) 2011 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +16,6 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-
 <!--
     Note: Because this item layout contains the header too, we don't want to highlight the entire
     thing when pressed or set the activated background to it.  So we disable the default hilighting
@@ -24,22 +26,38 @@
     paddingRight, as the body part should touch the right edge.  Instead we make each child have
     either marginRight or paddingRight.
 -->
+<!--
+  BORQS Software Solutions Pvt Ltd. CONFIDENTIAL
+  Copyright (c) 2016 All rights reserved.
 
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+  The source code contained or described herein and all documents
+  related to the source code ("Material") are owned by BORQS Software
+  Solutions Pvt Ltd. No part of the Material may be used,copied,
+  reproduced, modified, published, uploaded,posted, transmitted,
+  distributed, or disclosed in any way without BORQS Software
+  Solutions Pvt Ltd. prior written permission.
+
+  No license under any patent, copyright, trade secret or other
+  intellectual property right is granted to or conferred upon you
+  by disclosure or delivery of the Materials, either expressly, by
+  implication, inducement, estoppel or otherwise. Any license
+  under such intellectual property rights must be express and
+  approved by BORQS Software Solutions Pvt Ltd. in writing.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingLeft="?attr/list_item_padding_left"
-    android:paddingStart="?attr/list_item_padding_left"
-    android:minHeight="@dimen/detail_min_line_item_height" >
+    android:minHeight="@dimen/detail_min_line_item_height"
+    android:orientation="vertical"
+    android:paddingLeft="16dp"
+    android:paddingStart="16dp" >
 
     <View
         android:id="@+id/divider"
         android:layout_width="match_parent"
         android:layout_height="1dip"
-        android:layout_marginRight="?attr/list_item_padding_right"
         android:layout_marginEnd="?attr/list_item_padding_right"
+        android:layout_marginRight="?attr/list_item_padding_right"
         android:background="@color/secondary_header_separator_color" />
 
     <include
@@ -47,34 +65,80 @@
         layout="@layout/group_browse_list_account_header"
         android:visibility="gone" />
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="8dip"
+        android:background="@drawable/group_list_item_background"
+        android:duplicateParentState="true"
+        android:orientation="vertical"
+        android:paddingBottom="8dip"
         android:paddingLeft="8dip"
         android:paddingStart="8dip"
-        android:paddingBottom="8dip"
-        android:orientation="vertical"
-        android:duplicateParentState="true"
-        android:background="@drawable/group_list_item_background">
+        android:paddingTop="8dip" >
 
-        <TextView
-            android:id="@+id/label"
-            android:layout_height="wrap_content"
+        <LinearLayout
+            android:id="@+id/actions"
             android:layout_width="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:ellipsize="end"
-            android:singleLine="true" />
-
-        <TextView
-            android:id="@+id/count"
             android:layout_height="wrap_content"
-            android:layout_width="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="?android:attr/textColorSecondary"
-            android:ellipsize="end"
-            android:singleLine="true" />
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="?attr/list_item_padding_right"
+            android:orientation="horizontal" >
 
-    </LinearLayout>
+            <ImageView
+                android:id="@+id/sendMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:layout_marginRight="?attr/list_item_padding_right"
+                android:clickable="true"
+                android:paddingLeft="10dip"
+                android:paddingRight="10dip" />
+
+            <View
+                android:id="@+id/divider2"
+                android:layout_width="1dip"
+                android:layout_height="32dip"
+                android:background="@android:color/holo_blue_light" />
+
+            <ImageView
+                android:id="@+id/share"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:layout_gravity="right"
+                android:layout_marginRight="?attr/list_item_padding_right"
+                android:clickable="true"
+                android:paddingLeft="10dip"
+                android:paddingRight="10dip"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/details"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="?attr/list_item_padding_right"
+            android:layout_toLeftOf="@+id/actions"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <TextView
+                android:id="@+id/count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="?android:attr/textColorSecondary" />
+        </LinearLayout>
+    </RelativeLayout>
+
 </LinearLayout>
-

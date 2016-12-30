@@ -66,7 +66,7 @@ public class AccountPromptUtils {
         // TODO: Remove the filtering of account types once there is an API in
         // {@link AccountManager} to show a similar account prompt
         // (see {@link AccountManager#addAccount()} in {@link #launchAccountPrompt()}
-        // for any type of account. Bug: 5375902
+        // for any type of account.
         AuthenticatorDescription[] allTypes =
                 AccountManager.get(context).getAuthenticatorTypes();
         for (AuthenticatorDescription authenticatorType : allTypes) {
