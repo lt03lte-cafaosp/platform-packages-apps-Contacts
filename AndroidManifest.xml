@@ -16,10 +16,10 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.contacts"
-    android:versionCode="10417"
-    android:versionName="1.4.17">
+    android:versionCode="10422"
+    android:versionName="1.4.22">
 
-    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="24" />
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="25" />
     <original-package android:name="com.android.contacts" />
 
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -51,16 +51,20 @@
     <uses-permission android:name="com.android.voicemail.permission.READ_VOICEMAIL" />
     <!-- Following used for Contact metadata syncing -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <!-- For enrich call -->
+    <uses-permission android:name="com.qualcomm.qti.internal.permission.ACCESS_ENRICHED_CALL" />
 
     <application
         android:name="com.android.contacts.ContactsApplication"
         android:label="@string/applicationLabel"
         android:icon="@mipmap/ic_contacts_launcher"
+        android:roundIcon="@mipmap/ic_contacts_launcher"
         android:taskAffinity="android.task.contacts"
         android:hardwareAccelerated="true"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
     >
+        <uses-library android:name="org.codeaurora.rcscommon" android:required="false" />
 
         <!-- The main Contacts activity with the contact list, favorites, and groups. -->
         <activity android:name=".activities.PeopleActivity"
@@ -140,6 +144,11 @@
             <meta-data android:name="android.app.searchable"
                 android:resource="@xml/searchable"
             />
+
+           <meta-data android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts"
+            />
+
         </activity>
 
         <activity android:name=".activities.ContactSelectionActivity"

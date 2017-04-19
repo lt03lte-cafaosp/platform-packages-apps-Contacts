@@ -23,10 +23,8 @@ support_library_root_dir := prebuilts/sdk/current/support
 endif
 
 src_dirs := src $(contacts_common_dir)/src $(phone_common_dir)/src
-res_dirs := res $(contacts_common_dir)/res $(phone_common_dir)/res
+res_dirs := res res-aosp $(contacts_common_dir)/res $(contacts_common_dir)/icons/res $(phone_common_dir)/res
 asset_dirs := $(contacts_common_dir)/assets
-
-src_dirs += src-N $(contacts_common_dir)/src-N $(phone_common_dir)/src-N
 
 LOCAL_SRC_FILES := $(call all-java-files-under, $(src_dirs))
 LOCAL_SRC_FILES += src/org/codeaurora/presenceserv/IPresenceService.aidl \
@@ -56,7 +54,7 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 LOCAL_PACKAGE_NAME := Contacts
 LOCAL_CERTIFICATE := shared
 LOCAL_PRIVILEGED_MODULE := true
-
+LOCAL_JAVA_LIBRARIES := telephony-common rcscommon
 LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 
 LOCAL_SDK_VERSION := current
